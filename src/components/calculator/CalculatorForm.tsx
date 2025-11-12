@@ -5,8 +5,7 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useUser, useFirestore } from "@/firebase";
-import { doc, serverTimestamp, collection, addDoc, updateDoc } from 'firebase/firestore';
-import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc, serverTimestamp, collection, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +18,7 @@ import { formatCurrency } from "@/lib/utils";
 import { CostPieChart } from "./CostPieChart";
 import { Switch } from "@/components/ui/switch";
 import { ProfitAIAnalyst } from "./ProfitAIAnalyst";
+import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
@@ -124,7 +124,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     
     setIsSubmitting(true);
     
-    const calculationData = {
+    const calculationData: Omit<Calculation, 'id' | 'createdAt' | 'updatedAt'> = {
         productName: data.productName,
         materials: data.materials,
         laborCost: data.laborCost,
@@ -133,32 +133,53 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         margin: data.margin,
         totalHPP: result.totalHPP,
         suggestedPrice: result.suggestedPrice,
-        isPublic: data.sharePublicly,
+        isPublic: data.sharePublicly || false,
         userId: user.uid,
     };
 
     try {
-        if (existingCalculation) {
-            const docRef = doc(firestore, 'users', user.uid, 'calculations', existingCalculation.id);
-            updateDocumentNonBlocking(docRef, { ...calculationData, updatedAt: serverTimestamp() });
-        } else {
-            const collectionRef = collection(firestore, 'users', user.uid, 'calculations');
-            addDocumentNonBlocking(collectionRef, { ...calculationData, createdAt: serverTimestamp() });
-        }
+        const batch = writeBatch(firestore);
+
+        // Main calculation document
+        const calcRef = existingCalculation
+            ? doc(firestore, 'users', user.uid, 'calculations', existingCalculation.id)
+            : doc(collection(firestore, 'users', user.uid, 'calculations'));
+
+        const dataToSave = existingCalculation
+            ? { ...calculationData, updatedAt: serverTimestamp() }
+            : { ...calculationData, createdAt: serverTimestamp() };
+
+        batch.set(calcRef, dataToSave, { merge: true });
+
+        // Public calculation document
+        const publicCalcId = existingCalculation ? existingCalculation.id : calcRef.id;
+        const publicCalcRef = doc(firestore, 'public_calculations', publicCalcId);
 
         if (data.sharePublicly) {
-            const publicData: any = { ...calculationData, productName: data.productName, userName: user.displayName || 'Anonymous' };
+            const publicData = {
+                ...calculationData,
+                productName: data.productName,
+                userName: user.displayName || 'Anonymous',
+                createdAt: existingCalculation?.createdAt || serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            };
             delete publicData.isPublic;
-            
-            const publicCollectionRef = collection(firestore, 'public_calculations');
-            addDocumentNonBlocking(publicCollectionRef, {...publicData, createdAt: serverTimestamp()});
+            delete publicData.userId;
+
+            batch.set(publicCalcRef, publicData, { merge: true });
+        } else if (existingCalculation && existingCalculation.isPublic) {
+            // If it was public before, but now it's not, delete it.
+            batch.delete(publicCalcRef);
         }
+
+        await batch.commit();
         
         const randomToast = motivationalToasts[Math.floor(Math.random() * motivationalToasts.length)];
         toast(randomToast);
         router.push("/dashboard");
 
     } catch (e) {
+        console.error(e);
         toast({ title: "Gagal Menyimpan", description: "Ada masalah saat menyimpan. Coba lagi.", variant: "destructive" });
     } finally {
         setIsSubmitting(false);

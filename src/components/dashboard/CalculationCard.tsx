@@ -1,6 +1,6 @@
 "use client";
 
-import type { Calculation } from "@/lib/firebase/firestore";
+import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import {
   Card,
   CardContent,

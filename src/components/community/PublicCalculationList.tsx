@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, Timestamp } from 'firebase/firestore';
 import { Loader2, ServerCrash, Users } from "lucide-react";
@@ -26,7 +25,7 @@ export function PublicCalculationList() {
 
     const publicCalculationsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collection(firestore, 'publicCalculations'), orderBy('createdAt', 'desc'));
+        return query(collection(firestore, 'public_calculations'), orderBy('createdAt', 'desc'));
     }, [firestore]);
 
     const { data: calculations, isLoading, error } = useCollection<PublicCalculation>(publicCalculationsQuery);
@@ -74,7 +73,7 @@ export function PublicCalculationList() {
 }
 
 function PublicCalculationCard({ calculation }: { calculation: PublicCalculation }) {
-    const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const getInitials = (name: string) => (name || 'A').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     
     return (
         <Card className="flex flex-col h-full bg-card/50 dark:bg-card/20">
@@ -87,7 +86,7 @@ function PublicCalculationCard({ calculation }: { calculation: PublicCalculation
                         </AvatarFallback>
                     </Avatar>
                     <CardDescription>
-                        oleh {calculation.userName}
+                        oleh {calculation.userName || 'Anonim'}
                     </CardDescription>
                 </div>
             </CardHeader>

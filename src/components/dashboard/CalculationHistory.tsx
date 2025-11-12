@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, doc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, doc, deleteDoc, Timestamp, writeBatch } from 'firebase/firestore';
 import { CalculationCard } from "./CalculationCard";
 import { Loader2, ServerCrash } from "lucide-react";
 import { Button } from "../ui/button";
@@ -31,6 +31,7 @@ export interface Calculation {
   suggestedPrice: number;
   margin: number;
   createdAt: Timestamp;
+  updatedAt?: Timestamp;
   userId: string;
   isPublic?: boolean;
 }
@@ -60,14 +61,33 @@ export function CalculationHistory() {
     if (!user || !selectedCalcId || !firestore) return;
 
     setIsDeleting(true);
-    const docRef = doc(firestore, 'users', user.uid, 'calculations', selectedCalcId);
     
-    deleteDocumentNonBlocking(docRef);
+    try {
+        const batch = writeBatch(firestore);
+        
+        // Reference to the user's calculation
+        const userCalcRef = doc(firestore, 'users', user.uid, 'calculations', selectedCalcId);
+        batch.delete(userCalcRef);
 
-    toast({
-      title: "Berhasil Dihapus",
-      description: "Perhitunganmu sudah dihapus dari riwayat.",
-    });
+        // Reference to the public calculation (it might exist)
+        const publicCalcRef = doc(firestore, 'public_calculations', selectedCalcId);
+        batch.delete(publicCalcRef); // It's safe to delete even if it doesn't exist
+
+        await batch.commit();
+
+        toast({
+          title: "Berhasil Dihapus",
+          description: "Perhitunganmu sudah dihapus dari riwayat.",
+        });
+    } catch (e) {
+        console.error(e);
+        toast({
+            title: "Gagal Menghapus",
+            description: "Terjadi masalah saat menghapus perhitungan.",
+            variant: "destructive",
+        });
+    }
+
 
     setIsDeleting(false);
     setIsDeleteDialogOpen(false);
@@ -124,7 +144,7 @@ export function CalculationHistory() {
           <AlertDialogHeader>
             <AlertDialogTitle>Yakin mau hapus perhitungan ini?</AlertDialogTitle>
             <AlertDialogDescription>
-              Data yang sudah dihapus nggak bisa dikembalikan lagi lho.
+              Data yang sudah dihapus nggak bisa dikembalikan lagi lho. Ini juga akan menghapusnya dari halaman komunitas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
