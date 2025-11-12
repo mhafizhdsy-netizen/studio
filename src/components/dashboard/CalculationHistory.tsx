@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -34,6 +35,7 @@ export interface Calculation {
   updatedAt?: Timestamp;
   userId: string;
   isPublic?: boolean;
+  productQuantity?: number;
 }
 
 export function CalculationHistory() {
@@ -159,3 +161,5 @@ export function CalculationHistory() {
     </>
   );
 }
+
+    

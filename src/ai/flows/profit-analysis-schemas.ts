@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Schemas and types for the profit analysis flow.
  *
@@ -24,6 +25,7 @@ export const ProfitAnalysisInputSchema = z.object({
   currentMargin: z.number(),
   targetMargin: z.number(),
   totalHPP: z.number(),
+  productQuantity: z.number(),
 });
 export type ProfitAnalysisInput = z.infer<typeof ProfitAnalysisInputSchema>;
 
@@ -52,3 +54,5 @@ export const ProfitAnalysisOutputSchema = z.object({
   }),
 });
 export type ProfitAnalysisOutput = z.infer<typeof ProfitAnalysisOutputSchema>;
+
+    

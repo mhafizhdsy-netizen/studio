@@ -40,14 +40,17 @@ export function PublicCalculationDetailDialog({
     suggestedPrice,
     margin,
     userName,
+    productQuantity,
   } = calculation;
 
   const totalMaterialCost = (materials || []).reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
+  const laborCostPerProduct = productQuantity ? laborCost / productQuantity : laborCost;
+  const overheadPerProduct = productQuantity ? overhead / productQuantity : overhead;
 
   const pieChartData = [
     { name: "Bahan Baku", value: totalMaterialCost, fill: "hsl(var(--chart-1))" },
-    { name: "Tenaga Kerja", value: laborCost, fill: "hsl(var(--chart-2))" },
-    { name: "Overhead", value: overhead, fill: "hsl(var(--chart-3))" },
+    { name: "Tenaga Kerja", value: laborCostPerProduct, fill: "hsl(var(--chart-2))" },
+    { name: "Overhead", value: overheadPerProduct, fill: "hsl(var(--chart-3))" },
     { name: "Kemasan", value: packaging, fill: "hsl(var(--chart-4))" },
   ].filter((item) => item.value > 0);
 
@@ -74,18 +77,18 @@ export function PublicCalculationDetailDialog({
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-semibold font-headline">Rincian Biaya</h3>
+              <h3 className="font-semibold font-headline">Rincian Biaya per Produk</h3>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">Bahan Baku</span>
                 <span className="font-semibold">{formatCurrency(totalMaterialCost)}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">Tenaga Kerja</span>
-                <span className="font-semibold">{formatCurrency(laborCost)}</span>
+                <span className="font-semibold">{formatCurrency(laborCostPerProduct)}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">Overhead</span>
-                <span className="font-semibold">{formatCurrency(overhead)}</span>
+                <span className="font-semibold">{formatCurrency(overheadPerProduct)}</span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">Kemasan</span>
@@ -114,3 +117,5 @@ export function PublicCalculationDetailDialog({
     </Dialog>
   );
 }
+
+    

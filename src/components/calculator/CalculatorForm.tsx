@@ -36,6 +36,7 @@ const formSchema = z.object({
   packaging: z.coerce.number().min(0, "Biaya harus positif"),
   margin: z.coerce.number().min(0, "Margin harus positif").max(1000, "Margin terlalu besar"),
   sharePublicly: z.boolean().optional(),
+  productQuantity: z.coerce.number().min(1, "Jumlah produk minimal 1"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -77,6 +78,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       packaging: 0,
       margin: 30,
       sharePublicly: false,
+      productQuantity: 1,
     },
   });
 
@@ -101,6 +103,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         packaging: Number(existingCalculation.packaging),
         margin: Number(existingCalculation.margin),
         sharePublicly: existingCalculation.isPublic || false,
+        productQuantity: existingCalculation.productQuantity || 1,
       });
       calculate(form.getValues());
     }
@@ -108,14 +111,17 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   
   const calculate = (data: FormData) => {
     const totalMaterialCost = data.materials.reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
-    const totalHPP = totalMaterialCost + data.laborCost + data.overhead + data.packaging;
+    const laborCostPerProduct = data.laborCost / data.productQuantity;
+    const overheadPerProduct = data.overhead / data.productQuantity;
+    
+    const totalHPP = totalMaterialCost + laborCostPerProduct + overheadPerProduct + data.packaging;
     const profit = totalHPP * (data.margin / 100);
     const suggestedPrice = totalHPP + profit;
 
     const pieChartData = [
       { name: "Bahan Baku", value: totalMaterialCost, fill: "hsl(var(--chart-1))" },
-      { name: "Tenaga Kerja", value: data.laborCost, fill: "hsl(var(--chart-2))" },
-      { name: "Overhead", value: data.overhead, fill: "hsl(var(--chart-3))" },
+      { name: "Tenaga Kerja", value: laborCostPerProduct, fill: "hsl(var(--chart-2))" },
+      { name: "Overhead", value: overheadPerProduct, fill: "hsl(var(--chart-3))" },
       { name: "Kemasan", value: data.packaging, fill: "hsl(var(--chart-4))" },
     ].filter(item => item.value > 0);
 
@@ -144,6 +150,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         suggestedPrice: result.suggestedPrice,
         isPublic: data.sharePublicly || false,
         userId: user.uid,
+        productQuantity: data.productQuantity,
     };
 
     const batch = writeBatch(firestore);
@@ -210,10 +217,17 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
             <CardHeader>
               <CardTitle className="font-headline">Info Produk</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Label htmlFor="productName">Nama Produk</Label>
-              <Input id="productName" placeholder="Contoh: Kaos Polos 'Cuan Series'" {...form.register("productName")} />
-              {form.formState.errors.productName && <p className="text-sm text-destructive mt-1">{form.formState.errors.productName.message}</p>}
+            <CardContent className="grid md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="productName">Nama Produk</Label>
+                <Input id="productName" placeholder="Contoh: Kaos Polos 'Cuan Series'" {...form.register("productName")} />
+                {form.formState.errors.productName && <p className="text-sm text-destructive mt-1">{form.formState.errors.productName.message}</p>}
+              </div>
+              <div>
+                <Label htmlFor="productQuantity">Jumlah Produk Dihasilkan</Label>
+                <Input id="productQuantity" type="number" placeholder="cth: 500" {...form.register("productQuantity")} />
+                {form.formState.errors.productQuantity && <p className="text-sm text-destructive mt-1">{form.formState.errors.productQuantity.message}</p>}
+              </div>
             </CardContent>
           </Card>
 
@@ -258,10 +272,12 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                   <div>
                       <Label>Biaya Tenaga Kerja</Label>
                       <Input type="number" placeholder="Rp" {...form.register("laborCost")} />
+                      <p className="text-xs text-muted-foreground mt-1">Gaji perhari ÷ jumlah produk perhari. contoh Rp 100.000 ÷ 500</p>
                   </div>
                   <div>
                       <Label>Biaya Overhead (Listrik, Sewa, dll)</Label>
                       <Input type="number" placeholder="Rp" {...form.register("overhead")} />
+                      <p className="text-xs text-muted-foreground mt-1">(listrik,sewa,dll) ÷ jumlah produksi. contoh Rp 2.000.000 ÷ 200 = Rp 200</p>
                   </div>
                   <div>
                       <Label>Biaya Kemasan & Distribusi</Label>
@@ -304,7 +320,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               <span className="font-semibold">{formatCurrency(result.totalMaterialCost)}</span>
                           </div>
                           <div className="flex justify-between items-center border-b pb-2">
-                              <span className="text-muted-foreground">Total HPP</span>
+                              <span className="text-muted-foreground">Total HPP per Produk</span>
                               <span className="font-bold text-xl">{formatCurrency(result.totalHPP)}</span>
                           </div>
                           <div className="flex justify-between items-center border-b pb-2">
@@ -357,6 +373,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                     overhead: Number(form.getValues("overhead")),
                     packaging: Number(form.getValues("packaging")),
                     margin: Number(form.getValues("margin")),
+                    productQuantity: Number(form.getValues("productQuantity")),
                 }}
                 totalHPP={result.totalHPP}
               />
@@ -373,3 +390,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
+
+    
