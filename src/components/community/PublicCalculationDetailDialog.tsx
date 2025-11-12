@@ -44,14 +44,15 @@ export function PublicCalculationDetailDialog({
   } = calculation;
 
   const totalMaterialCost = (materials || []).reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
-  const laborCostPerProduct = productQuantity ? laborCost / productQuantity : laborCost;
-  const overheadPerProduct = productQuantity ? overhead / productQuantity : overhead;
+  const laborCostPerProduct = productQuantity > 0 ? laborCost / productQuantity : 0;
+  const overheadPerProduct = productQuantity > 0 ? overhead / productQuantity : 0;
+  const packagingPerProduct = packaging || 0;
 
   const pieChartData = [
     { name: "Bahan Baku", value: totalMaterialCost, fill: "hsl(var(--chart-1))" },
     { name: "Tenaga Kerja", value: laborCostPerProduct, fill: "hsl(var(--chart-2))" },
     { name: "Overhead", value: overheadPerProduct, fill: "hsl(var(--chart-3))" },
-    { name: "Kemasan", value: packaging, fill: "hsl(var(--chart-4))" },
+    { name: "Kemasan", value: packagingPerProduct, fill: "hsl(var(--chart-4))" },
   ].filter((item) => item.value > 0);
 
   const getInitials = (name: string) => (name || "A").split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
@@ -92,7 +93,7 @@ export function PublicCalculationDetailDialog({
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">Kemasan</span>
-                <span className="font-semibold">{formatCurrency(packaging)}</span>
+                <span className="font-semibold">{formatCurrency(packagingPerProduct)}</span>
               </div>
             </div>
 
@@ -117,5 +118,3 @@ export function PublicCalculationDetailDialog({
     </Dialog>
   );
 }
-
-    
