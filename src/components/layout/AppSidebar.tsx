@@ -15,18 +15,29 @@ import {
   LayoutDashboard,
   LogOut,
   Users,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      user.getIdTokenResult().then((idTokenResult) => {
+        setIsAdmin(!!idTokenResult.claims.isAdmin);
+      });
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
     if(auth) {
@@ -85,6 +96,19 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          {isAdmin && (
+             <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === '/admin'}
+                >
+                  <Link href="/admin">
+                    <Shield />
+                    Admin
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarSeparator />
