@@ -38,11 +38,11 @@ export function CalculationCard({ calculation, onDelete }: CalculationCardProps)
         <div>
           <CardTitle className="font-headline text-lg truncate">{calculation.productName}</CardTitle>
           <CardDescription>
-            {new Date(calculation.createdAt.seconds * 1000).toLocaleDateString('id-ID', {
+            {calculation.createdAt ? new Date(calculation.createdAt.seconds * 1000).toLocaleDateString('id-ID', {
               day: 'numeric',
               month: 'long',
               year: 'numeric',
-            })}
+            }) : 'No date'}
           </CardDescription>
         </div>
         <DropdownMenu>
