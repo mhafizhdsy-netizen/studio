@@ -36,6 +36,7 @@ export interface Calculation {
   userId: string;
   isPublic?: boolean;
   productQuantity: number;
+  productionTips?: string;
 }
 
 export function CalculationHistory() {

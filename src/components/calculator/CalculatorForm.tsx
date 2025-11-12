@@ -20,6 +20,7 @@ import { CostPieChart } from "./CostPieChart";
 import { Switch } from "@/components/ui/switch";
 import { ProfitAIAnalyst } from "./ProfitAIAnalyst";
 import { ExportDialog } from "./ExportDialog";
+import { Textarea } from "../ui/textarea";
 
 
 const materialSchema = z.object({
@@ -37,6 +38,7 @@ const formSchema = z.object({
   productQuantity: z.coerce.number().min(1, "Jumlah produk minimal 1"),
   margin: z.coerce.number().min(0, "Margin harus positif").max(1000, "Margin terlalu besar"),
   sharePublicly: z.boolean().optional(),
+  productionTips: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -79,6 +81,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       productQuantity: 1,
       margin: 30,
       sharePublicly: false,
+      productionTips: "",
     },
   });
 
@@ -86,6 +89,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     control: form.control,
     name: "materials",
   });
+
+  const watchSharePublicly = form.watch("sharePublicly");
 
   useEffect(() => {
     if (existingCalculation) {
@@ -104,6 +109,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         margin: Number(existingCalculation.margin),
         sharePublicly: existingCalculation.isPublic || false,
         productQuantity: existingCalculation.productQuantity || 1,
+        productionTips: existingCalculation.productionTips || "",
       });
       calculate(form.getValues());
     }
@@ -151,6 +157,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         isPublic: data.sharePublicly || false,
         userId: user.uid,
         productQuantity: data.productQuantity,
+        productionTips: data.productionTips || "",
     };
 
     const batch = writeBatch(firestore);
@@ -344,7 +351,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               <span className="font-extrabold text-2xl text-primary">{formatCurrency(result.suggestedPrice)}</span>
                           </div>
                       </div>
-                      <div className="space-y-2 pt-4 hide-on-print">
+                      <div className="space-y-4 pt-4 hide-on-print">
                           <div className="flex items-center space-x-2">
                               <Controller
                                   control={form.control}
@@ -359,6 +366,19 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               />
                               <Label htmlFor="share-publicly" className="flex items-center gap-2">Bagikan ke Komunitas <Share2 className="h-4 w-4"/></Label>
                           </div>
+                           {watchSharePublicly && (
+                            <div>
+                              <Label htmlFor="productionTips">Tips Produksi (Opsional)</Label>
+                              <Textarea
+                                id="productionTips"
+                                placeholder="Contoh: Gunakan perbandingan 1 teh celup untuk 4-5 gelas es teh..."
+                                {...form.register("productionTips")}
+                              />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Bagikan tips, resep, atau cara produksimu agar bisa jadi inspirasi user lain.
+                              </p>
+                            </div>
+                          )}
                           <Button type="submit" className="w-full font-bold" disabled={isSubmitting}>
                               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                               {existingCalculation ? "Update Perhitungan" : "Simpan Perhitungan"}
@@ -402,6 +422,3 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
-
-    
-    

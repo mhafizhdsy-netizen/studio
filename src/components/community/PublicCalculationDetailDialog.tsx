@@ -14,6 +14,8 @@ import { CostPieChart } from "@/components/calculator/CostPieChart";
 import { type PublicCalculation } from "./PublicCalculationList";
 import { ScrollArea } from "../ui/scroll-area";
 import { Avatar, AvatarFallback } from "../ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Lightbulb } from "lucide-react";
 
 interface PublicCalculationDetailDialogProps {
   calculation: PublicCalculation | null;
@@ -41,6 +43,7 @@ export function PublicCalculationDetailDialog({
     margin,
     userName,
     productQuantity,
+    productionTips,
   } = calculation;
 
   const safeMaterials = materials || [];
@@ -60,7 +63,7 @@ export function PublicCalculationDetailDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl w-full">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl">{productName}</DialogTitle>
             <div className="flex items-center gap-2 pt-1">
@@ -113,6 +116,21 @@ export function PublicCalculationDetailDialog({
                  <Badge>Margin Profit: {margin}%</Badge>
               </div>
             </div>
+
+            {productionTips && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-headline text-lg flex items-center gap-2">
+                    <Lightbulb className="text-primary" />
+                    Tips dari Pembuat
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="whitespace-pre-wrap text-muted-foreground">{productionTips}</p>
+                </CardContent>
+              </Card>
+            )}
+
           </div>
         </ScrollArea>
       </DialogContent>
