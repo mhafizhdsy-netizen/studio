@@ -131,11 +131,11 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     
     const calculationData: Omit<Calculation, 'id' | 'createdAt' | 'updatedAt'> = {
         productName: data.productName,
-        materials: data.materials,
-        laborCost: data.laborCost,
-        overhead: data.overhead,
-        packaging: data.packaging,
-        margin: data.margin,
+        materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty) })),
+        laborCost: Number(data.laborCost),
+        overhead: Number(data.overhead),
+        packaging: Number(data.packaging),
+        margin: Number(data.margin),
         totalHPP: result.totalHPP,
         suggestedPrice: result.suggestedPrice,
         isPublic: data.sharePublicly || false,
@@ -162,15 +162,15 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
         if (data.sharePublicly) {
             const publicData = {
-                ...calculationData,
                 productName: data.productName,
+                totalHPP: result.totalHPP,
+                suggestedPrice: result.suggestedPrice,
+                margin: Number(data.margin),
                 userName: user.displayName || 'Anonymous',
                 createdAt: existingCalculation?.createdAt || serverTimestamp(),
                 updatedAt: serverTimestamp(),
             };
-            delete (publicData as any).isPublic;
-            delete (publicData as any).userId;
-
+            
             batch.set(publicCalcRef, publicData, { merge: true });
         } else if (existingCalculation && existingCalculation.isPublic) {
             // If it was public before, but now it's not, delete it.
@@ -192,153 +192,162 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   }
 
   return (
-    <div className="w-full grid lg:grid-cols-2 gap-8">
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline">Info Produk</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Label htmlFor="productName">Nama Produk</Label>
-            <Input id="productName" placeholder="Contoh: Kaos Polos 'Cuan Series'" {...form.register("productName")} />
-            {form.formState.errors.productName && <p className="text-sm text-destructive mt-1">{form.formState.errors.productName.message}</p>}
-          </CardContent>
-        </Card>
-
-        <Card>
+    <div className="w-full">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="w-full grid lg:grid-cols-2 gap-8">
+        <div className="space-y-6">
+          <Card>
             <CardHeader>
-                <CardTitle className="font-headline">1. Biaya Bahan Baku</CardTitle>
-                <CardDescription>Masukkan semua bahan yang kamu pakai untuk satu produk.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-            {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-2 items-end p-3 rounded-md border">
-                    <div className="flex-grow">
-                        <Label>Nama Bahan</Label>
-                        <Input placeholder="cth: Kain Katun" {...form.register(`materials.${index}.name`)} />
-                    </div>
-                    <div>
-                        <Label>Biaya Satuan</Label>
-                        <Input type="number" placeholder="Rp" {...form.register(`materials.${index}.cost`)} />
-                    </div>
-                    <div>
-                        <Label>Jumlah</Label>
-                        <Input type="number" {...form.register(`materials.${index}.qty`)} />
-                    </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                </div>
-            ))}
-            <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1 })}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Tambah Bahan
-            </Button>
-            {form.formState.errors.materials && <p className="text-sm text-destructive mt-1">{form.formState.errors.materials.message}</p>}
-            </CardContent>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">2. Biaya Lain-lain</CardTitle>
-                <CardDescription>Biaya tambahan untuk setiap produk.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div>
-                    <Label>Biaya Tenaga Kerja</Label>
-                    <Input type="number" placeholder="Rp" {...form.register("laborCost")} />
-                </div>
-                <div>
-                    <Label>Biaya Overhead (Listrik, Sewa, dll)</Label>
-                    <Input type="number" placeholder="Rp" {...form.register("overhead")} />
-                </div>
-                <div>
-                    <Label>Biaya Kemasan & Distribusi</Label>
-                    <Input type="number" placeholder="Rp" {...form.register("packaging")} />
-                </div>
-            </CardContent>
-        </Card>
-        
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">3. Margin Profit</CardTitle>
-                <CardDescription>Tentukan berapa persen keuntungan yang kamu mau.</CardDescription>
+              <CardTitle className="font-headline">Info Produk</CardTitle>
             </CardHeader>
             <CardContent>
-                <Label>Margin (%)</Label>
-                <Input type="number" placeholder="cth: 30" {...form.register("margin")} />
+              <Label htmlFor="productName">Nama Produk</Label>
+              <Input id="productName" placeholder="Contoh: Kaos Polos 'Cuan Series'" {...form.register("productName")} />
+              {form.formState.errors.productName && <p className="text-sm text-destructive mt-1">{form.formState.errors.productName.message}</p>}
             </CardContent>
-        </Card>
-        
-        <Button type="button" onClick={handleCalculate} className="w-full font-bold bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6">
-            <Wand2 className="mr-2 h-5 w-5" /> Hitung HPP
-        </Button>
-      </form>
+          </Card>
 
-      <div className="sticky top-6 space-y-6">
-        <Card className="shadow-lg">
-            <CardHeader>
-                <CardTitle className="font-headline text-2xl flex items-center gap-2"><Sparkles className="text-primary"/>Hasil Perhitunganmu</CardTitle>
-                <CardDescription>Ini dia rincian biaya dan saran harga jual buat produkmu.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-            {result ? (
-                <>
-                    <div className="h-64">
-                       <CostPieChart data={result.pieChartData} />
-                    </div>
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center border-b pb-2">
-                            <span className="text-muted-foreground">Total Biaya Bahan</span>
-                            <span className="font-semibold">{formatCurrency(result.totalMaterialCost)}</span>
-                        </div>
-                        <div className="flex justify-between items-center border-b pb-2">
-                            <span className="text-muted-foreground">Total HPP</span>
-                            <span className="font-bold text-xl">{formatCurrency(result.totalHPP)}</span>
-                        </div>
-                        <div className="flex justify-between items-center border-b pb-2">
-                            <span className="text-muted-foreground">Profit ({form.getValues("margin")}%)</span>
-                            <span className="font-semibold text-green-500">{formatCurrency(result.profit)}</span>
-                        </div>
-                        <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                            <span className="text-primary font-bold text-lg">Saran Harga Jual</span>
-                            <span className="font-extrabold text-2xl text-primary">{formatCurrency(result.suggestedPrice)}</span>
-                        </div>
-                    </div>
-                    <div className="space-y-4 pt-4">
-                        <div className="flex items-center space-x-2">
-                            <Controller
-                                control={form.control}
-                                name="sharePublicly"
-                                render={({ field }) => (
-                                    <Switch
-                                        id="share-publicly"
-                                        checked={field.value}
-                                        onCheckedChange={field.onChange}
-                                    />
-                                )}
-                            />
-                            <Label htmlFor="share-publicly" className="flex items-center gap-2">Bagikan ke Komunitas <Share2 className="h-4 w-4"/></Label>
-                        </div>
-                        <Button type="submit" className="w-full font-bold" disabled={isSubmitting}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {existingCalculation ? "Update Perhitungan" : "Simpan Perhitungan"}
-                        </Button>
-                    </div>
-                </>
-            ) : (
-                <div className="text-center py-20 text-muted-foreground">
-                    <p>Hasil perhitunganmu akan muncul di sini.</p>
-                </div>
+          <Card>
+              <CardHeader>
+                  <CardTitle className="font-headline">1. Biaya Bahan Baku</CardTitle>
+                  <CardDescription>Masukkan semua bahan yang kamu pakai untuk satu produk.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+              {fields.map((field, index) => (
+                  <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-2 items-end p-3 rounded-md border">
+                      <div className="flex-grow">
+                          <Label>Nama Bahan</Label>
+                          <Input placeholder="cth: Kain Katun" {...form.register(`materials.${index}.name`)} />
+                      </div>
+                      <div>
+                          <Label>Biaya Satuan</Label>
+                          <Input type="number" placeholder="Rp" {...form.register(`materials.${index}.cost`)} />
+                      </div>
+                      <div>
+                          <Label>Jumlah</Label>
+                          <Input type="number" {...form.register(`materials.${index}.qty`)} />
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                  </div>
+              ))}
+              <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1 })}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Tambah Bahan
+              </Button>
+              {form.formState.errors.materials && <p className="text-sm text-destructive mt-1">{form.formState.errors.materials.message}</p>}
+              </CardContent>
+          </Card>
+
+          <Card>
+              <CardHeader>
+                  <CardTitle className="font-headline">2. Biaya Lain-lain</CardTitle>
+                  <CardDescription>Biaya tambahan untuk setiap produk.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <div>
+                      <Label>Biaya Tenaga Kerja</Label>
+                      <Input type="number" placeholder="Rp" {...form.register("laborCost")} />
+                  </div>
+                  <div>
+                      <Label>Biaya Overhead (Listrik, Sewa, dll)</Label>
+                      <Input type="number" placeholder="Rp" {...form.register("overhead")} />
+                  </div>
+                  <div>
+                      <Label>Biaya Kemasan & Distribusi</Label>
+                      <Input type="number" placeholder="Rp" {...form.register("packaging")} />
+                  </div>
+              </CardContent>
+          </Card>
+          
+          <Card>
+              <CardHeader>
+                  <CardTitle className="font-headline">3. Margin Profit</CardTitle>
+                  <CardDescription>Tentukan berapa persen keuntungan yang kamu mau.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <Label>Margin (%)</Label>
+                  <Input type="number" placeholder="cth: 30" {...form.register("margin")} />
+              </CardContent>
+          </Card>
+          
+          <Button type="button" onClick={handleCalculate} className="w-full font-bold bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6">
+              <Wand2 className="mr-2 h-5 w-5" /> Hitung HPP
+          </Button>
+        </div>
+
+        <div className="sticky top-6 space-y-6">
+          <Card className="shadow-lg">
+              <CardHeader>
+                  <CardTitle className="font-headline text-2xl flex items-center gap-2"><Sparkles className="text-primary"/>Hasil Perhitunganmu</CardTitle>
+                  <CardDescription>Ini dia rincian biaya dan saran harga jual buat produkmu.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+              {result ? (
+                  <>
+                      <div className="h-64">
+                         <CostPieChart data={result.pieChartData} />
+                      </div>
+                      <div className="space-y-4">
+                          <div className="flex justify-between items-center border-b pb-2">
+                              <span className="text-muted-foreground">Total Biaya Bahan</span>
+                              <span className="font-semibold">{formatCurrency(result.totalMaterialCost)}</span>
+                          </div>
+                          <div className="flex justify-between items-center border-b pb-2">
+                              <span className="text-muted-foreground">Total HPP</span>
+                              <span className="font-bold text-xl">{formatCurrency(result.totalHPP)}</span>
+                          </div>
+                          <div className="flex justify-between items-center border-b pb-2">
+                              <span className="text-muted-foreground">Profit ({form.getValues("margin")}%)</span>
+                              <span className="font-semibold text-green-500">{formatCurrency(result.profit)}</span>
+                          </div>
+                          <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                              <span className="text-primary font-bold text-lg">Saran Harga Jual</span>
+                              <span className="font-extrabold text-2xl text-primary">{formatCurrency(result.suggestedPrice)}</span>
+                          </div>
+                      </div>
+                      <div className="space-y-4 pt-4">
+                          <div className="flex items-center space-x-2">
+                              <Controller
+                                  control={form.control}
+                                  name="sharePublicly"
+                                  render={({ field }) => (
+                                      <Switch
+                                          id="share-publicly"
+                                          checked={field.value}
+                                          onCheckedChange={field.onChange}
+                                      />
+                                  )}
+                              />
+                              <Label htmlFor="share-publicly" className="flex items-center gap-2">Bagikan ke Komunitas <Share2 className="h-4 w-4"/></Label>
+                          </div>
+                          <Button type="submit" className="w-full font-bold" disabled={isSubmitting}>
+                              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              {existingCalculation ? "Update Perhitungan" : "Simpan Perhitungan"}
+                          </Button>
+                      </div>
+                  </>
+              ) : (
+                  <div className="text-center py-20 text-muted-foreground">
+                      <p>Hasil perhitunganmu akan muncul di sini.</p>
+                  </div>
+              )}
+              </CardContent>
+          </Card>
+          {result && (
+              <ProfitAIAnalyst
+                calculationData={{
+                    productName: form.getValues("productName"),
+                    materials: form.getValues("materials").map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty) })),
+                    laborCost: Number(form.getValues("laborCost")),
+                    overhead: Number(form.getValues("overhead")),
+                    packaging: Number(form.getValues("packaging")),
+                    margin: Number(form.getValues("margin")),
+                }}
+                totalHPP={result.totalHPP}
+              />
             )}
-            </CardContent>
-        </Card>
-        {result && (
-            <ProfitAIAnalyst
-              calculationData={form.getValues()}
-              totalHPP={result.totalHPP}
-            />
-          )}
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
