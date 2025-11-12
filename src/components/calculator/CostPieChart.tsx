@@ -5,8 +5,8 @@ import { Pie, PieChart, Cell, Tooltip, Legend, ResponsiveContainer } from "recha
 import {
   ChartContainer,
   ChartTooltipContent,
-  ChartLegendContent,
 } from "@/components/ui/chart"
+import { formatCurrency } from "@/lib/utils"
 
 interface CostPieChartProps {
     data: { name: string; value: number, fill: string }[];
@@ -27,25 +27,34 @@ export function CostPieChart({ data }: CostPieChartProps) {
   }, {} as any)
 
   return (
-    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+    <ChartContainer config={chartConfig} className="min-h-[200px] w-full h-full">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Tooltip
             cursor={false}
-            content={<ChartTooltipContent hideLabel />}
+            content={<ChartTooltipContent 
+                formatter={(value) => formatCurrency(value as number)}
+                hideLabel 
+            />}
           />
           <Pie
             data={data}
             dataKey="value"
             nameKey="name"
-            innerRadius={60}
+            innerRadius="40%"
             strokeWidth={5}
+            paddingAngle={5}
           >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.fill} />
+            {data.map((entry) => (
+              <Cell key={`cell-${entry.name}`} fill={entry.fill} />
             ))}
           </Pie>
-          <Legend content={<ChartLegendContent />} />
+          <Legend
+            layout="horizontal"
+            verticalAlign="bottom"
+            align="center"
+            wrapperStyle={{paddingTop: '20px'}}
+          />
         </PieChart>
       </ResponsiveContainer>
     </ChartContainer>
