@@ -106,7 +106,7 @@ export function ProfitAIAnalyst({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-4">
           <div>
             <Label htmlFor="target-margin">Set Target Margin (%)</Label>
             <div className="flex gap-2">
@@ -115,7 +115,7 @@ export function ProfitAIAnalyst({
                 type="number"
                 {...form.register('targetMargin')}
               />
-              <Button type="submit" disabled={isLoading}>
+              <Button onClick={form.handleSubmit(onSubmit)} disabled={isLoading}>
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -130,7 +130,7 @@ export function ProfitAIAnalyst({
               </p>
             )}
           </div>
-        </form>
+        </div>
 
         {error && (
             <Alert variant="destructive" className="mt-4">
