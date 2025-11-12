@@ -32,17 +32,24 @@ export function CalculationCard({ calculation, onDelete }: CalculationCardProps)
     onDelete(calculation.id);
   };
   
+  const formatDate = (timestamp: any) => {
+    if (timestamp && typeof timestamp.seconds === 'number') {
+      return new Date(timestamp.seconds * 1000).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    }
+    return 'No date';
+  }
+
   return (
     <Card className="flex flex-col h-full hover:border-primary transition-all duration-200">
       <CardHeader className="flex-row items-start justify-between">
         <div>
           <CardTitle className="font-headline text-lg truncate">{calculation.productName}</CardTitle>
           <CardDescription>
-            {calculation.createdAt ? new Date(calculation.createdAt.seconds * 1000).toLocaleDateString('id-ID', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            }) : 'No date'}
+            {formatDate(calculation.createdAt)}
           </CardDescription>
         </div>
         <DropdownMenu>
