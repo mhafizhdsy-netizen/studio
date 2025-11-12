@@ -4,12 +4,14 @@ import { doc } from 'firebase/firestore';
 import { CalculatorForm } from "@/components/calculator/CalculatorForm";
 import { Loader2, ServerCrash } from "lucide-react";
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
+import { useParams } from "next/navigation";
 
 
-export default function EditCalculatorPage({ params }: { params: { id: string } }) {
+export default function EditCalculatorPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const { id } = params;
+  const params = useParams();
+  const id = params.id as string;
 
   const calcDocRef = useMemoFirebase(() => {
     if (!user || !firestore || !id) return null;
