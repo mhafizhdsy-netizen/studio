@@ -42,7 +42,7 @@ export function PublicCalculationDetailDialog({
     userName,
   } = calculation;
 
-  const totalMaterialCost = materials.reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
+  const totalMaterialCost = (materials || []).reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
 
   const pieChartData = [
     { name: "Bahan Baku", value: totalMaterialCost, fill: "hsl(var(--chart-1))" },
