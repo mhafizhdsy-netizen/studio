@@ -34,9 +34,9 @@ const formSchema = z.object({
   laborCost: z.coerce.number().min(0, "Biaya harus positif"),
   overhead: z.coerce.number().min(0, "Biaya harus positif"),
   packaging: z.coerce.number().min(0, "Biaya harus positif"),
+  productQuantity: z.coerce.number().min(1, "Jumlah produk minimal 1"),
   margin: z.coerce.number().min(0, "Margin harus positif").max(1000, "Margin terlalu besar"),
   sharePublicly: z.boolean().optional(),
-  productQuantity: z.coerce.number().min(1, "Jumlah produk minimal 1"),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -76,9 +76,9 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       laborCost: 0,
       overhead: 0,
       packaging: 0,
+      productQuantity: 1,
       margin: 30,
       sharePublicly: false,
-      productQuantity: 1,
     },
   });
 
@@ -217,16 +217,11 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
             <CardHeader>
               <CardTitle className="font-headline">Info Produk</CardTitle>
             </CardHeader>
-            <CardContent className="grid md:grid-cols-2 gap-4">
+            <CardContent>
               <div>
                 <Label htmlFor="productName">Nama Produk</Label>
                 <Input id="productName" placeholder="Contoh: Kaos Polos 'Cuan Series'" {...form.register("productName")} />
                 {form.formState.errors.productName && <p className="text-sm text-destructive mt-1">{form.formState.errors.productName.message}</p>}
-              </div>
-              <div>
-                <Label htmlFor="productQuantity">Jumlah Produk Dihasilkan</Label>
-                <Input id="productQuantity" type="number" placeholder="cth: 500" {...form.register("productQuantity")} />
-                {form.formState.errors.productQuantity && <p className="text-sm text-destructive mt-1">{form.formState.errors.productQuantity.message}</p>}
               </div>
             </CardContent>
           </Card>
@@ -265,8 +260,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
           <Card>
               <CardHeader>
-                  <CardTitle className="font-headline">2. Biaya Lain-lain</CardTitle>
-                  <CardDescription>Biaya tambahan untuk setiap produk.</CardDescription>
+                  <CardTitle className="font-headline">2. Biaya Produksi</CardTitle>
+                  <CardDescription>Biaya tambahan untuk keseluruhan proses produksi.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                   <div>
@@ -275,25 +270,42 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                       <p className="text-xs text-muted-foreground mt-1">Total gaji untuk seluruh produksi batch ini.</p>
                   </div>
                   <div>
-                      <Label>Biaya Overhead (Listrik, Sewa, dll)</Label>
+                      <Label>Biaya Overhead</Label>
                       <Input type="number" placeholder="Rp" {...form.register("overhead")} />
-                      <p className="text-xs text-muted-foreground mt-1">Total overhead untuk seluruh produksi batch ini.</p>
-                  </div>
-                  <div>
-                      <Label>Biaya Kemasan & Distribusi (per produk)</Label>
-                      <Input type="number" placeholder="Rp" {...form.register("packaging")} />
+                      <p className="text-xs text-muted-foreground mt-1">Total biaya lain-lain (listrik, sewa, dll) untuk batch ini.</p>
                   </div>
               </CardContent>
           </Card>
           
           <Card>
               <CardHeader>
-                  <CardTitle className="font-headline">3. Margin Profit</CardTitle>
-                  <CardDescription>Tentukan berapa persen keuntungan yang kamu mau.</CardDescription>
+                  <CardTitle className="font-headline">3. Biaya per Produk</CardTitle>
+                  <CardDescription>Biaya tambahan yang dihitung untuk setiap unit produk.</CardDescription>
               </CardHeader>
-              <CardContent>
-                  <Label>Margin (%)</Label>
+              <CardContent className="space-y-4">
+                 <div>
+                      <Label>Biaya Kemasan & Distribusi (per produk)</Label>
+                      <Input type="number" placeholder="Rp" {...form.register("packaging")} />
+                  </div>
+              </CardContent>
+          </Card>
+
+          <Card>
+              <CardHeader>
+                  <CardTitle className="font-headline">4. Kuantitas & Margin</CardTitle>
+                  <CardDescription>Tentukan jumlah produksi dan target keuntunganmu.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="productQuantity">Jumlah Produk Dihasilkan</Label>
+                  <Input id="productQuantity" type="number" placeholder="cth: 500" {...form.register("productQuantity")} />
+                   {form.formState.errors.productQuantity && <p className="text-sm text-destructive mt-1">{form.formState.errors.productQuantity.message}</p>}
+                   <p className="text-xs text-muted-foreground mt-1">Total produk yang dihasilkan dalam satu batch produksi.</p>
+                </div>
+                <div>
+                  <Label>Margin Profit (%)</Label>
                   <Input type="number" placeholder="cth: 30" {...form.register("margin")} />
+                </div>
               </CardContent>
           </Card>
           
