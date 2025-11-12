@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/firebase";
-import { SidebarProvider, Sidebar, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Loader2 } from "lucide-react";
 
@@ -30,7 +31,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar>
         <AppSidebar />
       </Sidebar>
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden">
+            <SidebarTrigger />
+            <h1 className="text-lg font-semibold font-headline">GenHPP</h1>
+        </header>
+        {children}
+        </SidebarInset>
     </SidebarProvider>
   );
 }
