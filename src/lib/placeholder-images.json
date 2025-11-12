@@ -1,3 +1,34 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "Young entrepreneurs collaborating in a modern co-working space.",
+      "imageUrl": "https://images.unsplash.com/photo-1653669485599-e7eb1fcd143f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxlbnRyZXByZW5ldXJzJTIwd29ya2luZ3xlbnwwfHx8fDE3NjI5ODQ3MDh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "entrepreneurs working"
+    },
+    {
+      "id": "product-1",
+      "description": "A plain t-shirt product.",
+      "imageUrl": "https://images.unsplash.com/photo-1760864407190-5351a18d2a26?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx0c2hpcnQlMjBwcm9kdWN0fGVufDB8fHx8MTc2MjkxODAyMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "tshirt product"
+    },
+    {
+      "id": "product-2",
+      "description": "A cup of coffee.",
+      "imageUrl": "https://images.unsplash.com/photo-1458819714733-e5ab3d536722?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y29mZmVlJTIwY3VwfGVufDB8fHx8MTc2Mjg3MTQ2MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "coffee cup"
+    },
+    {
+      "id": "product-3",
+      "description": "A digital illustration on a screen.",
+      "imageUrl": "https://images.unsplash.com/photo-1635322966219-b75ed372eb01?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxkaWdpdGFsJTIwYXJ0fGVufDB8fHx8MTc2Mjk0MDEzN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "digital art"
+    },
+    {
+      "id": "default-product",
+      "description": "A generic product box.",
+      "imageUrl": "https://images.unsplash.com/photo-1628794397139-a45fc3286892?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwcm9kdWN0JTIwYm94fGVufDB8fHx8MTc2Mjk3MDkwMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "product box"
+    }
+  ]
 }

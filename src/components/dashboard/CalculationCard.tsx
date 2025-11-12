@@ -1,0 +1,81 @@
+"use client";
+
+import type { Calculation } from "@/lib/firebase/firestore";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, Edit, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Badge } from "../ui/badge";
+
+interface CalculationCardProps {
+  calculation: Calculation;
+  onDelete: (id: string) => void;
+}
+
+export function CalculationCard({ calculation, onDelete }: CalculationCardProps) {
+  const router = useRouter();
+  
+  const handleEdit = () => {
+    router.push(`/calculator/${calculation.id}`);
+  };
+
+  const handleDelete = () => {
+    onDelete(calculation.id);
+  };
+  
+  return (
+    <Card className="flex flex-col h-full hover:border-primary transition-all duration-200">
+      <CardHeader className="flex-row items-start justify-between">
+        <div>
+          <CardTitle className="font-headline text-lg truncate">{calculation.productName}</CardTitle>
+          <CardDescription>
+            {new Date(calculation.createdAt.seconds * 1000).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </CardDescription>
+        </div>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                    <MoreVertical className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleEdit}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    <span>Edit</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Hapus</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+      </CardHeader>
+      <CardContent className="flex-grow space-y-2">
+        <div>
+          <p className="text-sm text-muted-foreground">Total HPP</p>
+          <p className="text-xl font-bold">{formatCurrency(calculation.totalHPP)}</p>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Saran Harga Jual</p>
+          <p className="text-lg font-semibold text-primary">{formatCurrency(calculation.suggestedPrice)}</p>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Badge variant="secondary">Margin: {calculation.margin}%</Badge>
+      </CardFooter>
+    </Card>
+  );
+}
