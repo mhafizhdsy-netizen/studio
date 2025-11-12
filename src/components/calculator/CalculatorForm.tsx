@@ -18,7 +18,6 @@ import { formatCurrency } from "@/lib/utils";
 import { CostPieChart } from "./CostPieChart";
 import { Switch } from "@/components/ui/switch";
 import { ProfitAIAnalyst } from "./ProfitAIAnalyst";
-import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
@@ -84,13 +83,19 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
   useEffect(() => {
     if (existingCalculation) {
+      const materials = existingCalculation.materials.map(m => ({
+        ...m,
+        cost: Number(m.cost),
+        qty: Number(m.qty)
+      }));
+
       form.reset({
         productName: existingCalculation.productName,
-        materials: existingCalculation.materials,
-        laborCost: existingCalculation.laborCost,
-        overhead: existingCalculation.overhead,
-        packaging: existingCalculation.packaging,
-        margin: existingCalculation.margin,
+        materials: materials,
+        laborCost: Number(existingCalculation.laborCost),
+        overhead: Number(existingCalculation.overhead),
+        packaging: Number(existingCalculation.packaging),
+        margin: Number(existingCalculation.margin),
         sharePublicly: existingCalculation.isPublic || false,
       });
       calculate(form.getValues());
@@ -163,8 +168,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                 createdAt: existingCalculation?.createdAt || serverTimestamp(),
                 updatedAt: serverTimestamp(),
             };
-            delete publicData.isPublic;
-            delete publicData.userId;
+            delete (publicData as any).isPublic;
+            delete (publicData as any).userId;
 
             batch.set(publicCalcRef, publicData, { merge: true });
         } else if (existingCalculation && existingCalculation.isPublic) {
