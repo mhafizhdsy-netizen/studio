@@ -29,11 +29,11 @@ import {
   DollarSign,
   Info,
 } from 'lucide-react';
-import {
-  analyzeProfitMargin,
-  ProfitAnalysisInputSchema,
-  ProfitAnalysisOutputSchema,
-} from '@/ai/flows/profit-analysis-flow';
+import { analyzeProfitMargin } from '@/ai/flows/profit-analysis-flow';
+import type {
+  ProfitAnalysisInput,
+  ProfitAnalysisOutput,
+} from '@/ai/flows/profit-analysis-schemas';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 const formSchema = z.object({
@@ -46,7 +46,10 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 interface ProfitAIAnalystProps {
-  calculationData: z.infer<typeof ProfitAnalysisInputSchema>;
+  calculationData: Omit<
+    ProfitAnalysisInput,
+    'currentMargin' | 'targetMargin' | 'totalHPP'
+  > & { margin: number };
   totalHPP: number;
 }
 
@@ -57,7 +60,7 @@ export function ProfitAIAnalyst({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] =
-    useState<z.infer<typeof ProfitAnalysisOutputSchema> | null>(null);
+    useState<ProfitAnalysisOutput | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -71,7 +74,7 @@ export function ProfitAIAnalyst({
     setError(null);
     setAnalysisResult(null);
 
-    const input = {
+    const input: ProfitAnalysisInput = {
       ...calculationData,
       targetMargin: data.targetMargin,
       currentMargin: calculationData.margin,

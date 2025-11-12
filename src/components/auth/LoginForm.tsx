@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { signInWithEmail, signInWithGoogle } from "@/lib/firebase/auth";
+import { useAuth } from "@/firebase";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,6 +39,7 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export function LoginForm() {
   const { toast } = useToast();
   const router = useRouter();
+  const auth = useAuth();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 
@@ -51,38 +53,39 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoadingEmail(true);
-    const { error } = await signInWithEmail(values.email, values.password);
-    if (error) {
-      toast({
-        title: "Gagal Masuk",
-        description: "Email atau password salah. Coba lagi yuk!",
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: "Berhasil Masuk!",
         description: "Selamat datang kembali! Yuk lanjutin cuan.",
       });
       router.push("/dashboard");
+    } catch (error) {
+      toast({
+        title: "Gagal Masuk",
+        description: "Email atau password salah. Coba lagi yuk!",
+        variant: "destructive",
+      });
     }
     setIsLoadingEmail(false);
   }
 
   async function handleGoogleSignIn() {
     setIsLoadingGoogle(true);
-    const { error } = await signInWithGoogle();
-    if (error) {
-        toast({
-            title: "Gagal Masuk dengan Google",
-            description: "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
-            variant: "destructive",
-        });
-    } else {
+    try {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
         toast({
             title: "Berhasil Masuk!",
             description: "Selamat datang! Yuk mulai hitung HPP.",
         });
         router.push("/dashboard");
+    } catch (error) {
+        toast({
+            title: "Gagal Masuk dengan Google",
+            description: "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
+            variant: "destructive",
+        });
     }
     setIsLoadingGoogle(false);
   }

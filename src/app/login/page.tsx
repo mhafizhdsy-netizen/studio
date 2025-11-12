@@ -2,21 +2,21 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
+import { useUser } from '@/firebase';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LoginPage() {
-  const { user, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!isUserLoading && user) {
       router.push('/dashboard');
     }
-  }, [user, loading, router]);
+  }, [user, isUserLoading, router]);
 
-  if (loading || user) {
+  if (isUserLoading || user) {
     return (
       <div className="w-full max-w-md space-y-6">
         <Skeleton className="h-8 w-48" />

@@ -15,26 +15,27 @@ import {
   LayoutDashboard,
   LogOut,
   Users,
-  Settings,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth } from '@/hooks/use-auth';
-import { signOut } from '@/lib/firebase/auth';
+import { useUser, useAuth } from '@/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, userProfile } = useAuth();
+  const { user } = useUser();
+  const auth = useAuth();
   const router = useRouter();
 
   const handleSignOut = async () => {
-    await signOut();
+    if(auth) {
+        await auth.signOut();
+    }
     router.push('/');
   };
 
-  const getInitials = (name: string | undefined) => {
+  const getInitials = (name: string | undefined | null) => {
     if (!name) return '??';
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
@@ -92,11 +93,11 @@ export function AppSidebar() {
             <Avatar>
                 <AvatarImage src={user?.photoURL ?? undefined} />
                 <AvatarFallback className='bg-primary text-primary-foreground font-bold'>
-                    {getInitials(userProfile?.name || user?.displayName || user?.email || undefined)}
+                    {getInitials(user?.displayName || user?.email)}
                 </AvatarFallback>
             </Avatar>
             <div className="flex flex-col overflow-hidden">
-                <p className="font-semibold truncate">{userProfile?.name || user?.displayName}</p>
+                <p className="font-semibold truncate">{user?.displayName}</p>
                 <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
          </div>

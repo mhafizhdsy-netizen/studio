@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/hooks/use-auth";
-import { addCalculation, updateCalculation, addPublicCalculation } from "@/lib/firebase/firestore";
-import type { Calculation } from "@/lib/firebase/firestore";
+import { useUser, useFirestore } from "@/firebase";
+import { doc, serverTimestamp, collection, addDoc, updateDoc } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +57,8 @@ const motivationalToasts = [
 ];
 
 export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
-  const { user, userProfile } = useAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,7 +116,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const handleCalculate = form.handleSubmit(calculate);
 
   async function onSubmit(data: FormData) {
-    if (!user || !userProfile) return;
+    if (!user || !firestore) return;
     if (!result) {
         toast({ title: "Oops!", description: "Hitung dulu hasilnya sebelum menyimpan ya.", variant: "destructive" });
         return;
@@ -132,29 +134,34 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         totalHPP: result.totalHPP,
         suggestedPrice: result.suggestedPrice,
         isPublic: data.sharePublicly,
+        userId: user.uid,
     };
 
-    let response;
-    if (existingCalculation) {
-        response = await updateCalculation(user.uid, existingCalculation.id, calculationData);
-    } else {
-        response = await addCalculation(user.uid, calculationData as any);
-    }
+    try {
+        if (existingCalculation) {
+            const docRef = doc(firestore, 'users', user.uid, 'calculations', existingCalculation.id);
+            updateDocumentNonBlocking(docRef, { ...calculationData, updatedAt: serverTimestamp() });
+        } else {
+            const collectionRef = collection(firestore, 'users', user.uid, 'calculations');
+            addDocumentNonBlocking(collectionRef, { ...calculationData, createdAt: serverTimestamp() });
+        }
 
-    if (data.sharePublicly) {
-        const publicData = { ...calculationData, productName: data.productName };
-        delete publicData.isPublic;
-        await addPublicCalculation(publicData as any, userProfile.name);
-    }
-
-    setIsSubmitting(false);
-
-    if (response.error) {
-        toast({ title: "Gagal Menyimpan", description: "Ada masalah saat menyimpan. Coba lagi.", variant: "destructive" });
-    } else {
+        if (data.sharePublicly) {
+            const publicData: any = { ...calculationData, productName: data.productName, userName: user.displayName || 'Anonymous' };
+            delete publicData.isPublic;
+            
+            const publicCollectionRef = collection(firestore, 'public_calculations');
+            addDocumentNonBlocking(publicCollectionRef, {...publicData, createdAt: serverTimestamp()});
+        }
+        
         const randomToast = motivationalToasts[Math.floor(Math.random() * motivationalToasts.length)];
         toast(randomToast);
         router.push("/dashboard");
+
+    } catch (e) {
+        toast({ title: "Gagal Menyimpan", description: "Ada masalah saat menyimpan. Coba lagi.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
     }
   }
 

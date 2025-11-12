@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getPublicCalculations } from "@/lib/firebase/firestore";
-import type { Calculation } from "@/lib/firebase/firestore";
+import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy, Timestamp } from 'firebase/firestore';
 import { Loader2, ServerCrash, Users } from "lucide-react";
 import {
     Card,
@@ -15,32 +15,23 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "../ui/avatar";
-
+import type { Calculation } from "../dashboard/CalculationHistory";
 
 interface PublicCalculation extends Omit<Calculation, 'userId' | 'isPublic'> {
     userName: string;
 }
 
 export function PublicCalculationList() {
-  const [calculations, setCalculations] = useState<PublicCalculation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    const firestore = useFirestore();
 
-  useEffect(() => {
-    const unsubscribe = getPublicCalculations((data, err) => {
-      if (err) {
-        setError("Gagal memuat data komunitas. Coba lagi nanti ya.");
-        console.error(err);
-      } else {
-        setCalculations(data as PublicCalculation[]);
-        setError(null);
-      }
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
+    const publicCalculationsQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'publicCalculations'), orderBy('createdAt', 'desc'));
+    }, [firestore]);
 
-  if (loading) {
+    const { data: calculations, isLoading, error } = useCollection<PublicCalculation>(publicCalculationsQuery);
+
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center text-center w-full h-full">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -54,12 +45,12 @@ export function PublicCalculationList() {
       <div className="flex flex-col items-center justify-center text-center w-full h-full">
         <ServerCrash className="h-12 w-12 text-destructive mb-4" />
         <p className="font-semibold text-lg">Oops, ada masalah!</p>
-        <p className="text-muted-foreground">{error}</p>
+        <p className="text-muted-foreground">Gagal memuat data komunitas. Coba lagi nanti ya.</p>
       </div>
     );
   }
 
-  if (calculations.length === 0) {
+  if (calculations && calculations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center w-full h-full">
         <Users className="h-12 w-12 text-muted-foreground mb-4" />
@@ -75,7 +66,7 @@ export function PublicCalculationList() {
 
   return (
     <div className="w-full grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {calculations.map((calc) => (
+        {calculations && calculations.map((calc) => (
             <PublicCalculationCard key={calc.id} calculation={calc} />
         ))}
     </div>

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { signUpWithEmail, signInWithGoogle } from "@/lib/firebase/auth";
+import { useAuth, useFirestore } from "@/firebase";
+import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,6 +41,8 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export function SignupForm() {
   const { toast } = useToast();
   const router = useRouter();
+  const auth = useAuth();
+  const firestore = useFirestore();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 
@@ -51,40 +55,57 @@ export function SignupForm() {
     },
   });
 
+    const createUserProfile = async (uid: string, name: string, email: string) => {
+        const userDocRef = doc(firestore, 'users', uid);
+        await setDoc(userDocRef, {
+            name,
+            email,
+            createdAt: serverTimestamp()
+        });
+    }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoadingEmail(true);
-    const { error } = await signUpWithEmail(values.email, values.password, values.name);
-    if (error) {
-      toast({
-        title: "Gagal Daftar",
-        description: "Email ini mungkin sudah terdaftar. Coba email lain.",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Akun Berhasil Dibuat!",
-        description: "Selamat datang di GenHPP! Yuk mulai hitung HPP pertamamu.",
-      });
-      router.push("/dashboard");
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+        const user = userCredential.user;
+        await updateProfile(user, { displayName: values.name });
+        await createUserProfile(user.uid, values.name, values.email);
+
+        toast({
+            title: "Akun Berhasil Dibuat!",
+            description: "Selamat datang di GenHPP! Yuk mulai hitung HPP pertamamu.",
+        });
+        router.push("/dashboard");
+    } catch (error) {
+        toast({
+            title: "Gagal Daftar",
+            description: "Email ini mungkin sudah terdaftar. Coba email lain.",
+            variant: "destructive",
+        });
     }
     setIsLoadingEmail(false);
   }
 
   async function handleGoogleSignIn() {
     setIsLoadingGoogle(true);
-    const { error } = await signInWithGoogle();
-    if (error) {
-        toast({
-            title: "Gagal Masuk dengan Google",
-            description: "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
-            variant: "destructive",
-        });
-    } else {
+    try {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        await createUserProfile(user.uid, user.displayName!, user.email!);
+
         toast({
             title: "Berhasil Masuk!",
             description: "Selamat datang! Yuk mulai hitung HPP.",
         });
         router.push("/dashboard");
+    } catch (error) {
+        toast({
+            title: "Gagal Masuk dengan Google",
+            description: "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
+            variant: "destructive",
+        });
     }
     setIsLoadingGoogle(false);
   }
