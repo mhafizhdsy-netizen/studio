@@ -1,0 +1,210 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the GenHPP application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "createdAt"
+      ]
+    },
+    "Calculation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Calculation",
+      "type": "object",
+      "description": "Represents a single HPP calculation performed by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the calculation entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Calculation)"
+        },
+        "productName": {
+          "type": "string",
+          "description": "The name of the product for which HPP was calculated."
+        },
+        "materials": {
+          "type": "array",
+          "description": "A list of material costs associated with the product.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "laborCost": {
+          "type": "number",
+          "description": "The labor cost associated with producing the product."
+        },
+        "overhead": {
+          "type": "number",
+          "description": "Overhead costs associated with producing the product."
+        },
+        "packaging": {
+          "type": "number",
+          "description": "Packaging costs associated with the product."
+        },
+        "totalHPP": {
+          "type": "number",
+          "description": "The total HPP calculated for the product."
+        },
+        "suggestedPrice": {
+          "type": "number",
+          "description": "The suggested selling price for the product."
+        },
+        "margin": {
+          "type": "number",
+          "description": "The profit margin percentage."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the calculation was performed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "productName",
+        "totalHPP",
+        "suggestedPrice",
+        "margin",
+        "createdAt"
+      ]
+    },
+    "PublicCalculation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PublicCalculation",
+      "type": "object",
+      "description": "Represents a calculation shared publicly by a user, excluding personal data.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the public calculation entity."
+        },
+        "calculationId": {
+          "type": "string",
+          "description": "Reference to the original Calculation."
+        },
+        "productName": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "totalHPP": {
+          "type": "number",
+          "description": "The total HPP calculated for the product."
+        },
+        "suggestedPrice": {
+          "type": "number",
+          "description": "The suggested selling price for the product."
+        },
+        "margin": {
+          "type": "number",
+          "description": "The profit margin percentage."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the calculation was performed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "calculationId",
+        "productName",
+        "totalHPP",
+        "suggestedPrice",
+        "margin",
+        "createdAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. The 'userId' parameter corresponds to the Firebase Auth UID.  Authorization is based on path ownership: only the authenticated user can access their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/calculations/{calcId}",
+        "definition": {
+          "entityName": "Calculation",
+          "schema": {
+            "$ref": "#/backend/entities/Calculation"
+          },
+          "description": "Stores calculation history for each user. The 'userId' parameter corresponds to the Firebase Auth UID. Authorization is based on path ownership: only the authenticated user can access their own calculations.  Includes the 'userId' field to enforce ownership invariants.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            },
+            {
+              "name": "calcId",
+              "description": "The unique ID of the calculation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/public_calculations/{calcId}",
+        "definition": {
+          "entityName": "PublicCalculation",
+          "schema": {
+            "$ref": "#/backend/entities/PublicCalculation"
+          },
+          "description": "Stores publicly shared calculation data. No user-identifiable information is stored here to maintain privacy. Anyone can read these calculations, but only the original user (verified via a server-side function or callable) can create/delete/modify them.",
+          "params": [
+            {
+              "name": "calcId",
+              "description": "The unique ID of the public calculation."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure data isolation and facilitate efficient querying and security rule implementation for the GenHPP application.  The primary focus is on path-based ownership for user-specific data and a segregated collection for public data. This design prioritizes Authorization Independence (CRITICAL) and adheres to QAPs. The `users/{userId}/calculations/{calcId}` structure leverages path-based ownership, ensuring that calculations are owned by the respective user, simplifying security rules. The `public_calculations` collection supports the 'Community Sharing' feature, allowing users to share calculations without personal data. This segregation ensures that public data has distinct security requirements. All authorization-relevant data is denormalized, eliminating the need for `get()` calls in security rules, crucial for maintaining atomic operations and simplifying debugging."
+  }
+}
