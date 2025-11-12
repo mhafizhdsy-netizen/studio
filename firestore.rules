@@ -4,17 +4,17 @@
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for private data (user profiles and calculations),
  * while allowing public read access to shared calculations. Write access to public calculations is restricted
- * to the owner, enforced via server-side logic.
+ * to authenticated users.
  *
  * Data Structure:
  * - /users/{userId}: Stores user profiles, accessible only by the authenticated user with matching UID.
  * - /users/{userId}/calculations/{calcId}: Stores calculation history for each user, accessible only by the authenticated user with matching UID.
- * - /public_calculations/{calcId}: Stores publicly shared calculation data, readable by anyone, writable only by the owner.
+ * - /public_calculations/{calcId}: Stores publicly shared calculation data, readable by anyone, writable only by authenticated users.
  *
  * Key Security Decisions:
  * - User data and calculations are strictly owned by the authenticated user.
  * - Listing all users is disallowed.
- * - Public calculations are readable by all, but write-protected.
+ * - Public calculations are readable by all, but write-protected to authenticated users.
  *
  * Denormalization for Authorization:
  * - The 'Calculation' entity includes the 'userId' field to enable ownership validation within the security rules, avoiding the need for additional `get()` calls.
@@ -66,17 +66,15 @@ service cloud.firestore {
      * @path /public_calculations/{calcId}
      * @allow (get) Anyone can read public calculations.
      * @allow (list) Anyone can list public calculations.
-     * @allow (create) Creation of public calculations is denied by default, intended to be handled by a server-side function.
-     * @allow (update) Modification of public calculations is denied by default, intended to be handled by a server-side function.
-     * @allow (delete) Deletion of public calculations is denied by default, intended to be handled by a server-side function.
-     * @principle Public read access with owner-only writes (via server-side functions).
+     * @allow (write) Any authenticated user can create or update a public calculation.
+     * @allow (delete) Any authenticated user can delete a public calculation.
+     * @principle Public read access with authenticated-only writes.
      */
     match /public_calculations/{calcId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false; // TODO: Implement owner validation via server-side logic
-      allow update: if false && resource != null; // TODO: Implement owner validation via server-side logic
-      allow delete: if false && resource != null; // TODO: Implement owner validation via server-side logic
+      allow write: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     function isSignedIn() {
