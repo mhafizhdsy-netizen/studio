@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import { CostPieChart } from "./CostPieChart";
 import { Switch } from "@/components/ui/switch";
+import { ProfitAIAnalyst } from "./ProfitAIAnalyst";
 
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
@@ -240,7 +241,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         </Button>
       </form>
 
-      <div className="sticky top-6">
+      <div className="sticky top-6 space-y-6">
         <Card className="shadow-lg">
             <CardHeader>
                 <CardTitle className="font-headline text-2xl flex items-center gap-2"><Sparkles className="text-primary"/>Hasil Perhitunganmu</CardTitle>
@@ -298,6 +299,12 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
             )}
             </CardContent>
         </Card>
+        {result && (
+            <ProfitAIAnalyst
+              calculationData={form.getValues()}
+              totalHPP={result.totalHPP}
+            />
+          )}
       </div>
     </div>
   );
