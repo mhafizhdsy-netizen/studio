@@ -1,11 +1,12 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useFirestore } from "@/firebase";
-import { doc, serverTimestamp, collection, addDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { doc, serverTimestamp, collection, writeBatch } from 'firebase/firestore';
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,53 +143,58 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         userId: user.uid,
     };
 
-    try {
-        const batch = writeBatch(firestore);
+    const batch = writeBatch(firestore);
 
-        // Main calculation document
-        const calcRef = existingCalculation
-            ? doc(firestore, 'users', user.uid, 'calculations', existingCalculation.id)
-            : doc(collection(firestore, 'users', user.uid, 'calculations'));
+    // Main calculation document
+    const calcRef = existingCalculation
+        ? doc(firestore, 'users', user.uid, 'calculations', existingCalculation.id)
+        : doc(collection(firestore, 'users', user.uid, 'calculations'));
 
-        const dataToSave = existingCalculation
-            ? { ...calculationData, updatedAt: serverTimestamp() }
-            : { ...calculationData, createdAt: serverTimestamp() };
+    const dataToSave = existingCalculation
+        ? { ...calculationData, updatedAt: serverTimestamp() }
+        : { ...calculationData, createdAt: serverTimestamp() };
 
-        batch.set(calcRef, dataToSave, { merge: true });
+    batch.set(calcRef, dataToSave, { merge: true });
 
-        // Public calculation document
-        const publicCalcId = existingCalculation ? existingCalculation.id : calcRef.id;
-        const publicCalcRef = doc(firestore, 'public_calculations', publicCalcId);
+    // Public calculation document
+    const publicCalcId = existingCalculation ? existingCalculation.id : calcRef.id;
+    const publicCalcRef = doc(firestore, 'public_calculations', publicCalcId);
 
-        if (data.sharePublicly) {
-            const publicData = {
-                productName: data.productName,
-                totalHPP: result.totalHPP,
-                suggestedPrice: result.suggestedPrice,
-                margin: Number(data.margin),
-                userName: user.displayName || 'Anonymous',
-                createdAt: existingCalculation?.createdAt || serverTimestamp(),
-                updatedAt: serverTimestamp(),
-            };
-            
-            batch.set(publicCalcRef, publicData, { merge: true });
-        } else if (existingCalculation && existingCalculation.isPublic) {
-            // If it was public before, but now it's not, delete it.
-            batch.delete(publicCalcRef);
-        }
-
-        await batch.commit();
+    if (data.sharePublicly) {
+        const publicData = {
+            productName: data.productName,
+            totalHPP: result.totalHPP,
+            suggestedPrice: result.suggestedPrice,
+            margin: Number(data.margin),
+            userName: user.displayName || 'Anonymous',
+            createdAt: existingCalculation?.createdAt || serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        };
         
+        batch.set(publicCalcRef, publicData, { merge: true });
+    } else if (existingCalculation && existingCalculation.isPublic) {
+        // If it was public before, but now it's not, delete it.
+        batch.delete(publicCalcRef);
+    }
+
+    batch.commit().then(() => {
         const randomToast = motivationalToasts[Math.floor(Math.random() * motivationalToasts.length)];
         toast(randomToast);
         router.push("/dashboard");
+    }).catch(error => {
+        const isCreating = !existingCalculation;
+        const operation = isCreating ? 'create' : 'update';
+        
+        const permissionError = new FirestorePermissionError({
+            path: calcRef.path,
+            operation,
+            requestResourceData: dataToSave,
+        });
 
-    } catch (e) {
-        console.error(e);
-        toast({ title: "Gagal Menyimpan", description: "Ada masalah saat menyimpan. Coba lagi.", variant: "destructive" });
-    } finally {
-        setIsSubmitting(false);
-    }
+        errorEmitter.emit('permission-error', permissionError);
+
+        setIsSubmitting(false); // Make sure to re-enable button on error
+    });
   }
 
   return (
@@ -351,3 +357,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
+
+    
