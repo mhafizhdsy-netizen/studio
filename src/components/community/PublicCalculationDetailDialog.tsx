@@ -43,7 +43,8 @@ export function PublicCalculationDetailDialog({
     productQuantity,
   } = calculation;
 
-  const totalMaterialCost = (materials || []).reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
+  const safeMaterials = materials || [];
+  const totalMaterialCost = safeMaterials.reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
   const laborCostPerProduct = productQuantity > 0 ? laborCost / productQuantity : laborCost;
   const overheadPerProduct = productQuantity > 0 ? overhead / productQuantity : overhead;
   const packagingPerProduct = packaging || 0;
