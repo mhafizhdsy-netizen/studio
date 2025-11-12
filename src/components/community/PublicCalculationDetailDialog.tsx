@@ -48,8 +48,8 @@ export function PublicCalculationDetailDialog({
 
   const safeMaterials = materials || [];
   const totalMaterialCost = safeMaterials.reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
-  const laborCostPerProduct = productQuantity > 0 ? laborCost / productQuantity : laborCost;
-  const overheadPerProduct = productQuantity > 0 ? overhead / productQuantity : overhead;
+  const laborCostPerProduct = productQuantity > 0 ? laborCost / productQuantity : 0;
+  const overheadPerProduct = productQuantity > 0 ? overhead / productQuantity : 0;
   const packagingPerProduct = packaging || 0;
 
   const pieChartData = [
