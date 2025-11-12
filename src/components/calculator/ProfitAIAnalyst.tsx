@@ -203,5 +203,3 @@ export function ProfitAIAnalyst({
     </Card>
   );
 }
-
-    
