@@ -1,7 +1,9 @@
+
 "use client";
 
+import { useState } from "react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { Loader2, ServerCrash, Users } from "lucide-react";
 import {
     Card,
@@ -15,17 +17,20 @@ import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import type { Calculation } from "../dashboard/CalculationHistory";
+import { PublicCalculationDetailDialog } from "./PublicCalculationDetailDialog";
 
-interface PublicCalculation extends Omit<Calculation, 'userId' | 'isPublic'> {
+// PublicCalculation now includes the full breakdown
+export interface PublicCalculation extends Omit<Calculation, 'userId' | 'isPublic'> {
     userName: string;
 }
 
 export function PublicCalculationList() {
     const firestore = useFirestore();
+    const [selectedCalc, setSelectedCalc] = useState<PublicCalculation | null>(null);
 
     const publicCalculationsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        return query(collection(firestore, 'public_calculations'), orderBy('createdAt', 'desc'));
+        return query(collection(firestore, 'public_calculations'), orderBy('updatedAt', 'desc'));
     }, [firestore]);
 
     const { data: calculations, isLoading, error } = useCollection<PublicCalculation>(publicCalculationsQuery);
@@ -64,19 +69,29 @@ export function PublicCalculationList() {
   }
 
   return (
-    <div className="w-full grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {calculations && calculations.map((calc) => (
-            <PublicCalculationCard key={calc.id} calculation={calc} />
-        ))}
-    </div>
+    <>
+        <div className="w-full grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {calculations && calculations.map((calc) => (
+                <PublicCalculationCard key={calc.id} calculation={calc} onSelect={() => setSelectedCalc(calc)} />
+            ))}
+        </div>
+        <PublicCalculationDetailDialog 
+            calculation={selectedCalc}
+            isOpen={!!selectedCalc}
+            onOpenChange={(isOpen) => !isOpen && setSelectedCalc(null)}
+        />
+    </>
   );
 }
 
-function PublicCalculationCard({ calculation }: { calculation: PublicCalculation }) {
+function PublicCalculationCard({ calculation, onSelect }: { calculation: PublicCalculation, onSelect: () => void }) {
     const getInitials = (name: string) => (name || 'A').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
     
     return (
-        <Card className="flex flex-col h-full bg-card/50 dark:bg-card/20">
+        <Card 
+            className="flex flex-col h-full bg-card/50 dark:bg-card/20 hover:border-primary transition-all duration-200 cursor-pointer"
+            onClick={onSelect}
+        >
             <CardHeader>
                 <CardTitle className="font-headline text-lg truncate">{calculation.productName}</CardTitle>
                 <div className="flex items-center gap-2 pt-1">

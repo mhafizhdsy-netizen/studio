@@ -165,15 +165,15 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
     if (data.sharePublicly) {
         const publicData = {
-            productName: data.productName,
-            totalHPP: result.totalHPP,
-            suggestedPrice: result.suggestedPrice,
-            margin: Number(data.margin),
+            ...calculationData, // Save the full calculation data
             userName: user.displayName || 'Anonymous',
             createdAt: existingCalculation?.createdAt || serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
-        
+        // Remove user-specific data that shouldn't be public
+        delete (publicData as any).userId; 
+        delete (publicData as any).isPublic;
+
         batch.set(publicCalcRef, publicData, { merge: true });
     } else if (existingCalculation && existingCalculation.isPublic) {
         // If it was public before, but now it's not, delete it.
@@ -287,7 +287,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         </div>
 
         <div className="sticky top-6 space-y-6" id="print-area">
-          <Card className="shadow-lg">
+          <Card className="shadow-lg print-card">
               <CardHeader>
                   <CardTitle className="font-headline text-2xl flex items-center gap-2"><Sparkles className="text-primary"/>Hasil Perhitunganmu</CardTitle>
                   <CardDescription>Ini dia rincian biaya dan saran harga jual buat produkmu.</CardDescription>
@@ -311,7 +311,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               <span className="text-muted-foreground">Profit ({form.getValues("margin")}%)</span>
                               <span className="font-semibold text-green-500">{formatCurrency(result.profit)}</span>
                           </div>
-                          <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                          <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg print-bg-primary-10">
                               <span className="text-primary font-bold text-lg">Saran Harga Jual</span>
                               <span className="font-extrabold text-2xl text-primary">{formatCurrency(result.suggestedPrice)}</span>
                           </div>
