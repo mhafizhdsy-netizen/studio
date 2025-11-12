@@ -35,7 +35,7 @@ export interface Calculation {
   updatedAt?: Timestamp;
   userId: string;
   isPublic?: boolean;
-  productQuantity?: number;
+  productQuantity: number;
 }
 
 export function CalculationHistory() {

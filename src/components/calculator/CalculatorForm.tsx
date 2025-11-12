@@ -89,7 +89,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
   useEffect(() => {
     if (existingCalculation) {
-      const materials = existingCalculation.materials.map(m => ({
+      const materials = (existingCalculation.materials || []).map(m => ({
         ...m,
         cost: Number(m.cost),
         qty: Number(m.qty)
@@ -97,7 +97,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
       form.reset({
         productName: existingCalculation.productName,
-        materials: materials,
+        materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1 }],
         laborCost: Number(existingCalculation.laborCost),
         overhead: Number(existingCalculation.overhead),
         packaging: Number(existingCalculation.packaging),
@@ -111,8 +111,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   
   const calculate = (data: FormData) => {
     const totalMaterialCost = data.materials.reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
-    const laborCostPerProduct = data.laborCost / data.productQuantity;
-    const overheadPerProduct = data.overhead / data.productQuantity;
+    const laborCostPerProduct = data.productQuantity > 0 ? data.laborCost / data.productQuantity : data.laborCost;
+    const overheadPerProduct = data.productQuantity > 0 ? data.overhead / data.productQuantity : data.overhead;
     
     const totalHPP = totalMaterialCost + laborCostPerProduct + overheadPerProduct + data.packaging;
     const profit = totalHPP * (data.margin / 100);
@@ -162,7 +162,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
     const dataToSave = existingCalculation
         ? { ...calculationData, updatedAt: serverTimestamp() }
-        : { ...calculationData, createdAt: serverTimestamp() };
+        : { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
 
     batch.set(calcRef, dataToSave, { merge: true });
 
@@ -272,15 +272,15 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                   <div>
                       <Label>Biaya Tenaga Kerja</Label>
                       <Input type="number" placeholder="Rp" {...form.register("laborCost")} />
-                      <p className="text-xs text-muted-foreground mt-1">Gaji perhari ÷ jumlah produk perhari. contoh Rp 100.000 ÷ 500</p>
+                      <p className="text-xs text-muted-foreground mt-1">Total gaji untuk seluruh produksi batch ini.</p>
                   </div>
                   <div>
                       <Label>Biaya Overhead (Listrik, Sewa, dll)</Label>
                       <Input type="number" placeholder="Rp" {...form.register("overhead")} />
-                      <p className="text-xs text-muted-foreground mt-1">(listrik,sewa,dll) ÷ jumlah produksi. contoh Rp 2.000.000 ÷ 200 = Rp 200</p>
+                      <p className="text-xs text-muted-foreground mt-1">Total overhead untuk seluruh produksi batch ini.</p>
                   </div>
                   <div>
-                      <Label>Biaya Kemasan & Distribusi</Label>
+                      <Label>Biaya Kemasan & Distribusi (per produk)</Label>
                       <Input type="number" placeholder="Rp" {...form.register("packaging")} />
                   </div>
               </CardContent>
