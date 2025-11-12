@@ -111,8 +111,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   
   const calculate = (data: FormData) => {
     const totalMaterialCost = data.materials.reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
-    const laborCostPerProduct = data.productQuantity > 0 ? data.laborCost / data.productQuantity : data.laborCost;
-    const overheadPerProduct = data.productQuantity > 0 ? data.overhead / data.productQuantity : data.overhead;
+    const laborCostPerProduct = data.productQuantity > 0 ? data.laborCost / data.productQuantity : 0;
+    const overheadPerProduct = data.productQuantity > 0 ? data.overhead / data.productQuantity : 0;
     
     const totalHPP = totalMaterialCost + laborCostPerProduct + overheadPerProduct + data.packaging;
     const profit = totalHPP * (data.margin / 100);
@@ -267,12 +267,12 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                   <div>
                       <Label>Biaya Tenaga Kerja</Label>
                       <Input type="number" placeholder="Rp" {...form.register("laborCost")} />
-                      <p className="text-xs text-muted-foreground mt-1">Total gaji untuk seluruh produksi batch ini.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Gaji perhari ÷ jumlah produk perhari. contoh Rp 100.000 ÷ 500</p>
                   </div>
                   <div>
                       <Label>Biaya Overhead</Label>
                       <Input type="number" placeholder="Rp" {...form.register("overhead")} />
-                      <p className="text-xs text-muted-foreground mt-1">Total biaya lain-lain (listrik, sewa, dll) untuk batch ini.</p>
+                      <p className="text-xs text-muted-foreground mt-1">(listrik,sewa,dll) ÷ jumlah produksi. contoh Rp 2.000.000 ÷ 200 =</p>
                   </div>
               </CardContent>
           </Card>
@@ -403,4 +403,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   );
 }
 
+    
     
