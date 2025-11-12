@@ -12,13 +12,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2 } from "lucide-react";
+import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
 import { CostPieChart } from "./CostPieChart";
 import { Switch } from "@/components/ui/switch";
 import { ProfitAIAnalyst } from "./ProfitAIAnalyst";
+import { ExportDialog } from "./ExportDialog";
+
 
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
@@ -42,7 +44,7 @@ interface CalculatorFormProps {
   existingCalculation?: Calculation;
 }
 
-interface CalculationResult {
+export interface CalculationResult {
   totalMaterialCost: number;
   totalHPP: number;
   profit: number;
@@ -63,6 +65,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<CalculationResult | null>(null);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -197,6 +200,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     });
   }
 
+  const calculationForExport = result ? { ...form.getValues(), ...result } : null;
+
   return (
     <div className="w-full">
       <form onSubmit={form.handleSubmit(onSubmit)} className="w-full grid lg:grid-cols-2 gap-8">
@@ -281,7 +286,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
           </Button>
         </div>
 
-        <div className="sticky top-6 space-y-6">
+        <div className="sticky top-6 space-y-6" id="print-area">
           <Card className="shadow-lg">
               <CardHeader>
                   <CardTitle className="font-headline text-2xl flex items-center gap-2"><Sparkles className="text-primary"/>Hasil Perhitunganmu</CardTitle>
@@ -311,7 +316,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               <span className="font-extrabold text-2xl text-primary">{formatCurrency(result.suggestedPrice)}</span>
                           </div>
                       </div>
-                      <div className="space-y-4 pt-4">
+                      <div className="space-y-2 pt-4 hide-on-print">
                           <div className="flex items-center space-x-2">
                               <Controller
                                   control={form.control}
@@ -329,6 +334,10 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                           <Button type="submit" className="w-full font-bold" disabled={isSubmitting}>
                               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                               {existingCalculation ? "Update Perhitungan" : "Simpan Perhitungan"}
+                          </Button>
+                           <Button type="button" variant="outline" className="w-full" onClick={() => setIsExportDialogOpen(true)}>
+                              <Download className="mr-2 h-4 w-4" />
+                              Ekspor Hasil
                           </Button>
                       </div>
                   </>
@@ -354,8 +363,13 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
             )}
         </div>
       </form>
+       {calculationForExport && (
+        <ExportDialog
+          isOpen={isExportDialogOpen}
+          onOpenChange={setIsExportDialogOpen}
+          calculationData={calculationForExport}
+        />
+      )}
     </div>
   );
 }
-
-    

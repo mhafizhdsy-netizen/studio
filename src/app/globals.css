@@ -104,3 +104,30 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  @media print {
+    .hide-on-print {
+      display: none !important;
+    }
+    body {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      background: hsl(var(--background));
+      color: hsl(var(--foreground));
+    }
+    .print-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+    .print-card {
+        border: 1px solid hsl(var(--border));
+        box-shadow: none;
+    }
+    .print-bg-primary-10 {
+        background-color: hsl(var(--primary) / 0.1) !important;
+    }
+  }
+}
