@@ -1,6 +1,9 @@
 
 "use client";
 
+import { useState } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer } from "lucide-react";
+import { FileDown, Printer, Loader2 } from "lucide-react";
 import type { CalculationResult } from "./CalculatorForm";
 
 interface ExportDialogProps {
@@ -24,20 +27,54 @@ export function ExportDialog({
   onOpenChange,
   calculationData,
 }: ExportDialogProps) {
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
-  const handlePrint = () => {
+  const handleDownloadPdf = async () => {
+    const elementToPrint = document.getElementById("print-area");
+    if (!elementToPrint) return;
+
+    setIsDownloadingPdf(true);
+    
+    // Temporarily remove print-only styles to capture full component
+    const printStyles = document.querySelectorAll('.hide-on-print');
+    printStyles.forEach(el => el.classList.remove('hide-on-print'));
+
+
+    const canvas = await html2canvas(elementToPrint, {
+        scale: 2, // Increase scale for better resolution
+        useCORS: true,
+        backgroundColor: null,
+    });
+
+    // Re-add styles after capture
+    printStyles.forEach(el => el.classList.add('hide-on-print'));
+
+    const imgData = canvas.toDataURL("image/png");
+    
+    const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: "a4"
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    const ratio = canvasWidth / canvasHeight;
+    const widthInPdf = pdfWidth * 0.8; // Use 80% of width
+    const heightInPdf = widthInPdf / ratio;
+
+    const x = (pdfWidth - widthInPdf) / 2;
+    let y = (pdfHeight - heightInPdf) / 2;
+    if (y < 20) y = 20;
+
+
+    pdf.addImage(imgData, "PNG", x, y, widthInPdf, heightInPdf);
+    pdf.save(`HPP_${calculationData.productName.replace(/ /g, "_")}.pdf`);
+
+    setIsDownloadingPdf(false);
     onOpenChange(false);
-    setTimeout(() => {
-        const printContents = document.getElementById("print-area")?.innerHTML;
-        const originalContents = document.body.innerHTML;
-        if (printContents) {
-            document.body.innerHTML = printContents;
-            window.print();
-            document.body.innerHTML = originalContents;
-            // We need to reload to re-initialize the react app state
-            window.location.reload();
-        }
-    }, 100);
   };
 
   const handleDownloadCsv = () => {
@@ -89,13 +126,17 @@ export function ExportDialog({
         <DialogHeader>
           <DialogTitle>Ekspor Hasil Perhitungan</DialogTitle>
           <DialogDescription>
-            Pilih format ekspor yang Anda inginkan. Anda dapat menyimpannya sebagai PDF atau mengunduhnya sebagai file CSV untuk dibuka di Excel.
+            Pilih format ekspor yang Anda inginkan. Anda dapat mengunduhnya sebagai berkas PDF atau CSV untuk dibuka di Excel.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4 py-4">
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2" />
-            Cetak ke PDF
+          <Button variant="outline" onClick={handleDownloadPdf} disabled={isDownloadingPdf}>
+            {isDownloadingPdf ? (
+                <Loader2 className="mr-2 animate-spin" />
+            ) : (
+                <Printer className="mr-2" />
+            )}
+            Unduh PDF
           </Button>
           <Button variant="outline" onClick={handleDownloadCsv}>
             <FileDown className="mr-2" />
