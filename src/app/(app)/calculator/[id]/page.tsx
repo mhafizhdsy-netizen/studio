@@ -9,11 +9,12 @@ import type { Calculation } from "@/components/dashboard/CalculationHistory";
 export default function EditCalculatorPage({ params }: { params: { id: string } }) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { id } = params;
 
   const calcDocRef = useMemoFirebase(() => {
-    if (!user || !firestore || !params.id) return null;
-    return doc(firestore, 'users', user.uid, 'calculations', params.id);
-  }, [user, firestore, params.id]);
+    if (!user || !firestore || !id) return null;
+    return doc(firestore, 'users', user.uid, 'calculations', id);
+  }, [user, firestore, id]);
 
   const { data: calculation, isLoading, error } = useDoc<Calculation>(calcDocRef);
 
