@@ -2,8 +2,8 @@
 "use client";
 
 import { useState } from "react";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, doc, deleteDoc, Timestamp, writeBatch } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
+import { collection, query, orderBy, doc, Timestamp } from 'firebase/firestore';
 import { CalculationCard } from "./CalculationCard";
 import { Loader2, ServerCrash } from "lucide-react";
 import { Button } from "../ui/button";
@@ -19,7 +19,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export interface Calculation {
   id: string;
@@ -66,32 +65,17 @@ export function CalculationHistory() {
 
     setIsDeleting(true);
     
-    try {
-        const batch = writeBatch(firestore);
-        
-        // Reference to the user's calculation
-        const userCalcRef = doc(firestore, 'users', user.uid, 'calculations', selectedCalcId);
-        batch.delete(userCalcRef);
+    // Non-blocking deletion
+    const userCalcRef = doc(firestore, 'users', user.uid, 'calculations', selectedCalcId);
+    deleteDocumentNonBlocking(userCalcRef);
 
-        // Reference to the public calculation (it might exist)
-        const publicCalcRef = doc(firestore, 'public_calculations', selectedCalcId);
-        batch.delete(publicCalcRef); // It's safe to delete even if it doesn't exist
-
-        await batch.commit();
-
-        toast({
-          title: "Berhasil Dihapus",
-          description: "Perhitunganmu sudah dihapus dari riwayat.",
-        });
-    } catch (e) {
-        console.error(e);
-        toast({
-            title: "Gagal Menghapus",
-            description: "Terjadi masalah saat menghapus perhitungan.",
-            variant: "destructive",
-        });
-    }
-
+    const publicCalcRef = doc(firestore, 'public_calculations', selectedCalcId);
+    deleteDocumentNonBlocking(publicCalcRef);
+    
+    toast({
+      title: "Berhasil Dihapus",
+      description: "Perhitunganmu sudah dihapus dari riwayat.",
+    });
 
     setIsDeleting(false);
     setIsDeleteDialogOpen(false);
