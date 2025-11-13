@@ -1,4 +1,3 @@
-
 "use client";
 
 import { usePathname } from 'next/navigation';
@@ -19,6 +18,7 @@ import {
   Shield,
   User as UserIcon,
   MessageSquare,
+  DollarSign,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -86,6 +86,17 @@ export function AppSidebar() {
               <Link href="/calculator">
                 <Calculator />
                 Kalkulator HPP
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/ideal-price-calculator')}
+            >
+              <Link href="/ideal-price-calculator">
+                <DollarSign />
+                Harga Jual Ideal
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
