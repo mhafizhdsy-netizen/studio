@@ -56,9 +56,9 @@ export default function AdsCalculatorPage() {
         {
           name: "",
           platform: "Instagram",
-          cost: undefined,
-          sales: undefined,
-          avgPrice: undefined,
+          cost: "" as any,
+          sales: "" as any,
+          avgPrice: "" as any,
         },
       ],
     },
@@ -197,7 +197,7 @@ export default function AdsCalculatorPage() {
                  <Button
                   type="button"
                   variant="outline"
-                  onClick={() => append({ name: "", platform: "Instagram", cost: undefined, sales: undefined, avgPrice: undefined })}
+                  onClick={() => append({ name: "", platform: "Instagram", cost: "" as any, sales: "" as any, avgPrice: "" as any })}
                 >
                   <PlusCircle className="mr-2 h-4 w-4" /> Tambah Kampanye
                 </Button>
