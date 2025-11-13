@@ -49,8 +49,8 @@ function PriceSimulator() {
     const baseProfit = watchAllFields.basePrice - watchAllFields.baseHpp;
     const baseMargin = watchAllFields.baseHpp > 0 ? (baseProfit / watchAllFields.baseHpp) * 100 : 0;
     
-    const newProfit = watchAllFields.newPrice - watchAll_fields.newHpp;
-    const newMargin = watchAll_fields.newHpp > 0 ? (newProfit / watchAll_fields.newHpp) * 100 : 0;
+    const newProfit = watchAllFields.newPrice - watchAllFields.newHpp;
+    const newMargin = watchAllFields.newHpp > 0 ? (newProfit / watchAllFields.newHpp) * 100 : 0;
     
     const profitChange = newProfit - baseProfit;
     const marginChange = newMargin - baseMargin;
