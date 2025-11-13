@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -5,8 +6,9 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,6 +42,7 @@ export function LoginForm() {
   const { toast } = useToast();
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 
@@ -70,17 +73,36 @@ export function LoginForm() {
     setIsLoadingEmail(false);
   }
 
+  const createUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
+    if (!firestore) return;
+    const userDocRef = doc(firestore, 'users', uid);
+    const userDoc = await getDoc(userDocRef);
+    if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+            name,
+            email,
+            photoURL: photoURL || '',
+            createdAt: serverTimestamp(),
+            onboardingCompleted: false, // Set onboarding as not completed for new users
+        });
+    }
+  }
+
   async function handleGoogleSignIn() {
     setIsLoadingGoogle(true);
     try {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        await createUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
+
         toast({
             title: "Berhasil Masuk!",
             description: "Selamat datang! Yuk mulai hitung HPP.",
         });
         router.push("/dashboard");
     } catch (error) {
+        console.error(error);
         toast({
             title: "Gagal Masuk dengan Google",
             description: "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",

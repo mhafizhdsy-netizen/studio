@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth, useFirestore, useStorage } from "@/firebase";
 import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -75,16 +75,20 @@ export function SignupForm() {
     }
   };
 
-  const createUserProfile = async (uid: string, name: string, email: string, photoURL?: string) => {
+  const createUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
     if (!firestore) return;
     const userDocRef = doc(firestore, 'users', uid);
-    await setDoc(userDocRef, {
-        name,
-        email,
-        photoURL: photoURL || '',
-        createdAt: serverTimestamp(),
-        onboardingCompleted: false, // Set onboarding as not completed for new users
-    }, { merge: true });
+    const userDoc = await getDoc(userDocRef);
+    // Only create the document if it doesn't exist to avoid overwriting existing user data on re-login
+    if (!userDoc.exists()) {
+        await setDoc(userDocRef, {
+            name,
+            email,
+            photoURL: photoURL || '',
+            createdAt: serverTimestamp(),
+            onboardingCompleted: false, // Set onboarding as not completed for new users
+        });
+    }
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -131,7 +135,7 @@ export function SignupForm() {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
         
-        await createUserProfile(user.uid, user.displayName!, user.email!, user.photoURL || undefined);
+        await createUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
 
         toast({
             title: "Berhasil Masuk!",
@@ -139,6 +143,7 @@ export function SignupForm() {
         });
         router.push("/dashboard");
     } catch (error) {
+        console.error(error);
         toast({
             title: "Gagal Masuk dengan Google",
             description: "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
