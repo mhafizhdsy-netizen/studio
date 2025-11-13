@@ -1,15 +1,7 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="32" height="32" rx="8" fill="url(#logo-gradient)"/>
-<g transform="translate(6 6)">
-<path d="M13.5 1H6.5C5.94772 1 5.5 1.44772 5.5 2V19C5.5 19.5523 5.94772 20 6.5 20H13.5C14.0523 20 14.5 19.5523 14.5 19V2C14.5 1.44772 14.0523 1 13.5 1Z" fill="white" fill-opacity="0.1"/>
-<path d="M13.5 1H6.5C5.94772 1 5.5 1.44772 5.5 2V19C5.5 19.5523 5.94772 20 6.5 20H13.5C14.0523 20 14.5 19.5523 14.5 19V2C14.5 1.44772 14.0523 1 13.5 1Z" stroke="white" stroke-opacity="0.5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M9 13.5H11M10 12.5V14.5M6.5 7.5H13.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M10 17.5C10.8284 17.5 11.5 16.8284 11.5 16C11.5 15.1716 10.8284 14.5 10 14.5C9.17157 14.5 8.5 15.1716 8.5 16C8.5 16.8284 9.17157 17.5 10 17.5Z" fill="#6CFFB4"/>
-</g>
-<defs>
-<linearGradient id="logo-gradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-<stop stop-color="#389BFF"/>
-<stop offset="1" stop-color="#18E079"/>
-</linearGradient>
-</defs>
+<rect width="32" height="32" rx="8" fill="hsl(201, 71%, 52%)"/>
+<path d="M9 20V12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M16 20V12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M23 20V12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M9 16H23" stroke="white" stroke-opacity="0.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
