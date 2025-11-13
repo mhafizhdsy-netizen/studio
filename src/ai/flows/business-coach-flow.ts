@@ -7,6 +7,7 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { type MessagePart } from '@/components/messages/AIChatView';
 
 const HistoryMessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -79,27 +80,33 @@ const businessCoachFlow = ai.defineFlow(
   async (input) => {
     const { history, message, imageUrl, calculation } = input;
 
-    const userContent: any[] = [];
+    // Construct the current user message
+    const userMessageContent: MessagePart[] = [];
     if (message) {
-      userContent.push({ text: message });
+      userMessageContent.push({ text: message });
     }
     if (imageUrl) {
-      userContent.push({ media: { url: imageUrl } });
+      userMessageContent.push({ media: { url: imageUrl } });
     }
     if (calculation) {
-      userContent.push({ text: formatCalculationToText(calculation) });
+        // Embed the calculation data directly as formatted text in the user's message
+      userMessageContent.push({ text: formatCalculationToText(calculation) });
     }
 
-    const processedHistory = history.map(h => ({
-        role: h.role,
-        content: h.content.map(c => {
-          if (c.data?.type === 'calculation') {
-              // Convert calculation data from history into text for the AI
-              return { text: formatCalculationToText(c.data) };
-          }
-          return c; // Return other parts (text, media) as they are
-        })
-    }));
+    // Process the history to format any calculation data within it
+    const processedHistory = history.map(msg => {
+      const newContent: MessagePart[] = msg.content.flatMap(part => {
+        if (part.data?.type === 'calculation') {
+          return { text: formatCalculationToText(part.data) };
+        }
+        // Return other parts (text, media) as they are
+        return part;
+      });
+      return {
+        role: msg.role,
+        content: newContent,
+      };
+    });
 
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
@@ -107,7 +114,7 @@ const businessCoachFlow = ai.defineFlow(
       history: processedHistory,
       prompt: {
         role: 'user',
-        content: userContent
+        content: userMessageContent
       }
     });
 
