@@ -12,9 +12,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Edit, Trash2 } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "../ui/badge";
+import Image from "next/image";
 
 interface CalculationCardProps {
   calculation: Calculation;
@@ -44,7 +45,16 @@ export function CalculationCard({ calculation, onDelete }: CalculationCardProps)
   }
 
   return (
-    <Card className="flex flex-col h-full hover:border-primary transition-all duration-200">
+    <Card className="flex flex-col h-full hover:border-primary transition-all duration-200 group overflow-hidden">
+        <div className="relative aspect-video w-full bg-muted overflow-hidden">
+            {calculation.productImageUrl ? (
+                <Image src={calculation.productImageUrl} alt={calculation.productName} layout="fill" className="object-cover group-hover:scale-105 transition-transform duration-300" />
+            ) : (
+                <div className="flex items-center justify-center h-full">
+                    <Package className="h-12 w-12 text-muted-foreground" />
+                </div>
+            )}
+        </div>
       <CardHeader className="flex-row items-start justify-between">
         <div>
           <CardTitle className="font-headline text-lg truncate">{calculation.productName}</CardTitle>

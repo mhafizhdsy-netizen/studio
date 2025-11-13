@@ -1,18 +1,18 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, useStorage, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, serverTimestamp, collection } from 'firebase/firestore';
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download } from "lucide-react";
+import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
@@ -21,6 +21,9 @@ import { Switch } from "@/components/ui/switch";
 import { ProfitAIAnalyst } from "./ProfitAIAnalyst";
 import { ExportDialog } from "./ExportDialog";
 import { Textarea } from "../ui/textarea";
+import Image from "next/image";
+import { Progress } from "../ui/progress";
+import { uploadProductImage } from "@/firebase/storage";
 
 
 const materialSchema = z.object({
@@ -31,6 +34,7 @@ const materialSchema = z.object({
 
 const formSchema = z.object({
   productName: z.string().min(1, "Nama produk tidak boleh kosong"),
+  productImageUrl: z.string().optional(),
   materials: z.array(materialSchema).min(1, "Minimal ada 1 bahan baku"),
   laborCost: z.coerce.number().min(0, "Biaya harus positif"),
   overhead: z.coerce.number().min(0, "Biaya harus positif"),
@@ -64,16 +68,25 @@ const motivationalToasts = [
 export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
+  // State for image upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(existingCalculation?.productImageUrl || null);
+  const [isUploading, setIsUploading] = useState(false);
+
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       productName: "",
+      productImageUrl: "",
       materials: [{ name: "", cost: 0, qty: 1 }],
       laborCost: 0,
       overhead: 0,
@@ -102,6 +115,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
       form.reset({
         productName: existingCalculation.productName,
+        productImageUrl: existingCalculation.productImageUrl || "",
         materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1 }],
         laborCost: Number(existingCalculation.laborCost),
         overhead: Number(existingCalculation.overhead),
@@ -111,9 +125,41 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         productQuantity: existingCalculation.productQuantity || 1,
         productionTips: existingCalculation.productionTips || "",
       });
+      setImageUrl(existingCalculation.productImageUrl || null);
       calculate(form.getValues());
     }
   }, [existingCalculation, form]);
+
+    const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    if (!storage || !user) {
+      toast({ title: "Error", description: "Layanan penyimpanan tidak tersedia.", variant: "destructive" });
+      return;
+    }
+
+    const file = e.target.files[0];
+    const localUrl = URL.createObjectURL(file);
+    setImageUrl(localUrl);
+    setUploadProgress(0);
+    setIsUploading(true);
+
+    try {
+      const calcId = existingCalculation?.id || doc(collection(firestore, 'temp')).id;
+      const newPhotoURL = await uploadProductImage(storage, user.uid, calcId, file, (progress) => {
+        setUploadProgress(progress);
+      });
+      setImageUrl(newPhotoURL);
+      form.setValue('productImageUrl', newPhotoURL);
+      toast({ title: "Sukses!", description: "Gambar produk berhasil diunggah." });
+    } catch (error) {
+      console.error(error);
+      setImageUrl(existingCalculation?.productImageUrl || null); // Revert on error
+      toast({ title: "Gagal", description: "Gagal mengunggah gambar produk.", variant: "destructive" });
+    } finally {
+        setIsUploading(false);
+        setTimeout(() => setUploadProgress(null), 1500);
+    }
+  };
   
   const calculate = (data: FormData) => {
     const totalMaterialCost = data.materials.reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
@@ -147,6 +193,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     
     const calculationData: Omit<Calculation, 'id' | 'createdAt' | 'updatedAt'> = {
         productName: data.productName,
+        productImageUrl: data.productImageUrl || "",
         materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty) })),
         laborCost: Number(data.laborCost),
         overhead: Number(data.overhead),
@@ -179,6 +226,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         const publicData = {
             ...calculationData,
             userName: user.displayName || 'Anonymous',
+            userPhotoURL: user.photoURL || '',
             createdAt: existingCalculation?.createdAt || serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
@@ -206,7 +254,36 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
             <CardHeader>
               <CardTitle className="font-headline">Info Produk</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+               <div
+                className="relative aspect-video w-full bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-border cursor-pointer hover:border-primary transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {imageUrl ? (
+                  <Image src={imageUrl} alt="Pratinjau Produk" layout="fill" className="object-cover rounded-lg" />
+                ) : (
+                  <div className="text-center text-muted-foreground">
+                    <Package className="mx-auto h-12 w-12" />
+                    <p>Unggah Gambar Produk</p>
+                  </div>
+                )}
+                 <div className="absolute bottom-2 right-2 bg-secondary text-secondary-foreground rounded-full p-2">
+                    <Camera className="h-4 w-4" />
+                </div>
+                {isUploading && uploadProgress !== null && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                        <Progress value={uploadProgress} className="w-11/12 h-2" />
+                    </div>
+                )}
+                <Input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoChange}
+                  className="hidden"
+                  accept="image/png, image/jpeg, image/webp"
+                  disabled={isUploading}
+                />
+              </div>
               <div>
                 <Label htmlFor="productName">Nama Produk</Label>
                 <Input id="productName" placeholder="Contoh: Kaos Polos 'Cuan Series'" {...form.register("productName")} />
@@ -361,7 +438,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               </p>
                             </div>
                           )}
-                          <Button type="submit" className="w-full font-bold" disabled={isSubmitting}>
+                          <Button type="submit" className="w-full font-bold" disabled={isSubmitting || isUploading}>
                               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                               {existingCalculation ? "Update Perhitungan" : "Simpan Perhitungan"}
                           </Button>
@@ -404,5 +481,3 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
-
-    

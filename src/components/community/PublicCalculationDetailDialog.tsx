@@ -13,9 +13,10 @@ import { formatCurrency } from "@/lib/utils";
 import { CostPieChart } from "@/components/calculator/CostPieChart";
 import { type PublicCalculation } from "./PublicCalculationList";
 import { ScrollArea } from "../ui/scroll-area";
-import { Avatar, AvatarFallback } from "../ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Lightbulb } from "lucide-react";
+import { Lightbulb, Package } from "lucide-react";
+import Image from "next/image";
 
 interface PublicCalculationDetailDialogProps {
   calculation: PublicCalculation | null;
@@ -34,6 +35,7 @@ export function PublicCalculationDetailDialog({
 
   const {
     productName,
+    productImageUrl,
     materials,
     laborCost,
     overhead,
@@ -42,6 +44,7 @@ export function PublicCalculationDetailDialog({
     suggestedPrice,
     margin,
     userName,
+    userPhotoURL,
     productQuantity,
     productionTips,
   } = calculation;
@@ -68,6 +71,7 @@ export function PublicCalculationDetailDialog({
             <DialogTitle className="font-headline text-2xl">{productName}</DialogTitle>
             <div className="flex items-center gap-2 pt-1">
               <Avatar className="h-6 w-6">
+                <AvatarImage src={userPhotoURL || undefined} alt={userName} />
                 <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
                   {getInitials(userName)}
                 </AvatarFallback>
@@ -77,6 +81,15 @@ export function PublicCalculationDetailDialog({
           </DialogHeader>
         <ScrollArea className="max-h-[70vh] pr-4">
           <div className="space-y-6 py-4">
+             {productImageUrl ? (
+                <div className="relative aspect-video w-full rounded-lg overflow-hidden">
+                    <Image src={productImageUrl} alt={productName} layout="fill" className="object-cover" />
+                </div>
+            ) : (
+                <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
+                    <Package className="h-12 w-12 text-muted-foreground" />
+                </div>
+            )}
             <div className="h-64">
               <CostPieChart data={pieChartData} />
             </div>

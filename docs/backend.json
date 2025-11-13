@@ -19,6 +19,11 @@
           "description": "The user's email address.",
           "format": "email"
         },
+        "photoURL": {
+            "type": "string",
+            "description": "The URL of the user's profile picture.",
+            "format": "uri"
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp indicating when the user account was created.",
@@ -49,6 +54,11 @@
         "productName": {
           "type": "string",
           "description": "The name of the product for which HPP was calculated."
+        },
+        "productImageUrl": {
+            "type": "string",
+            "description": "The URL for the product's image.",
+            "format": "uri"
         },
         "materials": {
           "type": "array",
@@ -114,6 +124,11 @@
         "productName": {
           "type": "string",
           "description": "The name of the product."
+        },
+        "productImageUrl": {
+            "type": "string",
+            "description": "The URL for the product's image.",
+            "format": "uri"
         },
         "totalHPP": {
           "type": "number",

@@ -24,6 +24,7 @@ import { deleteDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 export interface Calculation {
   id: string;
   productName: string;
+  productImageUrl?: string;
   materials: { name: string; cost: number; qty: number }[];
   laborCost: number;
   overhead: number;
