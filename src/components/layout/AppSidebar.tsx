@@ -25,6 +25,7 @@ import {
   Calculator,
   Bot,
   Landmark,
+  Wand2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -116,6 +117,17 @@ export function AppSidebar() {
               <Link href="/ideal-price-calculator">
                 <DollarSign />
                 Harga Jual Ideal
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/profit-simulator')}
+            >
+              <Link href="/profit-simulator">
+                <Wand2 />
+                Simulator Keuntungan
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
