@@ -67,7 +67,9 @@ service cloud.firestore {
      * @path /conversations/{convoId}
      */
     match /conversations/{convoId} {
-        allow read, update: if isParticipant(convoId);
+        // Allow a user to query for conversations they are a part of.
+        allow list: if isSignedIn() && request.auth.uid in request.query.where.participantIds;
+        allow get, update: if isParticipant(convoId);
         allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
 
         /**
@@ -93,5 +95,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
