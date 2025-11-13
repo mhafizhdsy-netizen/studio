@@ -35,24 +35,28 @@ export function ReportCharts({ calculations, expenses }: ReportChartsProps) {
       categoryMap[exp.category] = (categoryMap[exp.category] || 0) + exp.amount;
     });
     
-    // Define a broader color palette to ensure uniqueness
+    // Define a more distinct and vibrant color palette
     const categoryColors: { [key: string]: string } = {
-        "Sewa Tempat": "hsl(var(--chart-1))",
-        "Listrik & Air": "hsl(var(--chart-2))",
-        "Gaji Karyawan": "hsl(var(--chart-3))",
-        "Biaya Pengemasan": "hsl(var(--chart-4))",
-        "Pemasaran": "hsl(var(--chart-5))",
-        "Lainnya": "hsl(220 71% 52%)", // Adding a new distinct color
+        "Sewa Tempat": "hsl(221.2 83.2% 53.3%)", // Bright Blue
+        "Listrik & Air": "hsl(47.9 95.8% 53.1%)",  // Bright Yellow
+        "Gaji Karyawan": "hsl(142.1 76.2% 36.3%)", // Bright Green
+        "Biaya Pengemasan": "hsl(262.1 83.3% 57.8%)", // Bright Purple
+        "Pemasaran": "hsl(346.8 77.2% 49.8%)",     // Bright Pink
+        "Lainnya": "hsl(215.4 16.3% 46.9%)",       // Cool Gray
     };
 
-    const fallbackColors = ["hsl(260 71% 52%)", "hsl(300 71% 52%)", "hsl(340 71% 52%)"];
+    const fallbackColors = [
+        "hsl(19.1 91.2% 55.3%)", // Orange
+        "hsl(172.9 70.1% 40.2%)", // Teal
+        "hsl(291.8 63.3% 53.1%)", // Magenta
+    ];
     
+    let colorIndex = 0;
     return Object.entries(categoryMap)
-        .map(([name, value], index) => ({
-            name,
-            value,
-            fill: categoryColors[name] || fallbackColors[index % fallbackColors.length]
-        }))
+        .map(([name, value]) => {
+          const fill = categoryColors[name] || fallbackColors[colorIndex++ % fallbackColors.length];
+          return { name, value, fill };
+        })
         .sort((a,b) => b.value - a.value);
 
   }, [expenses]);
