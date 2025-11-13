@@ -18,6 +18,7 @@ import {
   Users,
   Shield,
   User as UserIcon,
+  MessageSquare,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -99,6 +100,17 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/messages')}
+            >
+              <Link href="/messages">
+                <MessageSquare />
+                Pesan
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           {isAdmin && (
              <SidebarMenuItem>
                 <SidebarMenuButton
@@ -151,3 +163,5 @@ export function AppSidebar() {
     </>
   );
 }
+
+    

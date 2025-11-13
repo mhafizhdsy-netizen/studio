@@ -199,6 +199,81 @@
         "text",
         "createdAt"
       ]
+    },
+    "Conversation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Conversation",
+      "type": "object",
+      "description": "Represents a chat conversation between two or more users.",
+      "properties": {
+        "participantIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "An array of user UIDs who are part of this conversation."
+        },
+        "lastMessageText": {
+          "type": "string",
+          "description": "The text of the last message sent in the conversation, for preview purposes."
+        },
+        "lastMessageTimestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last message sent."
+        },
+        "participants": {
+          "type": "object",
+          "description": "A map of participant user data for easy access to name and photoURL.",
+           "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "photoURL": { "type": "string", "format": "uri" }
+            },
+            "required": ["name"]
+          }
+        }
+      },
+      "required": ["participantIds", "lastMessageTimestamp"]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a single message within a conversation.",
+      "properties": {
+        "senderId": {
+          "type": "string",
+          "description": "The UID of the user who sent the message."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["text", "image", "calculation"],
+          "description": "The type of message content."
+        },
+        "text": {
+          "type": "string",
+          "description": "The text content of the message (if type is 'text')."
+        },
+        "mediaUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL of the uploaded image or file (if type is 'image')."
+        },
+        "mediaName": {
+          "type": "string",
+          "description": "The name of the uploaded file."
+        },
+        "calculationId": {
+          "type": "string",
+          "description": "The ID of the shared calculation (if type is 'calculation')."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the message was sent."
+        }
+      },
+      "required": ["senderId", "type", "createdAt"]
     }
   },
   "auth": {
@@ -280,8 +355,31 @@
             }
           ]
         }
+      },
+      {
+        "path": "/conversations/{convoId}",
+        "definition": {
+          "entityName": "Conversation",
+          "schema": { "$ref": "#/backend/entities/Conversation" },
+          "description": "Stores metadata about a chat conversation. Only participants can read or update this document.",
+          "params": [{ "name": "convoId", "description": "The unique ID of the conversation." }]
+        }
+      },
+      {
+        "path": "/conversations/{convoId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": { "$ref": "#/backend/entities/Message" },
+          "description": "Stores the messages for a specific conversation. Only participants of the parent conversation can read or write messages here.",
+          "params": [
+            { "name": "convoId", "description": "The unique ID of the conversation." },
+            { "name": "messageId", "description": "The unique ID of the message." }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure data isolation and facilitate efficient querying and security rule implementation for the GenHPP application.  The primary focus is on path-based ownership for user-specific data and a segregated collection for public data. This design prioritizes Authorization Independence (CRITICAL) and adheres to QAPs. The `users/{userId}/calculations/{calcId}` structure leverages path-based ownership, ensuring that calculations are owned by the respective user, simplifying security rules. The `public_calculations` collection supports the 'Community Sharing' feature, allowing users to share calculations without personal data. This segregation ensures that public data has distinct security requirements. All authorization-relevant data is denormalized, eliminating the need for `get()` calls in security rules, crucial for maintaining atomic operations and simplifying debugging."
+    "reasoning": "The Firestore structure is designed to ensure data isolation and facilitate efficient querying and security rule implementation for the GenHPP application. The primary focus is on path-based ownership for user-specific data and segregated collections for public data and chat functionality. The `conversations` collection stores chat metadata, and each conversation has a `messages` sub-collection. This separation allows for efficient loading of conversations and messages. Security rules ensure that only participants of a conversation can access its data, enhancing privacy and security."
   }
 }
+
+    
