@@ -2,12 +2,14 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { User, Bot, AlertTriangle } from 'lucide-react';
+import { User, Bot, AlertTriangle, Copy, Check } from 'lucide-react';
 import type { Timestamp } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ReactMarkdown from 'react-markdown';
 import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export interface AIChatMessage {
   id: string;
@@ -30,13 +32,13 @@ const WelcomeMessage = () => (
             </AvatarFallback>
         </Avatar>
         <div className="p-4 rounded-lg bg-muted max-w-2xl prose dark:prose-invert">
-            <h3>Halo! Saya adalah konsultan AI bisnismu.</h3>
-            <p>Saya di sini untuk membantumu menjawab berbagai pertanyaan seputar bisnis, mulai dari strategi marketing, ide produk, hingga cara mengurus perizinan.</p>
-            <p>Tanya apa saja, misalnya:</p>
+            <h3>Halo, bestie! Aku Konsultan AI.</h3>
+            <p>Lagi pusing mikirin bisnis? Atau butuh ide segar? Spill aja semua ke aku! Aku siap bantu kamu.</p>
+            <p>Tanya apa aja, misalnya:</p>
             <ul>
-                <li>"Beri aku 5 ide nama brand untuk usaha kopi kekinian."</li>
-                <li>"Bagaimana cara promosi produk fashion di TikTok?"</li>
-                <li>"Buatkan contoh caption Instagram untuk jualan kue kering."</li>
+                <li>"Kasih 5 ide nama brand buat usaha kopi kekinian dong."</li>
+                <li>"Gimana cara promosi produk fashion di TikTok biar FYP?"</li>
+                <li>"Bikinin contoh caption IG buat jualan kue kering, yang vibes-nya estetik."</li>
             </ul>
         </div>
     </div>
@@ -44,7 +46,21 @@ const WelcomeMessage = () => (
 
 export function AIChatView({ history, isResponding }: AIChatViewProps) {
   const { user } = useUser();
+  const { toast } = useToast();
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
   const getInitials = (name: string) => (name || "A").split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
+
+  const handleCopy = (text: string, messageId: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+        toast({
+            title: "Tersalin!",
+            description: "Respon AI berhasil disalin ke clipboard.",
+        });
+        setCopiedMessageId(messageId);
+        setTimeout(() => setCopiedMessageId(null), 2000);
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -66,26 +82,37 @@ export function AIChatView({ history, isResponding }: AIChatViewProps) {
                     </AvatarFallback>
                 </Avatar>
             )}
-            <div
-              className={cn(
-                'p-4 rounded-lg max-w-2xl prose dark:prose-invert',
-                isUser ? 'bg-primary text-primary-foreground' : (message.isError ? 'bg-destructive/20 border border-destructive' : 'bg-muted')
-              )}
-            >
-              {message.isError && <p className='flex items-center gap-2 font-bold'><AlertTriangle className='h-4 w-4'/> Terjadi Kesalahan</p>}
-              <ReactMarkdown
-                components={{
-                    h1: ({node, ...props}) => <h1 className="text-2xl font-bold" {...props} />,
-                    h2: ({node, ...props}) => <h2 className="text-xl font-bold" {...props} />,
-                    h3: ({node, ...props}) => <h3 className="text-lg font-bold" {...props} />,
-                    p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                    ul: ({node, ...props}) => <ul className="list-disc pl-5 my-2" {...props} />,
-                    ol: ({node, ...props}) => <ol className="list-decimal pl-5 my-2" {...props} />,
-                    li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
+            <div className='group relative'>
+                <div
+                className={cn(
+                    'p-4 rounded-lg max-w-2xl prose dark:prose-invert',
+                    isUser ? 'bg-primary text-primary-foreground' : (message.isError ? 'bg-destructive/20 border border-destructive' : 'bg-muted')
+                )}
+                >
+                {message.isError && <p className='flex items-center gap-2 font-bold'><AlertTriangle className='h-4 w-4'/> Terjadi Kesalahan</p>}
+                <ReactMarkdown
+                    components={{
+                        h1: ({node, ...props}) => <h1 className="text-2xl font-bold" {...props} />,
+                        h2: ({node, ...props}) => <h2 className="text-xl font-bold" {...props} />,
+                        h3: ({node, ...props}) => <h3 className="text-lg font-bold" {...props} />,
+                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-5 my-2" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal pl-5 my-2" {...props} />,
+                        li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                    }}
+                >
+                    {message.content}
+                </ReactMarkdown>
+                </div>
+                 {!isUser && !message.isError && (
+                    <button 
+                        onClick={() => handleCopy(message.content, message.id)}
+                        className="absolute -top-3 -right-3 p-1.5 bg-background border rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label="Salin pesan"
+                    >
+                       {copiedMessageId === message.id ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+                    </button>
+                 )}
             </div>
              {isUser && user && (
                  <Avatar className="h-9 w-9">

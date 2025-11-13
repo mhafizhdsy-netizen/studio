@@ -73,7 +73,8 @@ export default function LandingPage() {
           </section>
         )}
 
-        <section id="fitur" className="container mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <section id="fitur" className="container mx-auto px-4 sm:px
+-6 lg:px-8 py-24 md:py-32">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold font-headline text-foreground">
               Bukan Sekedar Kalkulator Biasa
@@ -83,6 +84,11 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <FeatureCard
+              icon={<Bot className="h-8 w-8 text-primary" />}
+              title="Konsultan AI"
+              description="Dapetin insight, ide, dan strategi bisnis langsung dari AI. Anggap aja punya mentor bisnis pribadi 24/7!"
+            />
             <FeatureCard
               icon={<Calculator className="h-8 w-8 text-primary" />}
               title="Kalkulator HPP Rinci & Cepat"
@@ -97,11 +103,6 @@ export default function LandingPage() {
               icon={<Megaphone className="h-8 w-8 text-primary" />}
               title="Analisis Iklan (ROAS & ROI)"
               description="Ukur efektivitas setiap kampanye iklanmu untuk memastikan budget marketingmu tidak sia-sia."
-            />
-             <FeatureCard
-              icon={<Bot className="h-8 w-8 text-primary" />}
-              title="Analisis Profit AI"
-              description="Dapatkan strategi efisiensi, benchmark harga pasar, dan saran praktis dari AI untuk meningkatkan keuntungan."
             />
              <FeatureCard
               icon={<Landmark className="h-8 w-8 text-primary" />}
