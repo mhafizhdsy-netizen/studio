@@ -17,13 +17,16 @@ const CONVERSATION_ID = "main_conversation"; // Using a single conversation per 
 
 // Helper to convert Firestore Timestamps to plain objects recursively
 const toPlainObject = (obj: any): any => {
+  if (!obj) {
+    return obj;
+  }
   if (obj instanceof Timestamp) {
     return obj.toDate().toISOString();
   }
   if (Array.isArray(obj)) {
     return obj.map(toPlainObject);
   }
-  if (obj && typeof obj === 'object') {
+  if (typeof obj === 'object') {
     const newObj: { [key: string]: any } = {};
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
