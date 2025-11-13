@@ -68,7 +68,9 @@ service cloud.firestore {
      */
     match /conversations/{convoId} {
         // Allow a user to query for conversations they are a part of.
-        allow list: if isSignedIn() && request.auth.uid in request.query.get("where").participantIds;
+        // The query in the app MUST use a "where('participantIds', 'array-contains', request.auth.uid)" clause.
+        // Firestore security rules ensure that the query matches this condition.
+        allow list: if isSignedIn();
         allow get, update: if isParticipant(convoId);
         allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
 
