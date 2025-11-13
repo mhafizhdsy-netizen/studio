@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname } from 'next/navigation';
@@ -16,6 +17,7 @@ import {
   LogOut,
   Users,
   Shield,
+  User as UserIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -23,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -113,22 +116,37 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarSeparator />
       <SidebarFooter>
-         <div className="flex items-center gap-3">
-            <Avatar>
-                <AvatarImage src={user?.photoURL ?? undefined} />
-                <AvatarFallback className='bg-primary text-primary-foreground font-bold'>
-                    {getInitials(user?.displayName || user?.email)}
-                </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col overflow-hidden">
-                <p className="font-semibold truncate">{user?.displayName}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-            </div>
-         </div>
-         <Button variant="ghost" className="w-full justify-start gap-2" onClick={handleSignOut}>
-            <LogOut className="h-4 w-4" />
-            <span>Keluar</span>
-         </Button>
+         <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start h-auto px-2 py-1.5">
+                    <div className="flex items-center gap-3 w-full">
+                        <Avatar>
+                            <AvatarImage src={user?.photoURL ?? undefined} />
+                            <AvatarFallback className='bg-primary text-primary-foreground font-bold'>
+                                {getInitials(user?.displayName || user?.email)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col overflow-hidden text-left">
+                            <p className="font-semibold truncate">{user?.displayName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                        </div>
+                    </div>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[var(--sidebar-width)] mb-2 ml-2" side="top" align="start">
+                <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        <span>Edit Profil</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Keluar</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+         </DropdownMenu>
       </SidebarFooter>
     </>
   );

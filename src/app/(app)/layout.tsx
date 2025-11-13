@@ -7,6 +7,7 @@ import { useUser } from "@/firebase";
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Loader2 } from "lucide-react";
+import Profile from "./profile/page";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
