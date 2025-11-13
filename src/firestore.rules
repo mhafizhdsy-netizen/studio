@@ -78,7 +78,8 @@ service cloud.firestore {
      * @path /preferences/{userId}
      */
     match /preferences/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, update, delete: if isOwner(userId);
+      allow create: if isOwner(userId);
     }
 
     function isSignedIn() {
