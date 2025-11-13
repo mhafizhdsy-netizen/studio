@@ -17,7 +17,7 @@ const CONVERSATION_ID = "main_conversation"; // Using a single conversation per 
 
 // Helper to convert Firestore Timestamps to plain objects recursively
 const toPlainObject = (obj: any): any => {
-  if (!obj) {
+  if (obj === null || obj === undefined) {
     return obj;
   }
   if (obj instanceof Timestamp) {
@@ -59,7 +59,7 @@ export default function AIChatPage() {
         if (scrollAreaRef.current) {
             scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
         }
-    }, [messages]);
+    }, [messages, isAiTyping]);
 
     const handleSendMessage = async (text?: string, imageUrl?: string, calculation?: Calculation) => {
         if (!user || !firestore) return;
@@ -91,7 +91,7 @@ export default function AIChatPage() {
 
         try {
             // Ensure history is also plain objects before sending to server
-            const history = (messages || []).map(m => toPlainObject(m));
+            const plainHistory = (messages || []).map(m => toPlainObject(m));
             
             const currentUserMessage = {
                 role: 'user' as const,
@@ -99,7 +99,7 @@ export default function AIChatPage() {
             };
 
              const aiInput: AIChatInputType = {
-                history: [...history, currentUserMessage] as any,
+                history: [...plainHistory, currentUserMessage] as any,
             };
 
             const aiResponseText = await chatWithBusinessCoach(aiInput);

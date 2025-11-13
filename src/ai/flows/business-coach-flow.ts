@@ -7,7 +7,6 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { type MessagePart } from '@/components/messages/AIChatView';
 
 const HistoryMessageSchema = z.object({
   role: z.enum(['user', 'model']),
