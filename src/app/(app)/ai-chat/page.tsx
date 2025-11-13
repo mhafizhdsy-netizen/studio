@@ -38,6 +38,18 @@ export default function AIChatPage() {
         }
     }, [messages]);
 
+    const convertCalculationToPlainObject = (calc: Calculation): object => {
+        const plainCalc = { ...calc };
+        // Convert any Timestamps to ISO strings
+        if (plainCalc.createdAt instanceof Timestamp) {
+            plainCalc.createdAt = (plainCalc.createdAt.toDate().toISOString() as any);
+        }
+        if (plainCalc.updatedAt instanceof Timestamp) {
+            plainCalc.updatedAt = (plainCalc.updatedAt.toDate().toISOString() as any);
+        }
+        return plainCalc;
+    }
+
     const handleSendMessage = async (text?: string, imageUrl?: string, calculation?: Calculation) => {
         if (!user || !firestore) return;
         
@@ -47,14 +59,9 @@ export default function AIChatPage() {
         if (text) userContent.push({ text });
         if (imageUrl) userContent.push({ media: { url: imageUrl } });
         
-        // Convert calculation to a plain object before storing and sending
-        const plainCalculation = calculation ? {
-            ...calculation,
-            createdAt: calculation.createdAt instanceof Timestamp ? calculation.createdAt.toDate().toISOString() : calculation.createdAt,
-            updatedAt: calculation.updatedAt instanceof Timestamp ? calculation.updatedAt.toDate().toISOString() : calculation.updatedAt,
-        } : null;
-
-        if (plainCalculation) {
+        let plainCalculation = null;
+        if (calculation) {
+             plainCalculation = convertCalculationToPlainObject(calculation);
              userContent.push({
                 data: {
                     type: 'calculation',
@@ -73,13 +80,20 @@ export default function AIChatPage() {
         setIsAiTyping(true);
 
         try {
+            // Ensure history is also plain objects before sending to server
             const history = (messages || []).map(m => ({
                 role: m.role,
-                content: m.content.map(c => ({
-                    text: c.text,
-                    media: c.media,
-                    data: c.data,
-                }))
+                content: m.content.map(c => {
+                    const plainContent: { text?: string; media?: any; data?: any } = {};
+                    if (c.text) plainContent.text = c.text;
+                    if (c.media) plainContent.media = c.media;
+                    if (c.data?.type === 'calculation') {
+                        plainContent.data = convertCalculationToPlainObject(c.data as Calculation);
+                    } else if (c.data) {
+                        plainContent.data = c.data;
+                    }
+                    return plainContent;
+                })
             }));
             
              const aiInput: AIChatInputType = {

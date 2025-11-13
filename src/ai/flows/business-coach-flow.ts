@@ -7,7 +7,6 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { Calculation } from '@/components/dashboard/CalculationHistory';
 
 const HistoryMessageSchema = z.object({
   role: z.enum(['user', 'model']),
@@ -20,7 +19,7 @@ const HistoryMessageSchema = z.object({
           contentType: z.string().optional(),
         })
         .optional(),
-      data: z.any().optional(),
+      data: z.any().optional(), // Can contain calculation data
     })
   ),
 });
@@ -29,7 +28,7 @@ const ChatInputSchema = z.object({
   history: z.array(HistoryMessageSchema),
   message: z.string().optional(),
   imageUrl: z.string().optional(),
-  calculation: z.any().optional(), // Using z.any() for the complex Calculation type
+  calculation: z.any().optional(), // Can be a plain object
 });
 
 const ChatOutputSchema = z.string();
@@ -56,6 +55,21 @@ Always be encouraging and break down complex topics into easy-to-understand step
 User's calculation data will be provided as a JSON object.
 User's image will be provided via a media url.`;
 
+const formatCalculationToText = (calculation: any) => {
+    return `
+Here is my HPP calculation data for analysis:
+Product Name: ${calculation.productName}
+Total HPP: ${calculation.totalHPP}
+Suggested Price: ${calculation.suggestedPrice}
+Margin: ${calculation.margin}%
+---
+Full Data:
+${"```json"}
+${JSON.stringify(calculation, null, 2)}
+${"```"}
+`;
+}
+
 const businessCoachFlow = ai.defineFlow(
   {
     name: 'businessCoachFlow',
@@ -73,33 +87,24 @@ const businessCoachFlow = ai.defineFlow(
       userContent.push({ media: { url: imageUrl } });
     }
     if (calculation) {
-        const calcText = `
-Here is my HPP calculation data for analysis:
-Product Name: ${calculation.productName}
-Total HPP: ${calculation.totalHPP}
-Suggested Price: ${calculation.suggestedPrice}
-Margin: ${calculation.margin}%
----
-Full Data:
-${"```json"}
-${JSON.stringify(calculation, null, 2)}
-${"```"}
-`;
-      userContent.push({ text: calcText });
+      userContent.push({ text: formatCalculationToText(calculation) });
     }
+
+    const processedHistory = history.map(h => ({
+        role: h.role,
+        content: h.content.map(c => {
+          if (c.data?.type === 'calculation') {
+              // Convert calculation data from history into text for the AI
+              return { text: formatCalculationToText(c.data) };
+          }
+          return c; // Return other parts (text, media) as they are
+        })
+    }));
 
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
       system: systemPrompt,
-      history: history.map(h => ({
-          role: h.role,
-          content: h.content.map(c => {
-            if (c.data?.type === 'calculation') {
-                return { text: `Here is my HPP calculation data for analysis: ${"```json"}\n${JSON.stringify(c.data, null, 2)}\n${"```"}` };
-            }
-            return c;
-          })
-      })),
+      history: processedHistory,
       prompt: {
         role: 'user',
         content: userContent
