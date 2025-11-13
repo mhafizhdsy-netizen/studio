@@ -1,8 +1,9 @@
+
 /**
  * @fileoverview Firestore Security Rules for GenHPP application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for private data (user profiles, calculations, and AI chat history).
+ * This ruleset enforces a strict user-ownership model for private data (user profiles, calculations).
  * It allows public read access to shared calculations and community comments.
  * It manages access to anonymous chat sessions based on participation.
  * Write access is generally restricted to authenticated owners of the data.
@@ -20,15 +21,6 @@ service cloud.firestore {
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId) && resource != null;
-
-      /**
-       * @description Controls access to AI chat messages for a specific user.
-       * @path /users/{userId}/ai_conversations/{conversationId}/messages/{messageId}
-       */
-      match /ai_conversations/{conversationId}/messages/{messageId} {
-        allow read, list, create: if isOwner(userId);
-        allow update, delete: if isOwner(userId);
-      }
     }
 
     /**

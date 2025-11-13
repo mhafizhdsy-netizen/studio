@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -392,21 +393,8 @@
             { "name": "messageId", "description": "The unique ID of the message." }
           ]
         }
-      },
-      {
-        "path": "/users/{userId}/ai_conversations/{conversationId}/messages/{messageId}",
-        "definition": {
-          "entityName": "AiChatMessage",
-          "schema": { "$ref": "#/backend/entities/AiChatMessage" },
-          "description": "Stores the messages for a specific AI chat session for a user.",
-          "params": [
-            { "name": "userId", "description": "The unique ID of the user." },
-            { "name": "conversationId", "description": "The unique ID of the conversation." },
-            { "name": "messageId", "description": "The unique ID of the message." }
-          ]
-        }
       }
     ],
-    "reasoning": "The Firestore structure is updated to support both the anonymous chat and the AI Business Friend features. The anonymous chat uses the top-level `chat_sessions` collection. The AI chat history is stored in a private sub-collection `ai_conversations` under each user to ensure privacy."
+    "reasoning": "The Firestore structure is updated to support the anonymous chat feature. The AI chat history is no longer stored in Firestore and is managed by the client application state."
   }
 }
