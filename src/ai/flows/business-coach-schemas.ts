@@ -4,22 +4,10 @@
  */
 import { z } from 'zod';
 
-// Defines the schema for a single part of a message (text, image, or structured data)
-const MessagePartSchema = z.object({
-  text: z.string().optional(),
-  media: z
-    .object({
-      url: z.string().describe("A data URI of an image (e.g., data:image/jpeg;base64,...)."),
-      contentType: z.string().optional(),
-    })
-    .optional(),
-  data: z.any().optional(), // Can contain structured data like a calculation
-});
-
-// Defines a single message in the chat history
+// Defines a single message in the chat history, which is now just text.
 const HistoryMessageSchema = z.object({
   role: z.enum(['user', 'model']),
-  content: z.array(MessagePartSchema),
+  content: z.string(),
 });
 
 // Defines the overall input for the flow, which is the chat history
