@@ -4,50 +4,39 @@
 
 @layer base {
   :root {
-    --background: var(--theme-background);
-    --foreground: var(--theme-foreground);
-
-    --card: var(--theme-card);
-    --card-foreground: var(--theme-card-foreground);
- 
-    --popover: var(--theme-popover);
-    --popover-foreground: var(--theme-popover-foreground);
- 
-    --primary: var(--theme-primary);
-    --primary-foreground: var(--theme-primary-foreground);
- 
-    --secondary: var(--theme-secondary);
-    --secondary-foreground: var(--theme-secondary-foreground);
- 
-    --muted: var(--theme-muted);
-    --muted-foreground: var(--theme-muted-foreground);
- 
-    --accent: var(--theme-accent);
-    --accent-foreground: var(--theme-accent-foreground);
- 
-    --destructive: var(--theme-destructive);
-    --destructive-foreground: var(--theme-destructive-foreground);
-
-    --border: var(--theme-border);
-    --input: var(--theme-input);
-    --ring: var(--theme-ring);
- 
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 201 71% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 150 100% 50%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 201 71% 52%;
     --radius: 0.5rem;
-
-    --chart-1: var(--theme-chart-1);
-    --chart-2: var(--theme-chart-2);
-    --chart-3: var(--theme-chart-3);
-    --chart-4: var(--theme-chart-4);
-    --chart-5: var(--theme-chart-5);
-
-    --sidebar-background: var(--theme-sidebar-background);
-    --sidebar-foreground: var(--theme-sidebar-foreground);
-    --sidebar-primary: var(--theme-sidebar-primary);
-    --sidebar-primary-foreground: var(--theme-sidebar-primary-foreground);
-    --sidebar-accent: var(--theme-sidebar-accent);
-    --sidebar-accent-foreground: var(--theme-sidebar-accent-foreground);
-    --sidebar-border: var(--theme-sidebar-border);
-    --sidebar-ring: var(--theme-sidebar-ring);
+    --chart-1: 201 71% 52%;
+    --chart-2: 150 100% 50%;
+    --chart-3: 240 5% 65%;
+    --chart-4: 201 71% 62%;
+    --chart-5: 150 100% 60%;
+    --sidebar-background: 0 0% 11%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 201 71% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 10% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 10% 18%;
+    --sidebar-ring: 201 71% 52%;
   }
 }
  
