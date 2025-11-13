@@ -12,7 +12,6 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import {
-  Calculator,
   LayoutDashboard,
   LogOut,
   Users,
@@ -23,6 +22,7 @@ import {
   ClipboardList,
   BarChart2,
   Megaphone,
+  Calculator,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -31,6 +31,7 @@ import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
+import { Logo } from '../ui/logo';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -51,7 +52,6 @@ export function AppSidebar() {
     if(auth) {
         await auth.signOut();
     }
-    // Arahkan ke landing page setelah logout
     router.push('/');
   };
 
@@ -65,7 +65,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <Calculator className="w-8 h-8 text-primary" />
+            <Logo />
             <span className="text-xl font-bold font-headline">HitunginAja</span>
           </Link>
         </div>
