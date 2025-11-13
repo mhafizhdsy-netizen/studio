@@ -35,6 +35,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+
 
 const profileFormSchema = z
   .object({
@@ -93,6 +95,7 @@ export function ProfileForm() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoURL, setPhotoURL] = useState(user?.photoURL);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -110,6 +113,7 @@ export function ProfileForm() {
       const file = e.target.files[0];
       setPhoto(file);
       setPhotoURL(URL.createObjectURL(file));
+      setUploadProgress(0); // Reset progress on new file selection
     }
   };
 
@@ -124,17 +128,33 @@ export function ProfileForm() {
   async function handleNonBlockingPhotoUpload() {
     if (!photo || !storage || !user || !auth) return;
 
+    setUploadProgress(0); // Start progress
+
     try {
-      const newPhotoURL = await uploadProfileImage(storage, user.uid, photo);
+      const newPhotoURL = await uploadProfileImage(
+        storage,
+        user.uid,
+        photo,
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
       // Once uploaded, update the user profile and firestore in the background
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
         const userDocRef = doc(firestore, "users", user.uid);
         await setDoc(userDocRef, { photoURL: newPhotoURL }, { merge: true });
       }
+      setPhoto(null); // Clear the file after successful upload
     } catch (uploadError) {
       console.error("Failed to upload photo in background:", uploadError);
-      // Optionally, show a non-intrusive toast notification for background failures
+      toast({
+        title: "Gagal Mengunggah Foto",
+        description: "Terjadi kesalahan saat mengunggah foto profil.",
+        variant: "destructive",
+      })
+    } finally {
+      setUploadProgress(null); // Hide progress bar on completion or error
     }
   }
 
@@ -183,7 +203,7 @@ export function ProfileForm() {
 
       toast({
         title: "Profil Berhasil Diperbarui!",
-        description: "Informasi akunmu sudah berhasil disimpan. Foto profil akan diperbarui sesaat lagi.",
+        description: "Informasi akunmu sudah berhasil disimpan. Foto profil akan diperbarui sesaat lagi jika diubah.",
       });
 
       // Reset form to clear password fields
@@ -239,6 +259,7 @@ export function ProfileForm() {
                   variant="secondary"
                   className="absolute bottom-0 right-0 rounded-full h-7 w-7"
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadProgress !== null}
                 >
                   <Camera className="h-4 w-4" />
                 </Button>
@@ -248,9 +269,10 @@ export function ProfileForm() {
                   onChange={handlePhotoChange}
                   className="hidden"
                   accept="image/png, image/jpeg, image/webp"
+                  disabled={uploadProgress !== null}
                 />
               </div>
-              <div className="flex-grow">
+              <div className="flex-grow space-y-2">
                  <FormField
                   control={form.control}
                   name="name"
@@ -264,6 +286,7 @@ export function ProfileForm() {
                     </FormItem>
                   )}
                 />
+                {uploadProgress !== null && <Progress value={uploadProgress} className="w-full" />}
               </div>
             </div>
 
@@ -331,7 +354,7 @@ export function ProfileForm() {
               </CardContent>
             </Card>
 
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || uploadProgress !== null}>
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
