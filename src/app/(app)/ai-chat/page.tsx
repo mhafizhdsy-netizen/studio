@@ -22,16 +22,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
-// Helper to convert Firestore Timestamps within a calculation object
+// Helper to convert Firestore Timestamps within a calculation object to plain strings
 const convertCalcTimestamps = (calc: any): any => {
     if (!calc) return null;
     // Create a deep copy to avoid modifying the original object
     const newCalc = JSON.parse(JSON.stringify(calc));
     
-    if (newCalc.createdAt && typeof newCalc.createdAt === 'object') {
+    // Convert any potential Timestamp objects to ISO strings
+    if (newCalc.createdAt && typeof newCalc.createdAt === 'object' && newCalc.createdAt.seconds) {
         newCalc.createdAt = new Date(newCalc.createdAt.seconds * 1000).toISOString();
     }
-    if (newCalc.updatedAt && typeof newCalc.updatedAt === 'object') {
+    if (newCalc.updatedAt && typeof newCalc.updatedAt === 'object' && newCalc.updatedAt.seconds) {
         newCalc.updatedAt = new Date(newCalc.updatedAt.seconds * 1000).toISOString();
     }
     return newCalc;
@@ -55,9 +56,9 @@ export default function AIChatPage() {
     const handleSendMessage = async (text?: string, imageUrl?: string, calculation?: Calculation) => {
         const userContent: MessagePart[] = [];
         if (text) userContent.push({ text });
-        if (imageUrl) userContent.push({ media: { url: imageUrl, contentType: 'image/jpeg' } }); // Assuming jpeg for simplicity
+        if (imageUrl) userContent.push({ media: { url: imageUrl, contentType: 'image/jpeg' } }); // Assume jpeg for simplicity
         if (calculation) {
-             // Ensure calculation is a plain object without Timestamps
+             // Ensure calculation is a plain object without Timestamps before sending
              const plainCalculation = convertCalcTimestamps(calculation);
              userContent.push({
                 data: {
@@ -80,7 +81,7 @@ export default function AIChatPage() {
         setIsAiTyping(true);
 
         try {
-            // The history for the AI is just the current message list
+            // The history for the AI is the current message list, ensured to be plain objects
             const aiInput: AIChatInputType = {
                 history: newMessages.map(msg => ({
                     role: msg.role,
@@ -88,9 +89,9 @@ export default function AIChatPage() {
                         const newPart: any = {};
                         if (part.text) newPart.text = part.text;
                         if (part.media) newPart.media = part.media;
-                        if (part.data) newPart.data = part.data;
+                        if (part.data) newPart.data = part.data; // Already a plain object
                         return newPart;
-                    })
+                    }).filter(Boolean) // Filter out any potentially empty parts
                 }))
             };
 
@@ -198,5 +199,3 @@ export default function AIChatPage() {
         </>
     )
 }
-
-    

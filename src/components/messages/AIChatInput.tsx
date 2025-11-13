@@ -41,7 +41,7 @@ export function AIChatInput({ onSendMessage }: AIChatInputProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (e.g., 4MB limit)
+    // Check file size (e.g., 4MB limit for Gemini)
     if (file.size > 4 * 1024 * 1024) {
         toast({
             title: "File Terlalu Besar",
@@ -53,6 +53,7 @@ export function AIChatInput({ onSendMessage }: AIChatInputProps) {
 
     setIsUploading(true);
     
+    // Convert file to data URI
     try {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -111,5 +112,3 @@ export function AIChatInput({ onSendMessage }: AIChatInputProps) {
     </>
   );
 }
-
-    

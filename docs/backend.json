@@ -358,5 +358,3 @@
     "reasoning": "The Firestore structure is updated to support the anonymous chat feature. The AI chat history is no longer stored in Firestore and is managed by the client application state."
   }
 }
-
-    

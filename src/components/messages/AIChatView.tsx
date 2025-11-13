@@ -14,7 +14,7 @@ export interface MessagePart {
         url: string;
         contentType?: string;
     };
-    data?: any;
+    data?: any; // For calculation data
 }
 
 export interface AIMessage {
@@ -33,6 +33,7 @@ export function AIChatMessage({ message, isUser }: { message: AIMessage, isUser:
 
     const renderContent = (part: MessagePart, index: number) => {
         if (part.text) {
+             // Use react-markdown to render markdown content from the AI
              return <Markdown key={index} components={{
                 p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
                 ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2" {...props} />,
@@ -49,6 +50,7 @@ export function AIChatMessage({ message, isUser }: { message: AIMessage, isUser:
             }}>{part.text}</Markdown>
         }
         if (part.media?.url) {
+            // Render image if it's a data URI
             return (
                  <a href={part.media.url} target="_blank" rel="noopener noreferrer" key={index}>
                     <Image src={part.media.url} alt={'User upload'} width={256} height={256} className="rounded-lg max-w-xs object-cover mt-2" />
@@ -107,5 +109,3 @@ function SharedCalculationCard({ calculation }: { calculation: any }) {
         </div>
     )
 }
-
-    
