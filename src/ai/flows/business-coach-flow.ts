@@ -89,31 +89,32 @@ const businessCoachFlow = ai.defineFlow(
       userMessageContent.push({ media: { url: imageUrl } });
     }
     if (calculation) {
-        // Embed the calculation data directly as formatted text in the user's message
       userMessageContent.push({ text: formatCalculationToText(calculation) });
     }
 
     // Process the history to format any calculation data within it
     const processedHistory = history.map(msg => {
-      const newContent: MessagePart[] = msg.content.flatMap(part => {
-        if (part.data?.type === 'calculation') {
-          return [{ text: formatCalculationToText(part.data) }];
+      const newContent: MessagePart[] = [];
+      msg.content.forEach(part => {
+        if (part.data?.type === 'calculation' && part.data) {
+          newContent.push({ text: formatCalculationToText(part.data) });
+        } else {
+          // Pass through other valid parts like text and media
+          const validPart: MessagePart = {};
+          if (part.text) validPart.text = part.text;
+          if (part.media) validPart.media = part.media;
+          if (Object.keys(validPart).length > 0) {
+              newContent.push(validPart);
+          }
         }
-        // Return other parts (text, media) as they are
-        const validPart: MessagePart = {};
-        if (part.text) validPart.text = part.text;
-        if (part.media) validPart.media = part.media;
-        if (Object.keys(validPart).length > 0) {
-            return [validPart];
-        }
-        return [];
       });
+
       return {
         role: msg.role,
         content: newContent,
       };
     });
-
+    
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
       system: systemPrompt,
