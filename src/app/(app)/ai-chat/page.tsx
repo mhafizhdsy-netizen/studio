@@ -15,6 +15,26 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const CONVERSATION_ID = "main_conversation"; // Using a single conversation per user for now
 
+// Helper to convert Firestore Timestamps to plain objects recursively
+const toPlainObject = (obj: any): any => {
+  if (obj instanceof Timestamp) {
+    return obj.toDate().toISOString();
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(toPlainObject);
+  }
+  if (obj && typeof obj === 'object') {
+    const newObj: { [key: string]: any } = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        newObj[key] = toPlainObject(obj[key]);
+      }
+    }
+    return newObj;
+  }
+  return obj;
+};
+
 export default function AIChatPage() {
     const { user } = useUser();
     const firestore = useFirestore();
@@ -38,11 +58,6 @@ export default function AIChatPage() {
         }
     }, [messages]);
 
-    const convertToPlainObject = (obj: any): object => {
-        // Creates a deep copy and converts Timestamps
-        return JSON.parse(JSON.stringify(obj));
-    }
-
     const handleSendMessage = async (text?: string, imageUrl?: string, calculation?: Calculation) => {
         if (!user || !firestore) return;
         
@@ -54,7 +69,7 @@ export default function AIChatPage() {
         
         let plainCalculation = null;
         if (calculation) {
-             plainCalculation = convertToPlainObject(calculation);
+             plainCalculation = toPlainObject(calculation);
              userContent.push({
                 data: {
                     type: 'calculation',
@@ -74,7 +89,7 @@ export default function AIChatPage() {
 
         try {
             // Ensure history is also plain objects before sending to server
-            const history = (messages || []).map(m => convertToPlainObject(m));
+            const history = (messages || []).map(m => toPlainObject(m));
             
              const aiInput: AIChatInputType = {
                 history: history as any, // Cast to any to match Zod schema expectation after conversion
