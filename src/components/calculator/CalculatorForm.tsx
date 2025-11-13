@@ -23,7 +23,7 @@ import { ExportDialog } from "./ExportDialog";
 import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { Progress } from "../ui/progress";
-import { uploadProductImage } from "@/firebase/storage";
+import { uploadFile } from "@/firebase/storage";
 
 
 const materialSchema = z.object({
@@ -80,6 +80,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(existingCalculation?.productImageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
+  const calcIdRef = useRef(existingCalculation?.id || doc(collection(firestore, 'temp')).id);
 
 
   const form = useForm<FormData>({
@@ -140,12 +141,13 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const file = e.target.files[0];
     const localUrl = URL.createObjectURL(file);
     setImageUrl(localUrl);
-    setUploadProgress(0);
     setIsUploading(true);
+    setUploadProgress(0);
+
+    const filePath = `product-images/${user.uid}/${calcIdRef.current}/${file.name}`;
 
     try {
-      const calcId = existingCalculation?.id || doc(collection(firestore, 'temp')).id;
-      const newPhotoURL = await uploadProductImage(storage, user.uid, calcId, file, (progress) => {
+      const newPhotoURL = await uploadFile(storage, filePath, file, (progress) => {
         setUploadProgress(progress);
       });
       setImageUrl(newPhotoURL);
@@ -157,7 +159,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       toast({ title: "Gagal", description: "Gagal mengunggah gambar produk.", variant: "destructive" });
     } finally {
         setIsUploading(false);
-        setTimeout(() => setUploadProgress(null), 1500);
+        setTimeout(() => setUploadProgress(null), 2000);
     }
   };
   
@@ -210,7 +212,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     // Main calculation document
     const calcRef = existingCalculation
         ? doc(firestore, 'users', user.uid, 'calculations', existingCalculation.id)
-        : doc(collection(firestore, 'users', user.uid, 'calculations'));
+        : doc(collection(firestore, 'users', user.uid, 'calculations'), calcIdRef.current);
 
     const dataToSave = existingCalculation
         ? { ...calculationData, updatedAt: serverTimestamp() }
@@ -219,7 +221,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     setDocumentNonBlocking(calcRef, dataToSave, { merge: true });
 
     // Public calculation document
-    const publicCalcId = existingCalculation ? existingCalculation.id : calcRef.id;
+    const publicCalcId = calcIdRef.current;
     const publicCalcRef = doc(firestore, 'public_calculations', publicCalcId);
 
     if (data.sharePublicly) {
@@ -271,8 +273,9 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                     <Camera className="h-4 w-4" />
                 </div>
                 {isUploading && uploadProgress !== null && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
+                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center rounded-lg p-4">
                         <Progress value={uploadProgress} className="w-11/12 h-2" />
+                        <p className="text-white text-sm mt-2">{Math.round(uploadProgress)}%</p>
                     </div>
                 )}
                 <Input
@@ -481,3 +484,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
+
+    

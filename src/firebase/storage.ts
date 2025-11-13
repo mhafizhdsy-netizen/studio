@@ -10,28 +10,27 @@ import {
 } from "firebase/storage";
 
 /**
- * Uploads a profile image to Firebase Storage with progress tracking.
+ * Uploads a file to Firebase Storage with progress tracking.
  * @param storage The Firebase Storage instance.
- * @param userId The user's ID.
- * @param file The image file to upload.
- * @param onProgress A callback function to receive progress updates (0-100).
- * @returns A promise that resolves with the download URL of the uploaded image.
+ * @param path The full path where the file will be stored in the bucket (e.g., 'profile-images/userId/filename.jpg').
+ * @param file The file to upload.
+ * @param onProgress A callback function to receive progress updates (a number from 0 to 100).
+ * @returns A promise that resolves with the public download URL of the uploaded file.
  */
-export function uploadProfileImage(
+export function uploadFile(
   storage: FirebaseStorage,
-  userId: string,
+  path: string,
   file: File,
   onProgress: (progress: number) => void
 ): Promise<string> {
   return new Promise((resolve, reject) => {
-    // Create a storage reference
-    const storageRef = ref(storage, `profile-images/${userId}/${file.name}`);
+    const storageRef = ref(storage, path);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on(
       "state_changed",
       (snapshot: UploadTaskSnapshot) => {
-        // Observe state change events such as progress, pause, and resume
+        // Calculate progress percentage
         const progress =
           (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         onProgress(progress);
@@ -47,6 +46,7 @@ export function uploadProfileImage(
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
           resolve(downloadURL);
         } catch (error) {
+          console.error("Failed to get download URL:", error);
           reject(error);
         }
       }
@@ -54,47 +54,4 @@ export function uploadProfileImage(
   });
 }
 
-
-/**
- * Uploads a product image to Firebase Storage with progress tracking.
- * @param storage The Firebase Storage instance.
- * @param userId The user's ID.
- * @param calculationId The ID of the calculation.
- * @param file The image file to upload.
- * @param onProgress A callback function to receive progress updates (0-100).
- * @returns A promise that resolves with the download URL of the uploaded image.
- */
-export function uploadProductImage(
-  storage: FirebaseStorage,
-  userId: string,
-  calculationId: string,
-  file: File,
-  onProgress: (progress: number) => void
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    // Create a storage reference
-    const storageRef = ref(storage, `product-images/${userId}/${calculationId}/${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on(
-      "state_changed",
-      (snapshot: UploadTaskSnapshot) => {
-        const progress =
-          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        onProgress(progress);
-      },
-      (error) => {
-        console.error("Product image upload failed:", error);
-        reject(error);
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
-        } catch (error) {
-          reject(error);
-        }
-      }
-    );
-  });
-}
+    

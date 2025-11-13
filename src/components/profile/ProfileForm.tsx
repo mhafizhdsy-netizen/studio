@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, ChangeEvent } from "react";
+import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,7 +13,7 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
 } from "firebase/auth";
-import { uploadProfileImage } from "@/firebase/storage";
+import { uploadFile } from "@/firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-
 
 const profileFormSchema = z
   .object({
@@ -86,12 +85,13 @@ const profileFormSchema = z
 type ProfileFormData = z.infer<typeof profileFormSchema>;
 
 export function ProfileForm() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [photoURL, setPhotoURL] = useState(user?.photoURL);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -106,15 +106,24 @@ export function ProfileForm() {
       confirmPassword: "",
     },
   });
+  
+  useEffect(() => {
+    if (user) {
+        form.reset({
+            name: user.displayName || "",
+            email: user.email || "",
+        });
+        setPhotoURL(user.photoURL);
+    }
+  }, [user, form]);
+
 
   const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
-      return;
-    }
-    if (!storage || !user || !auth || !auth.currentUser) {
+    if (!e.target.files || e.target.files.length === 0) return;
+    if (!storage || !user || !auth.currentUser) {
       toast({
         title: "Gagal",
-        description: "Layanan pengguna tidak tersedia. Coba lagi nanti.",
+        description: "Layanan pengguna tidak tersedia.",
         variant: "destructive",
       });
       return;
@@ -124,25 +133,31 @@ export function ProfileForm() {
     const localUrl = URL.createObjectURL(file);
     setPhotoURL(localUrl); // Show preview immediately
 
+    setIsUploading(true);
     setUploadProgress(0);
 
-    try {
-      const newPhotoURL = await uploadProfileImage(storage, user.uid, file, (progress) => {
-        setUploadProgress(progress);
-      });
+    const filePath = `profile-images/${user.uid}/${file.name}`;
 
-      // Update auth and firestore with the new URL
+    try {
+      const newPhotoURL = await uploadFile(
+        storage,
+        filePath,
+        file,
+        (progress) => {
+          setUploadProgress(progress);
+        }
+      );
+      
+      // Update Auth and Firestore
       await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
       const userDocRef = doc(firestore, "users", user.uid);
       await setDoc(userDocRef, { photoURL: newPhotoURL }, { merge: true });
-      
-      setPhotoURL(newPhotoURL); // Set the final URL from storage
-      
+
+      setPhotoURL(newPhotoURL); // Set final URL
       toast({
         title: "Foto Profil Diperbarui",
         description: "Foto profil Anda telah berhasil diubah.",
       });
-
     } catch (uploadError) {
       console.error("Failed to upload photo:", uploadError);
       setPhotoURL(user?.photoURL); // Revert to old photo on error
@@ -152,29 +167,30 @@ export function ProfileForm() {
         variant: "destructive",
       });
     } finally {
-      // A small delay can give user time to see it complete
-      setTimeout(() => setUploadProgress(null), 1500);
+      setIsUploading(false);
+      setTimeout(() => setUploadProgress(null), 2000); // Hide progress bar after 2s
     }
   };
 
 
-  const getInitials = (name: string) =>
+  const getInitials = (name: string | null | undefined) =>
     name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase();
+      ? name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase()
+      : "?";
 
   async function onSubmit(data: ProfileFormData) {
     if (!user || !auth) return;
     setIsSubmitting(true);
 
     try {
-      // Re-authentication if password or email is being changed
       const needsReauth = data.newPassword || data.email !== user.email;
-      if (data.currentPassword && needsReauth) {
-        const credential = EmailAuthProvider.credential(user.email!, data.currentPassword);
+      if (data.currentPassword && needsReauth && user.email) {
+        const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
         await reauthenticateWithCredential(user, credential);
       } else if (!data.currentPassword && needsReauth) {
          throw new Error("Password saat ini dibutuhkan untuk mengubah email atau password.");
@@ -195,7 +211,6 @@ export function ProfileForm() {
         await updatePassword(user, data.newPassword);
       }
       
-      // Update Firestore user document
       const userDocRef = doc(firestore, "users", user.uid);
       await setDoc(
         userDocRef,
@@ -235,6 +250,10 @@ export function ProfileForm() {
     setIsSubmitting(false);
   }
 
+  if (isUserLoading) {
+      return <div className="flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
+  }
+
   return (
     <Card className="w-full max-w-2xl shadow-none border-none">
       <CardHeader>
@@ -251,7 +270,7 @@ export function ProfileForm() {
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={photoURL || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground font-bold text-2xl">
-                    {getInitials(user?.displayName || "?")}
+                    {getInitials(user?.displayName)}
                   </AvatarFallback>
                 </Avatar>
                 <Button
@@ -260,9 +279,9 @@ export function ProfileForm() {
                   variant="secondary"
                   className="absolute bottom-0 right-0 rounded-full h-7 w-7"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadProgress !== null}
+                  disabled={isUploading}
                 >
-                  {uploadProgress !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                 </Button>
                 <Input
                   type="file"
@@ -270,7 +289,7 @@ export function ProfileForm() {
                   onChange={handlePhotoChange}
                   className="hidden"
                   accept="image/png, image/jpeg, image/webp"
-                  disabled={uploadProgress !== null}
+                  disabled={isUploading}
                 />
               </div>
               <div className="flex-grow space-y-2">
@@ -281,7 +300,7 @@ export function ProfileForm() {
                     <FormItem>
                       <FormLabel>Nama Lengkap</FormLabel>
                       <FormControl>
-                        <Input placeholder="Nama Kamu" {...field} />
+                        <Input placeholder="Nama Kamu" {...field} disabled={isSubmitting} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -298,7 +317,7 @@ export function ProfileForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="contoh@email.com" {...field} />
+                    <Input placeholder="contoh@email.com" {...field} disabled={isSubmitting}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -320,7 +339,7 @@ export function ProfileForm() {
                     <FormItem>
                       <FormLabel>Password Saat Ini</FormLabel>
                       <FormControl>
-                        <Input type="password" {...field} />
+                        <Input type="password" {...field} disabled={isSubmitting}/>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -333,7 +352,7 @@ export function ProfileForm() {
                     <FormItem>
                       <FormLabel>Password Baru</FormLabel>
                       <FormControl>
-                        <Input type="password" {...field} />
+                        <Input type="password" {...field} disabled={isSubmitting}/>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -346,7 +365,7 @@ export function ProfileForm() {
                     <FormItem>
                       <FormLabel>Konfirmasi Password Baru</FormLabel>
                       <FormControl>
-                        <Input type="password" {...field} />
+                        <Input type="password" {...field} disabled={isSubmitting}/>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -355,7 +374,7 @@ export function ProfileForm() {
               </CardContent>
             </Card>
 
-            <Button type="submit" disabled={isSubmitting || uploadProgress !== null}>
+            <Button type="submit" disabled={isSubmitting || isUploading}>
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
@@ -367,3 +386,5 @@ export function ProfileForm() {
     </Card>
   );
 }
+
+    
