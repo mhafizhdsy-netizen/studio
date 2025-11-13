@@ -23,16 +23,16 @@ const toPlainObject = (obj: any): any => {
     if (Array.isArray(obj)) {
         return obj.map(item => toPlainObject(item));
     }
+    // Ensure obj is a non-null object before recursing
     if (obj && typeof obj === 'object') {
         const plainObj: { [key: string]: any } = {};
-        for (const key in obj) {
-            if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                plainObj[key] = toPlainObject(obj[key]);
-            }
+        // Use Object.keys to iterate only over own properties
+        for (const key of Object.keys(obj)) {
+            plainObj[key] = toPlainObject(obj[key]);
         }
         return plainObj;
     }
-    return obj;
+    return obj; // Return primitives and null/undefined as is
 };
 
 
@@ -86,11 +86,9 @@ export default function AIChatPage() {
         try {
             // Build a clean history for the AI, ensuring all parts are valid.
             const historyForAI = (messages || [])
-                .filter(msg => msg && Array.isArray(msg.content)) // Ensure message and its content exist and is an array
-                .map(msg => ({
-                    role: msg.role,
-                    content: toPlainObject(msg.content),
-                }));
+                 // Filter out any potentially invalid messages
+                .filter(msg => msg && Array.isArray(msg.content))
+                .map(msg => toPlainObject(msg));
 
             const currentUserMessageForAI = {
                 role: 'user' as const,
