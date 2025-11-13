@@ -162,14 +162,14 @@ export default function LandingPage() {
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
     <Card className="bg-card/50 dark:bg-card/20 border-border/50 transform transition-all duration-300 hover:scale-105 hover:shadow-primary/10 hover:shadow-lg hover:border-primary/30">
-      <CardHeader>
-        <div className="bg-primary/10 p-3 rounded-lg inline-block">
+      <CardContent className="p-6 flex items-start gap-4">
+        <div className="bg-primary/10 p-3 rounded-lg mt-1">
           {icon}
         </div>
-      </CardHeader>
-      <CardContent>
-        <CardTitle className="font-headline text-xl mb-2">{title}</CardTitle>
-        <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+        <div className="flex-1">
+          <CardTitle className="font-headline text-lg mb-2">{title}</CardTitle>
+          <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+        </div>
       </CardContent>
     </Card>
   );
