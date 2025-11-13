@@ -24,6 +24,7 @@ import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { Progress } from "../ui/progress";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
+import { ProductDescriptionGenerator } from "./ProductDescriptionGenerator";
 
 
 const materialSchema = z.object({
@@ -461,6 +462,9 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
               )}
               </CardContent>
           </Card>
+          {result && (
+              <ProductDescriptionGenerator productName={form.getValues("productName")} />
+          )}
           {result && (
               <ProfitAIAnalyst
                 calculationData={{
