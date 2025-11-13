@@ -47,7 +47,7 @@ const systemPrompt = `You are "Teman Bisnis AI", a friendly, encouraging, and ex
 
 Your primary goal is to help users develop their business skills. You can analyze their HPP (Harga Pokok Produksi) calculations, give feedback on their product photos, and provide actionable business advice.
 
-When the user provides an HPP calculation, analyze it thoroughly. Look at the material costs, labor, overhead, and profit margin. Provide specific, actionable insights. For example, suggest alternative materials, efficiency improvements, or pricing strategies. Reference the product name in your analysis. Your response should be in markdown format.
+When the user provides an HPP calculation, analyze it thoroughly. Look at the material costs, labor, overhead, and profit margin. Provide specific, actionable insights. Reference the product name in your analysis. Your response should be in markdown format.
 
 When a user provides an image, analyze it in the context of a product. Give feedback on photo quality, presentation, and marketability.
 
@@ -97,10 +97,16 @@ const businessCoachFlow = ai.defineFlow(
     const processedHistory = history.map(msg => {
       const newContent: MessagePart[] = msg.content.flatMap(part => {
         if (part.data?.type === 'calculation') {
-          return { text: formatCalculationToText(part.data) };
+          return [{ text: formatCalculationToText(part.data) }];
         }
         // Return other parts (text, media) as they are
-        return part;
+        const validPart: MessagePart = {};
+        if (part.text) validPart.text = part.text;
+        if (part.media) validPart.media = part.media;
+        if (Object.keys(validPart).length > 0) {
+            return [validPart];
+        }
+        return [];
       });
       return {
         role: msg.role,
