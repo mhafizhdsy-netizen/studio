@@ -88,7 +88,15 @@ export function DashboardAnalytics() {
     const currentStats = useMemo(() => calculateStats(currentCalculations), [currentCalculations]);
     const prevStats = useMemo(() => calculateStats(prevCalculations), [prevCalculations]);
     
-    const changePeriodText = useMemo(() => {
+    const periodText = useMemo(() => {
+        switch (timeRange) {
+            case 'day': return 'hari ini';
+            case 'week': return 'minggu ini';
+            case 'month': return 'bulan ini';
+        }
+    }, [timeRange]);
+
+    const comparisonText = useMemo(() => {
         switch (timeRange) {
             case 'day': return 'dibanding kemarin';
             case 'week': return 'dibanding minggu lalu';
@@ -123,32 +131,40 @@ export function DashboardAnalytics() {
                         value={formatCurrency(currentStats.estimatedProfit)}
                         icon={DollarSign}
                         change={currentStats.estimatedProfit - prevStats.estimatedProfit}
+                        hasComparison={prevCalculations !== null && prevCalculations.length > 0}
                         changeType="value"
-                        periodText={changePeriodText}
+                        periodText={periodText}
+                        comparisonText={comparisonText}
                     />
                     <StatCard 
                         title="Total Pendapatan"
                         value={formatCurrency(currentStats.totalRevenue)}
                         icon={LineChart}
                         change={currentStats.totalRevenue - prevStats.totalRevenue}
+                        hasComparison={prevCalculations !== null && prevCalculations.length > 0}
                         changeType="value"
-                        periodText={changePeriodText}
+                        periodText={periodText}
+                        comparisonText={comparisonText}
                     />
                     <StatCard 
                         title="Margin Rata-rata"
                         value={`${currentStats.averageMargin.toFixed(1)}%`}
                         icon={Percent}
                         change={currentStats.averageMargin - prevStats.averageMargin}
+                        hasComparison={prevCalculations !== null && prevCalculations.length > 0}
                         changeType="percentage"
-                        periodText={changePeriodText}
+                        periodText={periodText}
+                        comparisonText={comparisonText}
                     />
                     <StatCard 
                         title="Produk Dihitung"
                         value={currentStats.totalProducts.toString()}
                         icon={Hash}
                         change={currentStats.totalProducts - prevStats.totalProducts}
+                        hasComparison={prevCalculations !== null && prevCalculations.length > 0}
                         changeType="number"
-                        periodText={changePeriodText}
+                        periodText={periodText}
+                        comparisonText={comparisonText}
                     />
                 </div>
             )}
@@ -163,9 +179,11 @@ interface StatCardProps {
     change: number;
     changeType: 'percentage' | 'value' | 'number';
     periodText: string;
+    comparisonText: string;
+    hasComparison: boolean;
 }
 
-function StatCard({ title, value, icon: Icon, change, changeType, periodText }: StatCardProps) {
+function StatCard({ title, value, icon: Icon, change, changeType, periodText, comparisonText, hasComparison }: StatCardProps) {
     const isPositive = change >= 0;
     const isNeutral = change === 0 || !isFinite(change);
 
@@ -183,11 +201,14 @@ function StatCard({ title, value, icon: Icon, change, changeType, periodText }: 
     };
     
     const changeText = () => {
+        if (!hasComparison) {
+            return `Total untuk ${periodText}`;
+        }
         if (isNeutral) {
-            return `Tidak ada data ${periodText.replace('dibanding ', '')}`;
+            return `Tidak berubah ${comparisonText}`;
         }
         const formattedChange = formatChange();
-        return `${isPositive ? `+${formattedChange}` : `-${formattedChange}`} ${periodText}`;
+        return `${isPositive ? `+${formattedChange}` : `-${formattedChange}`} ${comparisonText}`;
     };
 
     return (
@@ -199,7 +220,7 @@ function StatCard({ title, value, icon: Icon, change, changeType, periodText }: 
             <CardContent>
                 <div className="text-2xl font-bold">{value}</div>
                 <div className="text-xs text-muted-foreground flex items-center">
-                    {!isNeutral ? (
+                    {hasComparison && !isNeutral ? (
                         isPositive ? <ArrowUp className="h-4 w-4 text-green-500"/> : <ArrowDown className="h-4 w-4 text-destructive"/>
                     ) : (
                         <AlertCircle className="h-4 w-4" />
@@ -210,4 +231,3 @@ function StatCard({ title, value, icon: Icon, change, changeType, periodText }: 
         </Card>
     );
 }
-
