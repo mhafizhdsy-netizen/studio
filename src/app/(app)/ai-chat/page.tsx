@@ -17,22 +17,22 @@ const CONVERSATION_ID = "main_conversation";
 
 // Helper to convert Firestore Timestamps to plain objects recursively
 const toPlainObject = (obj: any): any => {
+    if (!obj) return obj;
+
     if (obj instanceof Timestamp) {
         return obj.toDate().toISOString();
     }
     if (Array.isArray(obj)) {
         return obj.map(item => toPlainObject(item));
     }
-    // Ensure obj is a non-null object before recursing
-    if (obj && typeof obj === 'object') {
+    if (typeof obj === 'object') {
         const plainObj: { [key: string]: any } = {};
-        // Use Object.keys to iterate only over own properties
         for (const key of Object.keys(obj)) {
             plainObj[key] = toPlainObject(obj[key]);
         }
         return plainObj;
     }
-    return obj; // Return primitives and null/undefined as is
+    return obj;
 };
 
 
