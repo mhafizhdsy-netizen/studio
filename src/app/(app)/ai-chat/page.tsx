@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
 import { Loader2, MessageSquareDashed, Bot, Sparkles } from "lucide-react";
 import { AIChatInput } from "@/components/messages/AIChatInput";
@@ -46,11 +46,19 @@ export default function AIChatPage() {
         const userContent: any[] = [];
         if (text) userContent.push({ text });
         if (imageUrl) userContent.push({ media: { url: imageUrl } });
-        if (calculation) {
+        
+        // Convert calculation to a plain object before storing and sending
+        const plainCalculation = calculation ? {
+            ...calculation,
+            createdAt: calculation.createdAt instanceof Timestamp ? calculation.createdAt.toDate().toISOString() : calculation.createdAt,
+            updatedAt: calculation.updatedAt instanceof Timestamp ? calculation.updatedAt.toDate().toISOString() : calculation.updatedAt,
+        } : null;
+
+        if (plainCalculation) {
              userContent.push({
                 data: {
                     type: 'calculation',
-                    ...calculation,
+                    ...plainCalculation,
                 }
             });
         }
@@ -78,7 +86,7 @@ export default function AIChatPage() {
                 history,
                 message: text,
                 imageUrl,
-                calculation,
+                calculation: plainCalculation, // Send the plain object to the server function
             };
 
             const aiResponseText = await chatWithBusinessCoach(aiInput);
