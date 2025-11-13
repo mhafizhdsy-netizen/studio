@@ -23,6 +23,7 @@ import {
   BarChart2,
   Megaphone,
   Calculator,
+  Bot,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -80,6 +81,17 @@ export function AppSidebar() {
               <Link href="/dashboard">
                 <LayoutDashboard />
                 Dashboard
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/ai-consultant')}
+            >
+              <Link href="/ai-consultant">
+                <Bot />
+                Konsultan AI
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

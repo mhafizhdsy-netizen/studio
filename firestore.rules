@@ -21,6 +21,14 @@ service cloud.firestore {
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId) && resource != null;
+      
+      /**
+       * @description Controls access to AI consultant chat history.
+       * @path /users/{userId}/ai_consultant_history/{messageId}
+       */
+      match /ai_consultant_history/{messageId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     /**
@@ -102,5 +110,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
