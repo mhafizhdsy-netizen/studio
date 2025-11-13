@@ -3,13 +3,14 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
-import { collection, query, where, limit, getDocs, doc, writeBatch, serverTimestamp, setDoc, updateDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, limit, getDocs, doc, writeBatch, serverTimestamp, setDoc, updateDoc, orderBy, addDoc } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
 import { Loader2, MessageSquareDashed, UserRoundX, Wand2, Zap } from "lucide-react";
 import { ChatInput } from "@/components/messages/ChatInput";
 import { ChatMessage, type Message } from "@/components/messages/ChatView"; // Reusing ChatMessage and Message type
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { errorEmitter, FirestorePermissionError } from "@/firebase";
 
 interface ChatSession {
     id: string;
@@ -35,17 +36,25 @@ export default function AnonymousChatPage() {
             where('participantIds', 'array-contains', user.uid),
             where('status', 'in', ['active', 'pending'])
         );
-        const activeSnap = await getDocs(activeQuery);
 
-        if (!activeSnap.empty) {
-            const activeSession = { id: activeSnap.docs[0].id, ...activeSnap.docs[0].data() } as ChatSession;
-            setSession(activeSession);
-            if (activeSession.status === 'pending') {
-                setIsSearching(true);
+        try {
+            const activeSnap = await getDocs(activeQuery);
+            if (!activeSnap.empty) {
+                const activeSession = { id: activeSnap.docs[0].id, ...activeSnap.docs[0].data() } as ChatSession;
+                setSession(activeSession);
+                if (activeSession.status === 'pending') {
+                    setIsSearching(true);
+                }
             }
+        } catch (error) {
+             const permissionError = new FirestorePermissionError({
+                path: 'chat_sessions',
+                operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } finally {
+            setIsLoading(false);
         }
-
-        setIsLoading(false);
     }, [user, firestore]);
 
     useEffect(() => {
@@ -73,58 +82,93 @@ export default function AnonymousChatPage() {
 
         setIsSearching(true);
 
-        // Try to find a pending session from another user
         const q = query(
             collection(firestore, 'chat_sessions'),
             where('status', '==', 'pending'),
             limit(1)
         );
-        const querySnapshot = await getDocs(q);
         
-        const availableSession = querySnapshot.docs.find(doc => !doc.data().participantIds.includes(user.uid));
+        try {
+            const querySnapshot = await getDocs(q);
+            const availableSessionDoc = querySnapshot.docs.find(doc => !doc.data().participantIds.includes(user.uid));
 
+            if (availableSessionDoc) {
+                // Join an existing pending session
+                const sessionData = availableSessionDoc.data() as ChatSession;
+                const newParticipants = [...sessionData.participantIds, user.uid];
+                
+                const batch = writeBatch(firestore);
+                batch.update(availableSessionDoc.ref, {
+                    status: 'active',
+                    participantIds: newParticipants
+                });
+                
+                const systemMessage = {
+                    senderId: 'system',
+                    type: 'system' as const,
+                    text: 'Kamu telah terhubung dengan teman ngobrol baru!',
+                    createdAt: serverTimestamp(),
+                };
+                const messagesColRef = collection(firestore, 'chat_sessions', availableSessionDoc.id, 'messages');
+                batch.set(doc(messagesColRef), systemMessage);
 
-        if (availableSession) {
-            // Join an existing pending session
-            const sessionDoc = availableSession;
-            const sessionData = sessionDoc.data() as ChatSession;
-            
-            const batch = writeBatch(firestore);
-            batch.update(sessionDoc.ref, {
-                status: 'active',
-                participantIds: [...sessionData.participantIds, user.uid]
-            });
-            
-            const systemMessage = {
-                senderId: 'system',
-                type: 'system' as const,
-                text: 'Kamu telah terhubung dengan teman ngobrol baru!',
-                createdAt: serverTimestamp(),
-            };
-            const messagesColRef = collection(firestore, 'chat_sessions', sessionDoc.id, 'messages');
-            batch.set(doc(messagesColRef), systemMessage);
+                await batch.commit().catch(serverError => {
+                    const permissionError = new FirestorePermissionError({
+                        path: availableSessionDoc.ref.path,
+                        operation: 'update',
+                        requestResourceData: { status: 'active', participantIds: newParticipants },
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                });
 
-            await batch.commit();
+                setSession({ id: availableSessionDoc.id, ...sessionData, status: 'active', participantIds: newParticipants });
 
-            setSession({ id: sessionDoc.id, ...sessionDoc.data(), status: 'active', participantIds: [...sessionData.participantIds, user.uid] } as ChatSession);
+            } else {
+                // Create a new pending session
+                const newSessionData: Omit<ChatSession, 'id'> = {
+                    participantIds: [user.uid],
+                    status: 'pending',
+                    createdAt: serverTimestamp(),
+                };
+                const newSessionRef = await addDoc(collection(firestore, 'chat_sessions'), newSessionData)
+                    .catch(serverError => {
+                        const permissionError = new FirestorePermissionError({
+                            path: 'chat_sessions',
+                            operation: 'create',
+                            requestResourceData: newSessionData,
+                        });
+                        errorEmitter.emit('permission-error', permissionError);
+                        throw serverError; // Prevent further execution if addDoc fails
+                    });
+                setSession({ id: newSessionRef.id, ...newSessionData } as ChatSession);
+            }
+        } catch (error) {
+            // This will catch errors from getDocs or re-thrown from addDoc
+            if (!(error instanceof FirestorePermissionError)) {
+                 const permissionError = new FirestorePermissionError({
+                    path: 'chat_sessions',
+                    operation: 'list',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            }
+        } finally {
             setIsSearching(false);
-        } else {
-            // Create a new pending session
-            const newSessionRef = doc(collection(firestore, 'chat_sessions'));
-            const newSession: Omit<ChatSession, 'id'> = {
-                participantIds: [user.uid],
-                status: 'pending',
-                createdAt: serverTimestamp(),
-            };
-            await setDoc(newSessionRef, newSession);
-            setSession({ id: newSessionRef.id, ...newSession } as ChatSession);
         }
     };
     
     const handleLeaveChat = async () => {
         if (!session || !firestore) return;
         
-        await updateDoc(doc(firestore, 'chat_sessions', session.id), { status: 'closed' });
+        updateDoc(doc(firestore, 'chat_sessions', session.id), { status: 'closed' })
+        .catch(serverError => {
+             const permissionError = new FirestorePermissionError({
+                path: `chat_sessions/${session.id}`,
+                operation: 'update',
+                requestResourceData: { status: 'closed' }
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
+
         setSession(null);
         setIsSearching(false);
     }
