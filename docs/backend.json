@@ -200,46 +200,35 @@
         "createdAt"
       ]
     },
-    "Conversation": {
+    "ChatSession": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Conversation",
+      "title": "ChatSession",
       "type": "object",
-      "description": "Represents a chat conversation between two or more users.",
+      "description": "Represents a random, anonymous chat session.",
       "properties": {
         "participantIds": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "An array of user UIDs who are part of this conversation."
+          "description": "An array of exactly two user UIDs who are part of this session."
         },
-        "lastMessageText": {
-          "type": "string",
-          "description": "The text of the last message sent in the conversation, for preview purposes."
+        "status": {
+            "type": "string",
+            "enum": ["pending", "active", "closed"],
+            "description": "The current status of the chat session."
         },
-        "lastMessageTimestamp": {
+        "createdAt": {
           "type": "string",
           "format": "date-time",
-          "description": "Timestamp of the last message sent."
-        },
-        "participants": {
-          "type": "object",
-          "description": "A map of participant user data for easy access to name and photoURL.",
-           "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "name": { "type": "string" },
-              "photoURL": { "type": "string", "format": "uri" }
-            },
-            "required": ["name"]
-          }
+          "description": "Timestamp when the session was created."
         }
       },
-      "required": ["participantIds", "lastMessageTimestamp"]
+      "required": ["participantIds", "status", "createdAt"]
     },
-    "Message": {
+    "ChatMessage": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Message",
+      "title": "ChatMessage",
       "type": "object",
-      "description": "Represents a single message within a conversation.",
+      "description": "Represents a single message within a chat session.",
       "properties": {
         "senderId": {
           "type": "string",
@@ -247,17 +236,17 @@
         },
         "type": {
           "type": "string",
-          "enum": ["text", "image", "calculation"],
+          "enum": ["text", "image", "calculation", "system"],
           "description": "The type of message content."
         },
         "text": {
           "type": "string",
-          "description": "The text content of the message (if type is 'text')."
+          "description": "The text content of the message."
         },
         "mediaUrl": {
           "type": "string",
           "format": "uri",
-          "description": "The URL of the uploaded image or file (if type is 'image')."
+          "description": "The URL of the uploaded image (if type is 'image')."
         },
         "mediaName": {
           "type": "string",
@@ -357,29 +346,27 @@
         }
       },
       {
-        "path": "/conversations/{convoId}",
+        "path": "/chat_sessions/{sessionId}",
         "definition": {
-          "entityName": "Conversation",
-          "schema": { "$ref": "#/backend/entities/Conversation" },
-          "description": "Stores metadata about a chat conversation. Only participants can read or update this document.",
-          "params": [{ "name": "convoId", "description": "The unique ID of the conversation." }]
+          "entityName": "ChatSession",
+          "schema": { "$ref": "#/backend/entities/ChatSession" },
+          "description": "Stores metadata for an anonymous chat session. Only participants can read or update this document.",
+          "params": [{ "name": "sessionId", "description": "The unique ID of the chat session." }]
         }
       },
       {
-        "path": "/conversations/{convoId}/messages/{messageId}",
+        "path": "/chat_sessions/{sessionId}/messages/{messageId}",
         "definition": {
-          "entityName": "Message",
-          "schema": { "$ref": "#/backend/entities/Message" },
-          "description": "Stores the messages for a specific conversation. Only participants of the parent conversation can read or write messages here.",
+          "entityName": "ChatMessage",
+          "schema": { "$ref": "#/backend/entities/ChatMessage" },
+          "description": "Stores the messages for a specific chat session. Only participants of the parent session can read or write messages here.",
           "params": [
-            { "name": "convoId", "description": "The unique ID of the conversation." },
+            { "name": "sessionId", "description": "The unique ID of the chat session." },
             { "name": "messageId", "description": "The unique ID of the message." }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure data isolation and facilitate efficient querying and security rule implementation for the GenHPP application. The primary focus is on path-based ownership for user-specific data and segregated collections for public data and chat functionality. The `conversations` collection stores chat metadata, and each conversation has a `messages` sub-collection. This separation allows for efficient loading of conversations and messages. Security rules ensure that only participants of a conversation can access its data, enhancing privacy and security."
+    "reasoning": "The Firestore structure is designed for a random anonymous chat feature. The `chat_sessions` collection manages the lifecycle of a chat, matching users and tracking status. Each session has a `messages` sub-collection for the actual conversation. This ensures that chat data is isolated and only accessible to the paired participants, as enforced by security rules. Other data structures for users, calculations, and comments remain unchanged."
   }
 }
-
-    

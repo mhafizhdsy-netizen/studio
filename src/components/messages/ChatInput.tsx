@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef } from "react";
@@ -5,11 +6,10 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useUser, useFirestore, useStorage, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp, doc, setDoc } from "firebase/firestore";
+import { collection, serverTimestamp } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Paperclip, Loader2, Calculator } from "lucide-react";
-import { type Conversation } from "./ConversationList";
 import { uploadFile } from "@/firebase/storage";
 import { ShareCalculationDialog } from "./ShareCalculationDialog";
 
@@ -18,10 +18,10 @@ const formSchema = z.object({
 });
 
 interface ChatInputProps {
-  conversation: Conversation;
+  conversationId: string;
 }
 
-export function ChatInput({ conversation }: ChatInputProps) {
+export function ChatInput({ conversationId }: ChatInputProps) {
   const { user } = useUser();
   const firestore = useFirestore();
   const storage = useStorage();
@@ -35,14 +35,6 @@ export function ChatInput({ conversation }: ChatInputProps) {
     defaultValues: { text: "" },
   });
 
-  const updateConversationTimestamp = (messageText: string) => {
-    const convoRef = doc(firestore, 'conversations', conversation.id);
-    setDoc(convoRef, {
-        lastMessageText: messageText,
-        lastMessageTimestamp: serverTimestamp(),
-    }, { merge: true });
-  }
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user || !firestore) return;
     
@@ -53,9 +45,8 @@ export function ChatInput({ conversation }: ChatInputProps) {
       createdAt: serverTimestamp(),
     };
     
-    const messagesColRef = collection(firestore, 'conversations', conversation.id, 'messages');
+    const messagesColRef = collection(firestore, 'chat_sessions', conversationId, 'messages');
     addDocumentNonBlocking(messagesColRef, messageData);
-    updateConversationTimestamp(values.text);
 
     form.reset();
   };
@@ -66,7 +57,7 @@ export function ChatInput({ conversation }: ChatInputProps) {
 
     setIsUploading(true);
     const file = e.target.files[0];
-    const filePath = `chat-files/${conversation.id}/${user.uid}/${Date.now()}-${file.name}`;
+    const filePath = `chat-files/${conversationId}/${user.uid}/${Date.now()}-${file.name}`;
     
     try {
         const downloadURL = await uploadFile(storage, filePath, file, () => {}); // Progress not shown here for simplicity
@@ -78,9 +69,8 @@ export function ChatInput({ conversation }: ChatInputProps) {
             mediaName: file.name,
             createdAt: serverTimestamp(),
         };
-        const messagesColRef = collection(firestore, 'conversations', conversation.id, 'messages');
+        const messagesColRef = collection(firestore, 'chat_sessions', conversationId, 'messages');
         addDocumentNonBlocking(messagesColRef, messageData);
-        updateConversationTimestamp(`Mengirim gambar: ${file.name}`);
 
     } catch (error) {
         console.error("File upload failed", error);
@@ -97,11 +87,11 @@ export function ChatInput({ conversation }: ChatInputProps) {
       type: 'calculation' as const,
       calculationId: calculationId,
       createdAt: serverTimestamp(),
+      text: `Membagikan perhitungan: ${calculationName}` // Add text for context
     };
     
-    const messagesColRef = collection(firestore, 'conversations', conversation.id, 'messages');
-    addDocumentNonBlocking(messagesColfRef, messageData);
-    updateConversationTimestamp(`Membagikan perhitungan: ${calculationName}`);
+    const messagesColRef = collection(firestore, 'chat_sessions', conversationId, 'messages');
+    addDocumentNonBlocking(messagesColRef, messageData);
     setIsShareCalcOpen(false);
   };
 
@@ -138,5 +128,3 @@ export function ChatInput({ conversation }: ChatInputProps) {
     </>
   );
 }
-
-    

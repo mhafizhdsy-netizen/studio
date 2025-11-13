@@ -4,14 +4,14 @@
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for private data (user profiles and calculations),
  * while allowing public read access to shared calculations. Write access to public calculations is restricted
- * to authenticated users. Chat functionality is restricted to participants of a conversation.
+ * to authenticated users. The anonymous chat functionality is restricted to participants of a given session.
  *
  * Data Structure:
  * - /users/{userId}: Stores user profiles, accessible only by the authenticated user with matching UID.
  * - /users/{userId}/calculations/{calcId}: Stores calculation history for each user, accessible only by the authenticated user with matching UID.
  * - /public_calculations/{calcId}: Stores publicly shared calculation data, readable by anyone, writable only by authenticated users.
- * - /conversations/{convoId}: Stores chat conversation metadata. Accessible only by participants.
- * - /conversations/{convoId}/messages/{messageId}: Stores messages for a chat. Accessible only by participants.
+ * - /chat_sessions/{sessionId}: Stores anonymous chat session data. Accessible only by participants.
+ * - /chat_sessions/{sessionId}/messages/{messageId}: Stores messages for a chat. Accessible only by participants.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -22,8 +22,7 @@ service cloud.firestore {
      * @path /users/{userId}
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if isSignedIn(); // Allow listing users for starting chats
+      allow get, list: if isSignedIn();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId) && resource != null;
@@ -34,8 +33,7 @@ service cloud.firestore {
      * @path /users/{userId}/calculations/{calcId}
      */
     match /users/{userId}/calculations/{calcId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
+      allow get, list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
       allow update: if isOwner(userId) && resource != null;
       allow delete: if isOwner(userId) && resource != null;
@@ -46,10 +44,8 @@ service cloud.firestore {
      * @path /public_calculations/{calcId}
      */
     match /public_calculations/{calcId} {
-      allow get: if true;
-      allow list: if true;
-      allow write: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow get, list: if true;
+      allow write, delete: if isSignedIn();
       
       /**
        * @description Controls access to comments on public calculations.
@@ -63,25 +59,23 @@ service cloud.firestore {
     }
     
     /**
-     * @description Controls access to chat conversations.
-     * @path /conversations/{convoId}
+     * @description Controls access to anonymous chat sessions.
+     * @path /chat_sessions/{sessionId}
      */
-    match /conversations/{convoId} {
-        // Allow a user to query for conversations they are a part of.
-        // The query in the app MUST use a "where('participantIds', 'array-contains', request.auth.uid)" clause.
-        // Firestore security rules ensure that the query matches this condition.
-        allow list: if isSignedIn();
-        allow get, update: if isParticipant(convoId);
-        allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
+    match /chat_sessions/{sessionId} {
+      // Anyone can query for pending sessions to join one.
+      allow list: if isSignedIn(); 
+      // Participants can get, create, and update (e.g., to 'active' or 'closed').
+      allow get, create, update: if isParticipant(sessionId);
 
-        /**
-         * @description Controls access to messages within a conversation.
-         * @path /conversations/{convoId}/messages/{messageId}
-         */
-        match /messages/{messageId} {
-            allow read, create: if isParticipant(convoId);
-            allow update, delete: if false; // For simplicity
-        }
+      /**
+       * @description Controls access to messages within a chat session.
+       * @path /chat_sessions/{sessionId}/messages/{messageId}
+       */
+      match /messages/{messageId} {
+          allow read, create: if isParticipant(sessionId);
+          allow update, delete: if false; // For simplicity
+      }
     }
 
     function isSignedIn() {
@@ -92,8 +86,8 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isParticipant(convoId) {
-      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(convoId)).data.participantIds;
+    function isParticipant(sessionId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_sessions/$(sessionId)).data.participantIds;
     }
   }
 }
