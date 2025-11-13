@@ -80,6 +80,17 @@ const businessCoachFlow = ai.defineFlow(
   async (input) => {
     const { history, message, imageUrl, calculation } = input;
 
+    // Process the history to format any calculation data within it
+    const processedHistory = history.map(msg => ({
+      role: msg.role,
+      content: msg.content.map(part => {
+        if (part.data?.type === 'calculation') {
+          return { text: formatCalculationToText(part.data) };
+        }
+        return part;
+      }).filter(Boolean) as MessagePart[],
+    }));
+    
     // Construct the current user message
     const userMessageContent: MessagePart[] = [];
     if (message) {
@@ -92,17 +103,6 @@ const businessCoachFlow = ai.defineFlow(
       userMessageContent.push({ text: formatCalculationToText(calculation) });
     }
 
-    // Process the history to format any calculation data within it
-    const processedHistory = history.map(msg => ({
-      role: msg.role,
-      content: msg.content.map(part => {
-        if (part.data?.type === 'calculation') {
-          return { text: formatCalculationToText(part.data) };
-        }
-        return part;
-      }).filter(Boolean),
-    }));
-    
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
       system: systemPrompt,
