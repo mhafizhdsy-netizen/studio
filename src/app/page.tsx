@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BarChart, Bot, Calculator, CheckCircle, DollarSign, Megaphone, Share2 } from "lucide-react";
+import { ArrowRight, BarChart, Bot, Calculator, CheckCircle, DollarSign, Landmark, Megaphone, Share2 } from "lucide-react";
 import { placeholderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/ui/logo";
 
@@ -104,9 +104,9 @@ export default function LandingPage() {
               description="Dapatkan strategi efisiensi, benchmark harga pasar, dan saran praktis dari AI untuk meningkatkan keuntungan."
             />
              <FeatureCard
-              icon={<BarChart className="h-8 w-8 text-primary" />}
-              title="Laporan Keuangan Visual"
-              description="Lihat rincian biaya dan alokasi profit dalam chart yang interaktif dan mudah dimengerti."
+              icon={<Landmark className="h-8 w-8 text-primary" />}
+              title="Kalkulator Pinjaman Usaha"
+              description="Simulasikan cicilan pinjaman modal usaha untuk perencanaan keuangan yang lebih matang sebelum berhutang."
             />
             <FeatureCard
               icon={<Share2 className="h-8 w-8 text-primary" />}
