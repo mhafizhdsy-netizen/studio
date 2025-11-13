@@ -107,53 +107,55 @@ export function ProfileForm() {
     },
   });
 
-  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      // Create a temporary URL for immediate preview
-      setPhotoURL(URL.createObjectURL(file));
-      // Start the upload immediately
-      handleNonBlockingPhotoUpload(file);
+  const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      return;
     }
-  };
+    if (!storage || !user || !auth || !auth.currentUser) {
+      toast({
+        title: "Gagal",
+        description: "Layanan pengguna tidak tersedia. Coba lagi nanti.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  async function handleNonBlockingPhotoUpload(file: File) {
-    if (!storage || !user || !auth) return;
+    const file = e.target.files[0];
+    const localUrl = URL.createObjectURL(file);
+    setPhotoURL(localUrl); // Show preview immediately
 
-    setUploadProgress(0); // Start progress
+    setUploadProgress(0);
 
     try {
-      const newPhotoURL = await uploadProfileImage(
-        storage,
-        user.uid,
-        file,
-        (progress) => {
-          setUploadProgress(progress);
-        }
-      );
-      // Once uploaded, update the user profile and firestore in the background
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
-        const userDocRef = doc(firestore, "users", user.uid);
-        await setDoc(userDocRef, { photoURL: newPhotoURL }, { merge: true });
-      }
-       toast({
+      const newPhotoURL = await uploadProfileImage(storage, user.uid, file, (progress) => {
+        setUploadProgress(progress);
+      });
+
+      // Update auth and firestore with the new URL
+      await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
+      const userDocRef = doc(firestore, "users", user.uid);
+      await setDoc(userDocRef, { photoURL: newPhotoURL }, { merge: true });
+      
+      setPhotoURL(newPhotoURL); // Set the final URL from storage
+      
+      toast({
         title: "Foto Profil Diperbarui",
         description: "Foto profil Anda telah berhasil diubah.",
       });
+
     } catch (uploadError) {
-      console.error("Failed to upload photo in background:", uploadError);
+      console.error("Failed to upload photo:", uploadError);
+      setPhotoURL(user?.photoURL); // Revert to old photo on error
       toast({
         title: "Gagal Mengunggah Foto",
         description: "Terjadi kesalahan saat mengunggah foto profil.",
         variant: "destructive",
-      })
+      });
     } finally {
-      // After upload (success or fail), hide progress bar
       // A small delay can give user time to see it complete
       setTimeout(() => setUploadProgress(null), 1500);
     }
-  }
+  };
 
 
   const getInitials = (name: string) =>
@@ -178,7 +180,7 @@ export function ProfileForm() {
          throw new Error("Password saat ini dibutuhkan untuk mengubah email atau password.");
       }
 
-      // Update Profile Name (this is fast)
+      // Update Profile Name
       if (data.name !== user.displayName) {
         await updateProfile(user, { displayName: data.name });
       }
@@ -193,7 +195,7 @@ export function ProfileForm() {
         await updatePassword(user, data.newPassword);
       }
       
-      // Update Firestore user document (without photoURL initially)
+      // Update Firestore user document
       const userDocRef = doc(firestore, "users", user.uid);
       await setDoc(
         userDocRef,
@@ -206,7 +208,6 @@ export function ProfileForm() {
         description: "Informasi akunmu sudah berhasil disimpan.",
       });
       
-      // Reset form to clear password fields
       form.reset({
         ...data,
         currentPassword: "",
@@ -286,7 +287,7 @@ export function ProfileForm() {
                     </FormItem>
                   )}
                 />
-                {uploadProgress !== null && <Progress value={uploadProgress} className="w-full h-2" />}
+                {uploadProgress !== null && <Progress value={uploadProgress} className="w-full h-2 mt-2" />}
               </div>
             </div>
 
