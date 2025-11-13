@@ -27,7 +27,7 @@ service cloud.firestore {
        */
       match /ai_conversations/{conversationId}/messages/{messageId} {
         allow read, list, create: if isOwner(userId);
-        allow update, delete: if false; // Messages are immutable for simplicity
+        allow update, delete: if isOwner(userId);
       }
     }
 
