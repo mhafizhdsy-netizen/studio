@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BarChart, Bot, Calculator, CheckCircle, DollarSign, Landmark, Megaphone, Share2 } from "lucide-react";
+import { ArrowRight, Bot, Calculator, CheckCircle, DollarSign, Landmark, Megaphone, Share2, Sparkles } from "lucide-react";
 import { placeholderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/ui/logo";
 
@@ -113,6 +113,11 @@ export default function LandingPage() {
               icon={<Share2 className="h-8 w-8 text-primary" />}
               title="Inspirasi dari Komunitas"
               description="Bagikan hasil perhitunganmu secara anonim dan dapatkan inspirasi dari sesama pengusaha di komunitas."
+            />
+             <FeatureCard
+              icon={<Sparkles className="h-8 w-8 text-primary" />}
+              title="Dan Banyak Lagi!"
+              description="Temukan juga fitur pelacak pengeluaran, laporan profit bulanan, chat anonim, dan alat bantu lainnya di dalam dashboard."
             />
           </div>
         </section>
