@@ -15,17 +15,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Helper to convert Firestore Timestamps to plain objects recursively
 const toPlainObject = (obj: any): any => {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
   if (obj instanceof Timestamp) {
-    return obj.toDate().toISOString();
+    return { seconds: obj.seconds, nanoseconds: obj.nanoseconds };
   }
   if (Array.isArray(obj)) {
     return obj.map(toPlainObject);
   }
-  // Ensure it's a real object before recursing
-  if (typeof obj === 'object' && obj.constructor === Object) {
+  if (obj !== null && typeof obj === 'object' && obj.constructor === Object) {
     const newObj: { [key: string]: any } = {};
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -36,6 +32,7 @@ const toPlainObject = (obj: any): any => {
   }
   return obj;
 };
+
 
 // A static ID for the main conversation with the AI.
 // In a more advanced app, this could be dynamic to support multiple conversations.
@@ -74,8 +71,8 @@ export default function AIChatPage() {
         if (text) userContent.push({ text });
         if (imageUrl) userContent.push({ media: { url: imageUrl } });
         
-        if (calculation) {
-             const plainCalculation = toPlainObject(calculation);
+        const plainCalculation = calculation ? toPlainObject(calculation) : null;
+        if (plainCalculation) {
              userContent.push({
                 data: {
                     type: 'calculation',
