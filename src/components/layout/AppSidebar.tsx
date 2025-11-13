@@ -18,7 +18,6 @@ import {
   Users,
   Shield,
   User as UserIcon,
-  Bot,
   MessageSquare,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -87,17 +86,6 @@ export function AppSidebar() {
               <Link href="/calculator">
                 <Calculator />
                 Kalkulator HPP
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/ai-chat')}
-            >
-              <Link href="/ai-chat">
-                <Bot />
-                Teman Bisnis AI
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
