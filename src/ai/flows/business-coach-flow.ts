@@ -37,7 +37,7 @@ const businessCoachFlow = ai.defineFlow(
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
       system: systemPrompt,
-      history: history as any, // Cast to any to match Genkit's expected history type
+      history: history, // Cast to any to match Genkit's expected history type
     });
 
     if (!output || !output.text) {

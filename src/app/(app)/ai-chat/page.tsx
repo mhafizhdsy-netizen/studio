@@ -18,8 +18,8 @@ export default function AIChatPage() {
     const [isAiTyping, setIsAiTyping] = useState(false);
     const { toast } = useToast();
 
+    // Effect to scroll to the bottom whenever messages change
     useEffect(() => {
-        // Scroll to the bottom whenever messages change
         if (scrollAreaRef.current) {
             scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
         }
@@ -39,21 +39,14 @@ export default function AIChatPage() {
         setIsAiTyping(true);
 
         try {
-            // Prepare history for the AI, mapping to the new simplified schema
-            const historyForAI = newMessages
-                .map(msg => {
-                    if (msg.content) { // Ensure content exists
-                        return {
-                            role: msg.role,
-                            content: msg.content,
-                        };
-                    }
-                    return undefined; // Return undefined for invalid messages
-                })
-                .filter(Boolean); // CRITICAL: Remove any undefined entries from the array
+            // The history for the AI is just the array of simple messages.
+            const historyForAI = newMessages.map(msg => ({
+                role: msg.role,
+                content: msg.content,
+            }));
 
             const aiInput: AIChatInputType = {
-                history: historyForAI as { role: 'user' | 'model'; content: string }[],
+                history: historyForAI,
             };
 
             const aiResponseText = await chatWithBusinessCoach(aiInput);
