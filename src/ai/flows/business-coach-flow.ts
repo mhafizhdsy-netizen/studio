@@ -88,7 +88,7 @@ const businessCoachFlow = ai.defineFlow(
           return { text: formatCalculationToText(part.data) };
         }
         return part;
-      }).filter(Boolean) as MessagePart[],
+      }).filter((part): part is MessagePart => !!part),
     }));
     
     // Construct the current user message
