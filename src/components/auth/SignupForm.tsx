@@ -101,7 +101,8 @@ export function SignupForm() {
 
         if (photoFile && supabase) {
             setIsUploading(true);
-            const filePath = `public/profile-images/${user.uid}/${photoFile.name}`;
+            const sanitizedFileName = photoFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+            const filePath = `public/profile-images/${user.uid}/${sanitizedFileName}`;
             photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath, (progress) => {
                 setUploadProgress(progress);
             });

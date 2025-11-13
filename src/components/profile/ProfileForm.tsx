@@ -135,7 +135,8 @@ export function ProfileForm() {
     setIsUploading(true);
     setUploadProgress(0);
 
-    const filePath = `public/profile-images/${user.uid}/${file.name}`;
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const filePath = `public/profile-images/${user.uid}/${sanitizedFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(

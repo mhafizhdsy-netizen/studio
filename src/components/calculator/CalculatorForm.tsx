@@ -143,8 +143,9 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     setImageUrl(localUrl);
     setIsUploading(true);
     setUploadProgress(0);
-
-    const filePath = `public/product-images/${user.uid}/${calcIdRef.current}/${file.name}`;
+    
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const filePath = `public/product-images/${user.uid}/${calcIdRef.current}/${sanitizedFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (progress) => {

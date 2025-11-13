@@ -46,7 +46,8 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
 
     setIsUploading(true);
     const file = e.target.files[0];
-    const filePath = `public/chat-files/anonymous_chat/${user.uid}/${Date.now()}-${file.name}`;
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const filePath = `public/chat-files/anonymous_chat/${user.uid}/${Date.now()}-${sanitizedFileName}`;
     
     try {
         const downloadUrl = await uploadFileToSupabase(file, 'user-assets', filePath);
