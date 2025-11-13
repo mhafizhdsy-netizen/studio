@@ -5,8 +5,8 @@ import { useState, useEffect } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { doc, serverTimestamp, collection, writeBatch } from 'firebase/firestore';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { doc, serverTimestamp, collection } from 'firebase/firestore';
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -136,7 +136,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   
   const handleCalculate = form.handleSubmit(calculate);
 
-  async function onSubmit(data: FormData) {
+  function onSubmit(data: FormData) {
     if (!user || !firestore) return;
     if (!result) {
         toast({ title: "Oops!", description: "Hitung dulu hasilnya sebelum menyimpan ya.", variant: "destructive" });
@@ -160,8 +160,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         productionTips: data.productionTips || "",
     };
 
-    const batch = writeBatch(firestore);
-
     // Main calculation document
     const calcRef = existingCalculation
         ? doc(firestore, 'users', user.uid, 'calculations', existingCalculation.id)
@@ -171,7 +169,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         ? { ...calculationData, updatedAt: serverTimestamp() }
         : { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
 
-    batch.set(calcRef, dataToSave, { merge: true });
+    setDocumentNonBlocking(calcRef, dataToSave, { merge: true });
 
     // Public calculation document
     const publicCalcId = existingCalculation ? existingCalculation.id : calcRef.id;
@@ -179,39 +177,23 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
     if (data.sharePublicly) {
         const publicData = {
-            ...calculationData, // Save the full calculation data
+            ...calculationData,
             userName: user.displayName || 'Anonymous',
             createdAt: existingCalculation?.createdAt || serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
-        // Remove user-specific data that shouldn't be public
         delete (publicData as any).userId; 
         delete (publicData as any).isPublic;
 
-        batch.set(publicCalcRef, publicData, { merge: true });
+        setDocumentNonBlocking(publicCalcRef, publicData, { merge: true });
     } else if (existingCalculation && existingCalculation.isPublic) {
-        // If it was public before, but now it's not, delete it.
-        batch.delete(publicCalcRef);
+        deleteDocumentNonBlocking(publicCalcRef);
     }
 
-    batch.commit().then(() => {
-        const randomToast = motivationalToasts[Math.floor(Math.random() * motivationalToasts.length)];
-        toast(randomToast);
-        router.push("/dashboard");
-    }).catch(error => {
-        const isCreating = !existingCalculation;
-        const operation = isCreating ? 'create' : 'update';
-        
-        const permissionError = new FirestorePermissionError({
-            path: calcRef.path,
-            operation,
-            requestResourceData: dataToSave,
-        });
-
-        errorEmitter.emit('permission-error', permissionError);
-
-        setIsSubmitting(false); // Make sure to re-enable button on error
-    });
+    const randomToast = motivationalToasts[Math.floor(Math.random() * motivationalToasts.length)];
+    toast(randomToast);
+    router.push("/dashboard");
+    setIsSubmitting(false);
   }
 
   const calculationForExport = result ? { ...form.getValues(), ...result } : null;
@@ -422,3 +404,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
+
+    
