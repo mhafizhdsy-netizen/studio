@@ -135,8 +135,9 @@ export function ProfileForm() {
     setIsUploading(true);
     setUploadProgress(0);
 
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-    const filePath = `public/profile-images/${user.uid}/${sanitizedFileName}`;
+    const fileExtension = file.name.split('.').pop();
+    const randomFileName = `${Math.random().toString(36).substring(2)}.${fileExtension}`;
+    const filePath = `public/profile-images/${user.uid}/${randomFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(
@@ -184,31 +185,31 @@ export function ProfileForm() {
       : "?";
 
   async function onSubmit(data: ProfileFormData) {
-    if (!user || !auth || !firestore) return;
+    if (!user || !auth.currentUser || !firestore) return;
     setIsSubmitting(true);
 
     try {
       const needsReauth = data.newPassword || data.email !== user.email;
       if (data.currentPassword && needsReauth && user.email) {
         const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
-        await reauthenticateWithCredential(user, credential);
+        await reauthenticateWithCredential(auth.currentUser, credential);
       } else if (!data.currentPassword && needsReauth) {
          throw new Error("Password saat ini dibutuhkan untuk mengubah email atau password.");
       }
 
       // Update Profile Name
       if (data.name !== user.displayName) {
-        await updateProfile(user, { displayName: data.name });
+        await updateProfile(auth.currentUser, { displayName: data.name });
       }
 
       // Update Email
       if (data.email !== user.email) {
-        await updateEmail(user, data.email);
+        await updateEmail(auth.currentUser, data.email);
       }
 
       // Update Password
       if (data.newPassword) {
-        await updatePassword(user, data.newPassword);
+        await updatePassword(auth.currentUser, data.newPassword);
       }
       
       const userDocRef = doc(firestore, "users", user.uid);
@@ -386,4 +387,5 @@ export function ProfileForm() {
     </Card>
   );
 }
+
     

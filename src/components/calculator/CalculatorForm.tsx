@@ -144,8 +144,9 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     setIsUploading(true);
     setUploadProgress(0);
     
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-    const filePath = `public/product-images/${user.uid}/${calcIdRef.current}/${sanitizedFileName}`;
+    const fileExtension = file.name.split('.').pop();
+    const randomFileName = `${Math.random().toString(36).substring(2)}.${fileExtension}`;
+    const filePath = `public/product-images/${user.uid}/${calcIdRef.current}/${randomFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (progress) => {
@@ -485,3 +486,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
+
+    

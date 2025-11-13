@@ -101,8 +101,10 @@ export function SignupForm() {
 
         if (photoFile && supabase) {
             setIsUploading(true);
-            const sanitizedFileName = photoFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-            const filePath = `public/profile-images/${user.uid}/${sanitizedFileName}`;
+            const fileExtension = photoFile.name.split('.').pop();
+            const randomFileName = `${Math.random().toString(36).substring(2)}.${fileExtension}`;
+            const filePath = `public/profile-images/${user.uid}/${randomFileName}`;
+            
             photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath, (progress) => {
                 setUploadProgress(progress);
             });
@@ -258,3 +260,5 @@ export function SignupForm() {
     </Card>
   );
 }
+
+    
