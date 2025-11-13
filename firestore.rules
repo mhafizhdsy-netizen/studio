@@ -68,7 +68,7 @@ service cloud.firestore {
      */
     match /conversations/{convoId} {
         // Allow a user to query for conversations they are a part of.
-        allow list: if isSignedIn() && request.auth.uid == request.query.filters.participantIds.value;
+        allow list: if isSignedIn() && request.auth.uid in request.query.get("where").participantIds;
         allow get, update: if isParticipant(convoId);
         allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
 
