@@ -82,7 +82,6 @@ export default function AIChatPage() {
         setIsAiTyping(true);
 
         try {
-            // The history for the AI is the current message list, ensured to be plain objects
             const aiInput: AIChatInputType = {
                 history: newMessages.map(msg => ({
                     role: msg.role,
@@ -92,7 +91,7 @@ export default function AIChatPage() {
                         if (part.media) newPart.media = part.media;
                         if (part.data) newPart.data = part.data; // Already a plain object
                         return newPart;
-                    }).filter(Boolean) // Filter out any potentially empty parts
+                    }).filter(Boolean)
                 }))
             };
 

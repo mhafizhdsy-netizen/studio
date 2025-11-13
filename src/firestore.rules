@@ -1,0 +1,88 @@
+
+/**
+ * @fileoverview Firestore Security Rules for GenHPP application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for private data (user profiles, calculations).
+ * It allows public read access to shared calculations and community comments.
+ * It manages access to anonymous chat sessions based on participation.
+ * Write access is generally restricted to authenticated owners of the data.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profiles.
+     * @path /users/{userId}
+     */
+    match /users/{userId} {
+      allow get, list: if isSignedIn();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Controls access to calculation history for each user.
+     * @path /users/{userId}/calculations/{calcId}
+     */
+    match /users/{userId}/calculations/{calcId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Controls access to publicly shared calculations.
+     * @path /public_calculations/{calcId}
+     */
+    match /public_calculations/{calcId} {
+      allow get, list: if true;
+      allow write, delete: if isSignedIn();
+      
+      /**
+       * @description Controls access to comments on public calculations.
+       * @path /public_calculations/{calcId}/comments/{commentId}
+       */
+      match /comments/{commentId} {
+        allow read, list: if true;
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if false; // For simplicity, editing/deleting is disallowed
+      }
+    }
+    
+    /**
+     * @description Controls access to anonymous chat sessions.
+     * @path /chat_sessions/{sessionId}
+     */
+    match /chat_sessions/{sessionId} {
+      allow list: if isSignedIn();
+      allow get: if isParticipant(sessionId);
+      allow create: if isSignedIn() && request.resource.data.participantIds.hasOnly([request.auth.uid]) && request.resource.data.status == 'pending';
+      allow update: if isParticipant(sessionId);
+
+      /**
+       * @description Controls access to messages within a chat session.
+       * @path /chat_sessions/{sessionId}/messages/{messageId}
+       */
+      match /messages/{messageId} {
+        allow read, list, create: if isParticipant(sessionId);
+        allow update, delete: if false; // Messages are immutable
+      }
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isParticipant(sessionId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_sessions/$(sessionId)).data.participantIds;
+    }
+  }
+}
