@@ -115,8 +115,8 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="grid gap-2 text-center">
-        <h1 className="text-2xl font-bold">Masuk</h1>
+      <div className="grid gap-2">
+        <h1 className="text-3xl font-bold">Masuk</h1>
         <p className="text-balance text-muted-foreground">
           Masukkan emailmu untuk masuk ke akun
         </p>
@@ -157,11 +157,11 @@ export function LoginForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full font-bold" disabled={isLoadingEmail}>
+          <Button type="submit" className="w-full font-bold" disabled={isLoadingEmail || isLoadingGoogle}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Masuk
           </Button>
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingGoogle}>
+            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
                 {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
                 Masuk dengan Google
             </Button>

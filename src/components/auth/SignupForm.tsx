@@ -20,9 +20,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Camera } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { sanitizeFileName } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nama minimal 2 karakter." }),
@@ -48,6 +50,8 @@ export function SignupForm() {
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -57,6 +61,14 @@ export function SignupForm() {
       password: "",
     },
   });
+  
+  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
 
   const createUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
     if (!firestore) return;
@@ -83,10 +95,10 @@ export function SignupForm() {
         let photoURL = '';
 
         if (photoFile && supabase) {
-            const cleanFileName = `${Math.random().toString(36).substring(2)}.${photoFile.name.split('.').pop()}`;
+            const cleanFileName = sanitizeFileName(photoFile.name);
             const filePath = `public/profile-images/${user.uid}/${cleanFileName}`;
             
-            photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath, () => {});
+            photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath);
         }
 
         await updateProfile(user, { displayName: values.name, photoURL: photoURL || undefined });
@@ -138,15 +150,42 @@ export function SignupForm() {
 
   return (
     <>
-      <div className="grid gap-2 text-center">
-            <h1 className="text-2xl font-bold">Buat Akun</h1>
+      <div className="grid gap-2">
+            <h1 className="text-3xl font-bold">Buat Akun Baru</h1>
             <p className="text-balance text-muted-foreground">
-                Masukkan informasimu untuk membuat akun
+                Daftar gratis untuk mulai menghitung cuan bisnismu.
             </p>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+            <div className="flex flex-col items-center gap-4">
+                <div className="relative">
+                <Avatar className="h-24 w-24 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <AvatarImage src={photoPreview ?? undefined} />
+                    <AvatarFallback className="text-3xl">
+                        {(form.getValues('name') || 'U').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                </Avatar>
+                <Button
+                    type="button"
+                    size="icon"
+                    variant="secondary"
+                    className="absolute bottom-0 right-0 rounded-full h-8 w-8"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <Camera className="h-4 w-4" />
+                </Button>
+                <Input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                    accept="image/png, image/jpeg, image/webp"
+                />
+                </div>
+            </div>
+
           <FormField
             control={form.control}
             name="name"
@@ -190,7 +229,7 @@ export function SignupForm() {
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Buat Akun
           </Button>
-           <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+           <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
                 {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
                 Daftar dengan Google
             </Button>
