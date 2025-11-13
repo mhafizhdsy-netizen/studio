@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname } from 'next/navigation';
@@ -19,6 +20,8 @@ import {
   User as UserIcon,
   MessageSquare,
   DollarSign,
+  ClipboardList,
+  BarChart2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -103,6 +106,28 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
+              isActive={pathname.startsWith('/expenses')}
+            >
+              <Link href="/expenses">
+                <ClipboardList />
+                Catatan Pengeluaran
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/reports')}
+            >
+              <Link href="/reports">
+                <BarChart2 />
+                Laporan Keuntungan
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
               isActive={pathname.startsWith('/messages')}
             >
               <Link href="/messages">
@@ -174,3 +199,5 @@ export function AppSidebar() {
     </>
   );
 }
+
+    

@@ -1,9 +1,11 @@
+
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { CalculationHistory } from "@/components/dashboard/CalculationHistory";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MonthlyExpenseSummary } from "@/components/expenses/MonthlyExpenseSummary";
 
 export default function DashboardPage() {
   return (
@@ -17,6 +19,11 @@ export default function DashboardPage() {
           </Link>
         </Button>
       </div>
+
+       <Suspense fallback={<Skeleton className="h-24 rounded-lg" />}>
+        <MonthlyExpenseSummary />
+      </Suspense>
+
       <div
         className="flex flex-1 items-start justify-center rounded-lg border border-dashed shadow-sm p-4"
       >
@@ -40,3 +47,5 @@ function DashboardSkeleton() {
     </div>
   )
 }
+
+    

@@ -251,6 +251,53 @@
         }
       },
       "required": ["senderId", "content", "createdAt"]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents a single operational expense entry.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the expense." },
+        "userId": { "type": "string", "description": "The UID of the user who logged the expense." },
+        "name": { "type": "string", "description": "Name or description of the expense." },
+        "amount": { "type": "number", "description": "The cost of the expense." },
+        "category": { 
+          "type": "string", 
+          "description": "The category of the expense.",
+          "enum": ["Sewa Tempat", "Listrik", "Gaji Karyawan", "Biaya Pengemasan", "Lainnya"]
+        },
+        "date": { "type": "string", "format": "date-time", "description": "The date the expense was incurred." }
+      },
+      "required": ["id", "userId", "name", "amount", "category", "date"]
+    },
+    "ProfitReport": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "ProfitReport",
+        "type": "object",
+        "description": "Represents an aggregated profit analysis report for a specific period.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique ID for the report, e.g., YYYY-MM." },
+            "userId": { "type": "string", "description": "The UID of the user." },
+            "month": { "type": "string", "description": "The month of the report in YYYY-MM format." },
+            "totalProductionCost": { "type": "number", "description": "Sum of all HPP from calculations in that month." },
+            "totalOperationalCost": { "type": "number", "description": "Sum of all expenses in that month." },
+            "totalRevenue": { "type": "number", "description": "Sum of all suggested prices from calculations in that month." },
+            "estimatedProfit": { "type": "number", "description": "Total Revenue - (Total Production Cost + Total Operational Cost)." },
+            "averageMargin": { "type": "number", "description": "Average profit margin from calculations." },
+            "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the report was generated." }
+        },
+        "required": [
+            "id",
+            "userId",
+            "month",
+            "totalProductionCost",
+            "totalOperationalCost",
+            "totalRevenue",
+            "estimatedProfit",
+            "averageMargin",
+            "createdAt"
+        ]
     }
   },
   "auth": {
@@ -353,8 +400,34 @@
             { "name": "messageId", "description": "The unique ID of the message." }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/expenses/{expenseId}",
+        "definition": {
+            "entityName": "Expense",
+            "schema": { "$ref": "#/backend/entities/Expense" },
+            "description": "Stores operational expense entries for a user.",
+            "params": [
+                { "name": "userId", "description": "The Firebase Auth UID of the user." },
+                { "name": "expenseId", "description": "The unique ID of the expense." }
+            ]
+        }
+      },
+      {
+          "path": "/users/{userId}/reports/{reportId}",
+          "definition": {
+              "entityName": "ProfitReport",
+              "schema": { "$ref": "#/backend/entities/ProfitReport" },
+              "description": "Stores generated profit analysis reports for a user.",
+              "params": [
+                  { "name": "userId", "description": "The Firebase Auth UID of the user." },
+                  { "name": "reportId", "description": "The unique ID of the report (e.g., YYYY-MM)." }
+              ]
+          }
       }
     ],
     "reasoning": "The Firestore structure is updated to support the anonymous chat feature. The AI chat history is no longer stored in Firestore and is managed by the client application state."
   }
 }
+
+    

@@ -33,6 +33,22 @@ service cloud.firestore {
       allow update: if isOwner(userId) && resource != null;
       allow delete: if isOwner(userId) && resource != null;
     }
+    
+    /**
+     * @description Controls access to user expenses.
+     * @path /users/{userId}/expenses/{expenseId}
+     */
+    match /users/{userId}/expenses/{expenseId} {
+      allow read, list, create, update, delete: if isOwner(userId);
+    }
+    
+    /**
+     * @description Controls access to user reports.
+     * @path /users/{userId}/reports/{reportId}
+     */
+    match /users/{userId}/reports/{reportId} {
+       allow read, list, create, update, delete: if isOwner(userId);
+    }
 
     /**
      * @description Controls access to publicly shared calculations.
@@ -86,3 +102,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
