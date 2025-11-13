@@ -12,13 +12,15 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto grid w-[380px] gap-6">
-            <Link href="/" className="flex items-center justify-center gap-2 mb-4">
-                <Logo />
-                <h1 className="text-3xl font-bold font-headline">HitunginAja</h1>
-            </Link>
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+      <div className="flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto w-full max-w-sm">
+            <div className="flex flex-col items-center justify-center gap-2 mb-6">
+                 <Link href="/" className="flex items-center gap-3">
+                    <Logo />
+                    <h1 className="text-2xl font-bold font-headline">HitunginAja</h1>
+                </Link>
+            </div>
             {children}
         </div>
       </div>

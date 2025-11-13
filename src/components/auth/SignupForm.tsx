@@ -149,29 +149,29 @@ export function SignupForm() {
   const isLoading = isLoadingEmail || isLoadingGoogle;
 
   return (
-    <>
-      <div className="grid gap-2">
-            <h1 className="text-3xl font-bold">Buat Akun Baru</h1>
+    <div className="w-full">
+      <div className="grid gap-2 text-center">
+            <h1 className="text-3xl font-bold">Buat Akun Gratis</h1>
             <p className="text-balance text-muted-foreground">
-                Daftar gratis untuk mulai menghitung cuan bisnismu.
+                Mulai perjalanan bisnismu dengan menghitung profit secara akurat.
             </p>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+       <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 mt-8">
             <div className="flex flex-col items-center gap-4">
                 <div 
-                    className="relative rounded-full border-2 border-dashed border-muted-foreground p-1 cursor-pointer hover:border-primary transition-colors"
+                    className="relative p-1 rounded-full border-2 border-dashed border-muted-foreground cursor-pointer hover:border-primary transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                 >
                     <Avatar className="h-24 w-24">
                         <AvatarImage src={photoPreview ?? undefined} />
-                        <AvatarFallback className="text-3xl">
+                        <AvatarFallback className="text-3xl bg-muted">
                             {(form.getValues('name') || 'U').charAt(0).toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
-                    <div className="absolute bottom-1 right-1 bg-secondary text-secondary-foreground rounded-full p-2 flex items-center justify-center">
-                        <Camera className="h-4 w-4" />
+                    <div className="absolute bottom-1 right-1 bg-background border rounded-full p-1.5 flex items-center justify-center">
+                        <Camera className="h-4 w-4 text-muted-foreground" />
                     </div>
                 </div>
                 <Input
@@ -222,7 +222,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full font-bold" disabled={isLoading}>
+          <Button type="submit" className="w-full font-bold mt-2" disabled={isLoading}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Buat Akun
           </Button>
@@ -232,12 +232,13 @@ export function SignupForm() {
             </Button>
         </form>
       </Form>
-      <div className="mt-4 text-center text-sm">
+      <div className="mt-6 text-center text-sm">
         Sudah punya akun?{" "}
         <Link href="/login" className="underline text-primary font-semibold">
-          Masuk
+          Masuk di sini
         </Link>
       </div>
-    </>
+    </div>
   );
 }
+

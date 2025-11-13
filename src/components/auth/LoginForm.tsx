@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Separator } from "../ui/separator";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid." }),
@@ -114,13 +115,32 @@ export function LoginForm() {
   }
 
   return (
-    <>
-      <div className="grid gap-2">
-        <h1 className="text-3xl font-bold">Masuk</h1>
+    <div className="w-full">
+      <div className="grid gap-2 text-center">
+        <h1 className="text-3xl font-bold">Selamat Datang Kembali!</h1>
         <p className="text-balance text-muted-foreground">
-          Masukkan emailmu untuk masuk ke akun
+          Masukkan email dan password untuk mengakses dashboard.
         </p>
       </div>
+
+       <div className="grid gap-4 mt-8">
+        <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
+            {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
+            Masuk dengan Google
+        </Button>
+      </div>
+
+       <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Atau lanjutkan dengan
+            </span>
+          </div>
+        </div>
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <FormField
@@ -157,22 +177,19 @@ export function LoginForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full font-bold" disabled={isLoadingEmail || isLoadingGoogle}>
+          <Button type="submit" className="w-full font-bold mt-2" disabled={isLoadingEmail || isLoadingGoogle}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Masuk
           </Button>
-            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
-                {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
-                Masuk dengan Google
-            </Button>
         </form>
       </Form>
-      <div className="mt-4 text-center text-sm">
+      <div className="mt-6 text-center text-sm">
         Belum punya akun?{" "}
         <Link href="/signup" className="underline text-primary font-semibold">
-          Daftar
+          Daftar di sini
         </Link>
       </div>
-    </>
+    </div>
   );
 }
+
