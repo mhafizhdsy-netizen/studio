@@ -160,22 +160,20 @@ export function SignupForm() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                <Avatar className="h-24 w-24 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                    <AvatarImage src={photoPreview ?? undefined} />
-                    <AvatarFallback className="text-3xl">
-                        {(form.getValues('name') || 'U').charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                </Avatar>
-                <Button
-                    type="button"
-                    size="icon"
-                    variant="secondary"
-                    className="absolute bottom-0 right-0 rounded-full h-8 w-8"
+                <div 
+                    className="relative rounded-full border-2 border-dashed border-muted-foreground p-1 cursor-pointer hover:border-primary transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                 >
-                    <Camera className="h-4 w-4" />
-                </Button>
+                    <Avatar className="h-24 w-24">
+                        <AvatarImage src={photoPreview ?? undefined} />
+                        <AvatarFallback className="text-3xl">
+                            {(form.getValues('name') || 'U').charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute bottom-1 right-1 bg-secondary text-secondary-foreground rounded-full p-2 flex items-center justify-center">
+                        <Camera className="h-4 w-4" />
+                    </div>
+                </div>
                 <Input
                     type="file"
                     ref={fileInputRef}
@@ -183,7 +181,6 @@ export function SignupForm() {
                     className="hidden"
                     accept="image/png, image/jpeg, image/webp"
                 />
-                </div>
             </div>
 
           <FormField
