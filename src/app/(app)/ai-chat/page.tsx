@@ -40,13 +40,20 @@ export default function AIChatPage() {
 
         try {
             // Prepare history for the AI, mapping to the new simplified schema
-            const historyForAI = newMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content,
-            }));
+            const historyForAI = newMessages
+                .map(msg => {
+                    if (msg.content) { // Ensure content exists
+                        return {
+                            role: msg.role,
+                            content: msg.content,
+                        };
+                    }
+                    return undefined; // Return undefined for invalid messages
+                })
+                .filter(Boolean); // CRITICAL: Remove any undefined entries from the array
 
             const aiInput: AIChatInputType = {
-                history: historyForAI,
+                history: historyForAI as { role: 'user' | 'model'; content: string }[],
             };
 
             const aiResponseText = await chatWithBusinessCoach(aiInput);
