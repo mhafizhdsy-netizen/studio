@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { addDoc, collection, doc, getDocs, limit, query, serverTimestamp, updateDoc, where, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, limit, query, serverTimestamp, updateDoc, where, Timestamp, orderBy } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
 import { Loader2, MessageSquare, Send, UsersRound, Search } from "lucide-react";
 import { ChatInput } from "@/components/messages/ChatInput";
@@ -209,4 +209,3 @@ export default function AnonymousChatPage() {
         </div>
     );
 }
-
