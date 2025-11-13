@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { placeholderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/ui/logo";
+import { Card, CardContent } from "@/components/ui/card";
 
 const heroImage = placeholderImages.find(p => p.id === "hero");
 
@@ -13,7 +14,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-      <div className="relative flex items-center justify-center p-4 sm:p-8 md:p-12 min-h-screen">
+      <div className="relative flex items-center justify-center p-4 sm:p-8 min-h-screen">
          <div className="absolute top-6 left-6 z-10">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
               <Logo />
@@ -22,9 +23,11 @@ export default function AuthLayout({
               </span>
             </Link>
           </div>
-        <div className="mx-auto grid w-full max-w-md gap-6">
-           {children}
-        </div>
+        <Card className="mx-auto w-full max-w-md">
+            <CardContent className="p-6 md:p-8 grid gap-6">
+                {children}
+            </CardContent>
+        </Card>
       </div>
        <div className="hidden bg-muted lg:flex items-center justify-center relative p-10">
         {heroImage && (
