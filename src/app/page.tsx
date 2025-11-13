@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BarChart, Bot, Calculator, History, Share2, DollarSign } from "lucide-react";
+import { ArrowRight, BarChart, Bot, Calculator, History, Share2, DollarSign, Megaphone } from "lucide-react";
 import { placeholderImages } from "@/lib/placeholder-images";
 
 const heroImage = placeholderImages.find(p => p.id === "hero");
@@ -81,6 +81,11 @@ export default function LandingPage() {
               icon={<DollarSign className="h-8 w-8 text-primary" />}
               title="Kalkulator Harga Jual"
               description="Tentukan harga jual ideal berdasarkan target profit dan hitung harga dasar sebelum PPN dengan mudah."
+            />
+            <FeatureCard
+              icon={<Megaphone className="h-8 w-8 text-primary" />}
+              title="Analisis Iklan (ROAS & ROI)"
+              description="Ukur efektivitas kampanye iklanmu dengan menghitung Return on Ad Spend (ROAS) dan ROI untuk setiap iklan."
             />
              <FeatureCard
               icon={<Bot className="h-8 w-8 text-primary" />}
