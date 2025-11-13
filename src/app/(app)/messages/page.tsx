@@ -1,11 +1,11 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { collection, query, where, limit, getDocs, doc, writeBatch, serverTimestamp, setDoc, updateDoc, orderBy, addDoc } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
-import { Loader2, MessageSquareDashed, UserRoundX, Wand2, Zap } from "lucide-react";
+import { Loader2, MessageSquareDashed, UserRoundX, Wand2, Zap, UsersRound } from "lucide-react";
 import { ChatInput } from "@/components/messages/ChatInput";
 import { ChatMessage, type Message } from "@/components/messages/ChatView"; // Reusing ChatMessage and Message type
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -25,6 +25,7 @@ export default function AnonymousChatPage() {
     const [session, setSession] = useState<ChatSession | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSearching, setIsSearching] = useState(false);
+    const [notFound, setNotFound] = useState(false);
     
     // Check for an existing active or pending session for the current user
     const findActiveSession = useCallback(async () => {
@@ -81,6 +82,7 @@ export default function AnonymousChatPage() {
         if (!user || !firestore) return;
 
         setIsSearching(true);
+        setNotFound(false);
 
         const q = query(
             collection(firestore, 'chat_sessions'),
@@ -122,28 +124,13 @@ export default function AnonymousChatPage() {
                 });
 
                 setSession({ id: availableSessionDoc.id, ...sessionData, status: 'active', participantIds: newParticipants });
-
+                setIsSearching(false);
             } else {
-                // Create a new pending session
-                const newSessionData: Omit<ChatSession, 'id'> = {
-                    participantIds: [user.uid],
-                    status: 'pending',
-                    createdAt: serverTimestamp(),
-                };
-                const newSessionRef = await addDoc(collection(firestore, 'chat_sessions'), newSessionData)
-                    .catch(serverError => {
-                        const permissionError = new FirestorePermissionError({
-                            path: 'chat_sessions',
-                            operation: 'create',
-                            requestResourceData: newSessionData,
-                        });
-                        errorEmitter.emit('permission-error', permissionError);
-                        throw serverError; // Prevent further execution if addDoc fails
-                    });
-                setSession({ id: newSessionRef.id, ...newSessionData } as ChatSession);
+                // No session found, show notFound UI
+                setNotFound(true);
+                setIsSearching(false);
             }
         } catch (error) {
-            // This will catch errors from getDocs or re-thrown from addDoc
             if (!(error instanceof FirestorePermissionError)) {
                  const permissionError = new FirestorePermissionError({
                     path: 'chat_sessions',
@@ -151,11 +138,38 @@ export default function AnonymousChatPage() {
                 });
                 errorEmitter.emit('permission-error', permissionError);
             }
-        } finally {
             setIsSearching(false);
         }
     };
     
+    const handleCreateAndWait = async () => {
+        if (!user || !firestore) return;
+        setIsSearching(true);
+        setNotFound(false);
+         try {
+            // Create a new pending session
+            const newSessionData: Omit<ChatSession, 'id'> = {
+                participantIds: [user.uid],
+                status: 'pending',
+                createdAt: serverTimestamp(),
+            };
+            const newSessionRef = await addDoc(collection(firestore, 'chat_sessions'), newSessionData)
+                .catch(serverError => {
+                    const permissionError = new FirestorePermissionError({
+                        path: 'chat_sessions',
+                        operation: 'create',
+                        requestResourceData: newSessionData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                    throw serverError; // Prevent further execution if addDoc fails
+                });
+            setSession({ id: newSessionRef.id, ...newSessionData } as ChatSession);
+            // isSearching remains true, as we are now in waiting mode
+        } catch(error) {
+            setIsSearching(false);
+        }
+    }
+
     const handleLeaveChat = async () => {
         if (!session || !firestore) return;
         
@@ -183,6 +197,30 @@ export default function AnonymousChatPage() {
     
     if (session) {
         return <ActiveChatScreen session={session} onLeave={handleLeaveChat} isSearching={isSearching} />
+    }
+
+    if (notFound) {
+         return (
+            <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 lg:gap-6 lg:p-6 text-center">
+                <div className="rounded-full bg-muted p-6">
+                    <UsersRound className="h-16 w-16 text-muted-foreground" />
+                </div>
+                <h1 className="text-2xl font-semibold md:text-3xl font-headline">Yah, Lagi Sepi Nih...</h1>
+                <p className="max-w-md text-muted-foreground">
+                    Saat ini belum ada teman ngobrol yang tersedia. Mau coba cari lagi atau jadi yang pertama menunggu?
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <Button size="lg" onClick={handleFindChat} disabled={isSearching} variant="outline">
+                        {isSearching ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Zap className="mr-2 h-5 w-5" />}
+                        Coba Cari Lagi
+                    </Button>
+                    <Button size="lg" onClick={handleCreateAndWait} disabled={isSearching} className="font-bold">
+                        {isSearching ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Wand2 className="mr-2 h-5 w-5" />}
+                        Jadilah yang Pertama & Tunggu
+                    </Button>
+                </div>
+            </main>
+        );
     }
 
     return (
@@ -240,6 +278,7 @@ function ActiveChatScreen({ session, onLeave, isSearching }: { session: ChatSess
                 <p className="max-w-md text-muted-foreground">
                     Sabar ya, sistem lagi nyariin kamu partner diskusi yang paling pas.
                 </p>
+                 <Button variant="destructive" onClick={onLeave} className="mt-4">Batal</Button>
             </div>
         )
     }
