@@ -7,11 +7,13 @@ import { useUser } from "@/firebase";
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Loader2 } from "lucide-react";
-import Profile from "./profile/page";
+import { useTheme } from "@/hooks/use-theme";
+
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { theme, isLoadingTheme } = useTheme();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -19,7 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || !user || isLoadingTheme) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

@@ -251,6 +251,20 @@
         }
       },
       "required": ["senderId", "content", "createdAt"]
+    },
+     "UserPreferences": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserPreferences",
+      "description": "Stores user-specific application preferences.",
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "description": "The name of the user's selected UI theme.",
+          "enum": ["misty-blue", "latte-cream", "sage-garden", "soft-lavender", "arctic-gray", "coral-peach", "midnight-calm", "default-dark"]
+        }
+      },
+      "required": ["theme"]
     }
   },
   "auth": {
@@ -351,6 +365,17 @@
           "params": [
             { "name": "sessionId", "description": "The unique ID of the chat session." },
             { "name": "messageId", "description": "The unique ID of the message." }
+          ]
+        }
+      },
+       {
+        "path": "/preferences/{userId}",
+        "definition": {
+          "entityName": "UserPreferences",
+          "schema": { "$ref": "#/backend/entities/UserPreferences" },
+          "description": "Stores user-specific preferences, such as UI theme. Only the authenticated user can access their own preferences.",
+          "params": [
+            { "name": "userId", "description": "The Firebase Auth UID of the user." }
           ]
         }
       }

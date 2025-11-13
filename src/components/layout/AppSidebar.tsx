@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname } from 'next/navigation';
@@ -19,6 +20,7 @@ import {
   User as UserIcon,
   MessageSquare,
   DollarSign,
+  Palette,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -27,6 +29,7 @@ import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
+import { ThemeSettingsDialog } from './ThemeSettingsDialog';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -34,6 +37,7 @@ export function AppSidebar() {
   const auth = useAuth();
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -163,6 +167,10 @@ export function AppSidebar() {
                         <span>Edit Profil</span>
                     </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsThemeDialogOpen(true)}>
+                    <Palette className="mr-2 h-4 w-4" />
+                    <span>Pengaturan Tema</span>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
@@ -171,6 +179,7 @@ export function AppSidebar() {
             </DropdownMenuContent>
          </DropdownMenu>
       </SidebarFooter>
+      <ThemeSettingsDialog isOpen={isThemeDialogOpen} onOpenChange={setIsThemeDialogOpen} />
     </>
   );
 }

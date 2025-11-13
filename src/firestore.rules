@@ -73,6 +73,14 @@ service cloud.firestore {
       }
     }
 
+    /**
+     * @description Controls access to user preferences.
+     * @path /preferences/{userId}
+     */
+    match /preferences/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
