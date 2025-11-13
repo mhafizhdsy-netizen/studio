@@ -92,7 +92,6 @@ export function ProfileForm() {
   const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [photo, setPhoto] = useState<File | null>(null);
   const [photoURL, setPhotoURL] = useState(user?.photoURL);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -111,22 +110,15 @@ export function ProfileForm() {
   const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setPhoto(file);
+      // Create a temporary URL for immediate preview
       setPhotoURL(URL.createObjectURL(file));
-      setUploadProgress(0); // Reset progress on new file selection
+      // Start the upload immediately
+      handleNonBlockingPhotoUpload(file);
     }
   };
 
-  const getInitials = (name: string) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase();
-
-  async function handleNonBlockingPhotoUpload() {
-    if (!photo || !storage || !user || !auth) return;
+  async function handleNonBlockingPhotoUpload(file: File) {
+    if (!storage || !user || !auth) return;
 
     setUploadProgress(0); // Start progress
 
@@ -134,7 +126,7 @@ export function ProfileForm() {
       const newPhotoURL = await uploadProfileImage(
         storage,
         user.uid,
-        photo,
+        file,
         (progress) => {
           setUploadProgress(progress);
         }
@@ -145,7 +137,10 @@ export function ProfileForm() {
         const userDocRef = doc(firestore, "users", user.uid);
         await setDoc(userDocRef, { photoURL: newPhotoURL }, { merge: true });
       }
-      setPhoto(null); // Clear the file after successful upload
+       toast({
+        title: "Foto Profil Diperbarui",
+        description: "Foto profil Anda telah berhasil diubah.",
+      });
     } catch (uploadError) {
       console.error("Failed to upload photo in background:", uploadError);
       toast({
@@ -154,9 +149,20 @@ export function ProfileForm() {
         variant: "destructive",
       })
     } finally {
-      setUploadProgress(null); // Hide progress bar on completion or error
+      // After upload (success or fail), hide progress bar
+      // A small delay can give user time to see it complete
+      setTimeout(() => setUploadProgress(null), 1500);
     }
   }
+
+
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
 
   async function onSubmit(data: ProfileFormData) {
     if (!user || !auth) return;
@@ -197,16 +203,9 @@ export function ProfileForm() {
       
       toast({
         title: "Profil Berhasil Diperbarui!",
-        description: "Informasi akunmu sudah berhasil disimpan. Foto profil akan diperbarui sesaat lagi jika diubah.",
+        description: "Informasi akunmu sudah berhasil disimpan.",
       });
       
-      // --- Start Non-blocking Operations ---
-      if (photo) {
-        // IMPORTANT: Do NOT await this. Let it run in the background.
-        handleNonBlockingPhotoUpload();
-      }
-      // --- End Non-blocking Operations ---
-
       // Reset form to clear password fields
       form.reset({
         ...data,
@@ -262,7 +261,7 @@ export function ProfileForm() {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadProgress !== null}
                 >
-                  <Camera className="h-4 w-4" />
+                  {uploadProgress !== null ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                 </Button>
                 <Input
                   type="file"
