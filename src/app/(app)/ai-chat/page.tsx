@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useUser } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Loader2, MessageSquareDashed, Bot, Sparkles, Trash2 } from "lucide-react";
 import { AIChatInput } from "@/components/messages/AIChatInput";
@@ -24,26 +23,19 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Timestamp } from "firebase/firestore";
 
-// Helper to convert Firestore Timestamps to plain objects recursively
-const toPlainObject = (obj: any): any => {
-    if (obj === null || obj === undefined) return obj;
-    if (obj.toDate && typeof obj.toDate === 'function') { // Check for Timestamp-like objects
-        return obj.toDate().toISOString();
+// Helper to convert Firestore Timestamps within a calculation object
+const convertCalcTimestamps = (calc: any): any => {
+    if (!calc) return calc;
+    const newCalc = { ...calc };
+    if (newCalc.createdAt && typeof newCalc.createdAt.toDate === 'function') {
+        newCalc.createdAt = newCalc.createdAt.toDate().toISOString();
     }
-    if (Array.isArray(obj)) {
-        return obj.map(item => toPlainObject(item));
+    if (newCalc.updatedAt && typeof newCalc.updatedAt.toDate === 'function') {
+        newCalc.updatedAt = newCalc.updatedAt.toDate().toISOString();
     }
-    if (typeof obj === 'object') {
-        const plainObj: { [key: string]: any } = {};
-        for (const key in obj) {
-            if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                plainObj[key] = toPlainObject(obj[key]);
-            }
-        }
-        return plainObj;
-    }
-    return obj;
+    return newCalc;
 };
+
 
 export default function AIChatPage() {
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
@@ -66,7 +58,7 @@ export default function AIChatPage() {
              userContent.push({
                 data: {
                     type: 'calculation',
-                    ...toPlainObject(calculation),
+                    ...convertCalcTimestamps(calculation),
                 }
             });
         }
@@ -83,18 +75,28 @@ export default function AIChatPage() {
 
         try {
             // Build a clean history for the AI.
-            const historyForAI = newMessages.map(msg => ({
-                role: msg.role,
-                content: msg.content.map(part => {
-                    if(part.data) {
-                        return { data: part.data };
-                    }
-                    if(part.media) {
-                        return { media: part.media };
-                    }
-                    return { text: part.text };
-                })
-            }));
+            // This is the most critical part to fix the recurring error.
+            const historyForAI = newMessages
+                .filter(msg => msg && msg.content && msg.content.length > 0) // Ensure message and content are valid
+                .map(msg => ({
+                    role: msg.role,
+                    content: msg.content.map(part => {
+                        // Securely create parts, ensuring no undefined data
+                        const newPart: any = {};
+                        if (part.text) {
+                            newPart.text = part.text;
+                        }
+                        if (part.media) {
+                            newPart.media = part.media;
+                        }
+                        // For calculations, ensure timestamps are converted.
+                        if (part.data?.type === 'calculation') {
+                            newPart.data = convertCalcTimestamps(part.data);
+                        }
+                        return newPart;
+                    }).filter(Boolean) // Filter out any empty parts that might have been created
+                }));
+
 
              const aiInput: AIChatInputType = {
                 history: historyForAI as any, // Cast to any to match Zod schema on the server
@@ -204,3 +206,5 @@ export default function AIChatPage() {
         </>
     )
 }
+
+    
