@@ -10,6 +10,8 @@ export function ExpenseTracker() {
     const [refreshKey, setRefreshKey] = useState(0);
 
     const handleFormSubmit = () => {
+        // This is no longer strictly necessary if ExpenseList uses useCollection correctly,
+        // but can be kept as a backup for immediate re-renders if needed.
         setRefreshKey(prev => prev + 1);
     }
 
@@ -19,10 +21,9 @@ export function ExpenseTracker() {
             <ExpenseForm onFormSubmit={handleFormSubmit} />
         </div>
         <div className="md:col-span-2">
-            <ExpenseList refreshKey={refreshKey} />
+            {/* The refreshKey prop is removed as useCollection handles real-time updates */}
+            <ExpenseList />
         </div>
     </div>
   );
 }
-
-    

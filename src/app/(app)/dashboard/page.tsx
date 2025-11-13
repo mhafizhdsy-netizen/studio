@@ -44,11 +44,16 @@ export default function DashboardPage() {
 
 function AnalyticsSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Skeleton className="h-28 rounded-lg" />
-      <Skeleton className="h-28 rounded-lg" />
-      <Skeleton className="h-28 rounded-lg" />
-      <Skeleton className="h-28 rounded-lg" />
+    <div className="space-y-4">
+        <div className="flex justify-end">
+            <Skeleton className="h-10 w-64 rounded-lg" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Skeleton className="h-28 rounded-lg" />
+            <Skeleton className="h-28 rounded-lg" />
+            <Skeleton className="h-28 rounded-lg" />
+            <Skeleton className="h-28 rounded-lg" />
+        </div>
     </div>
   )
 }

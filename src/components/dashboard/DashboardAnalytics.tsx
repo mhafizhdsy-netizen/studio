@@ -1,14 +1,15 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from 'firebase/firestore';
-import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks, subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { ArrowUp, ArrowDown, DollarSign, LineChart, Hash, Percent, AlertCircle } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Calculation } from "./CalculationHistory";
 
 interface AnalyticsData {
@@ -19,109 +20,141 @@ interface AnalyticsData {
     estimatedProfit: number;
 }
 
-const calculateStats = (calculations: Calculation[]): AnalyticsData => {
+const calculateStats = (calculations: Calculation[] | null): AnalyticsData => {
     if (!calculations || calculations.length === 0) {
         return { totalProducts: 0, averageMargin: 0, totalRevenue: 0, totalProductionCost: 0, estimatedProfit: 0 };
     }
 
     const totalProducts = calculations.length;
-    const totalMargin = calculations.reduce((sum, calc) => sum + calc.margin, 0);
-    const averageMargin = totalMargin / totalProducts;
-    const totalRevenue = calculations.reduce((sum, calc) => sum + calc.suggestedPrice, 0);
-    const totalProductionCost = calculations.reduce((sum, calc) => sum + calc.totalHPP, 0);
+    const totalMargin = calculations.reduce((sum, calc) => sum + (calc.margin || 0), 0);
+    const averageMargin = totalProducts > 0 ? totalMargin / totalProducts : 0;
+    const totalRevenue = calculations.reduce((sum, calc) => sum + (calc.suggestedPrice || 0), 0);
+    const totalProductionCost = calculations.reduce((sum, calc) => sum + (calc.totalHPP || 0), 0);
     const estimatedProfit = totalRevenue - totalProductionCost;
 
     return { totalProducts, averageMargin, totalRevenue, totalProductionCost, estimatedProfit };
 }
 
+type TimeRange = 'month' | 'week' | 'day';
+
 export function DashboardAnalytics() {
     const { user } = useUser();
     const firestore = useFirestore();
+    const [timeRange, setTimeRange] = useState<TimeRange>('month');
 
-    // Date ranges for current and previous month
-    const { currentMonthRange, prevMonthRange } = useMemo(() => {
+    const { currentRange, previousRange } = useMemo(() => {
         const now = new Date();
-        const currentMonthStart = startOfMonth(now);
-        const currentMonthEnd = endOfMonth(now);
-        const prevMonthStart = startOfMonth(subMonths(now, 1));
-        const prevMonthEnd = endOfMonth(subMonths(now, 1));
-        return {
-            currentMonthRange: { start: currentMonthStart, end: currentMonthEnd },
-            prevMonthRange: { start: prevMonthStart, end: prevMonthEnd }
-        };
-    }, []);
+        switch (timeRange) {
+            case 'day':
+                return {
+                    currentRange: { start: startOfDay(now), end: endOfDay(now) },
+                    previousRange: { start: startOfDay(subDays(now, 1)), end: endOfDay(subDays(now, 1)) }
+                };
+            case 'week':
+                return {
+                    currentRange: { start: startOfWeek(now), end: endOfWeek(now) },
+                    previousRange: { start: startOfWeek(subWeeks(now, 1)), end: endOfWeek(subWeeks(now, 1)) }
+                };
+            case 'month':
+            default:
+                return {
+                    currentRange: { start: startOfMonth(now), end: endOfMonth(now) },
+                    previousRange: { start: startOfMonth(subMonths(now, 1)), end: endOfMonth(subMonths(now, 1)) }
+                };
+        }
+    }, [timeRange]);
 
-    // Query for current month's calculations
-    const currentMonthQuery = useMemoFirebase(() => {
+    const currentQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return query(
             collection(firestore, 'users', user.uid, 'calculations'),
-            where('createdAt', '>=', currentMonthRange.start),
-            where('createdAt', '<=', currentMonthRange.end)
+            where('createdAt', '>=', Timestamp.fromDate(currentRange.start)),
+            where('createdAt', '<=', Timestamp.fromDate(currentRange.end))
         );
-    }, [user, firestore, currentMonthRange]);
+    }, [user, firestore, currentRange]);
 
-    // Query for previous month's calculations
-    const prevMonthQuery = useMemoFirebase(() => {
+    const previousQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return query(
             collection(firestore, 'users', user.uid, 'calculations'),
-            where('createdAt', '>=', prevMonthRange.start),
-            where('createdAt', '<=', prevMonthRange.end)
+            where('createdAt', '>=', Timestamp.fromDate(previousRange.start)),
+            where('createdAt', '<=', Timestamp.fromDate(previousRange.end))
         );
-    }, [user, firestore, prevMonthRange]);
+    }, [user, firestore, previousRange]);
 
-    const { data: currentCalculations, isLoading: isLoadingCurrent } = useCollection<Calculation>(currentMonthQuery);
-    const { data: prevCalculations, isLoading: isLoadingPrev } = useCollection<Calculation>(prevMonthQuery);
+    const { data: currentCalculations, isLoading: isLoadingCurrent } = useCollection<Calculation>(currentQuery);
+    const { data: prevCalculations, isLoading: isLoadingPrev } = useCollection<Calculation>(previousQuery);
 
-    const currentStats = useMemo(() => calculateStats(currentCalculations || []), [currentCalculations]);
-    const prevStats = useMemo(() => calculateStats(prevCalculations || []), [prevCalculations]);
+    const currentStats = useMemo(() => calculateStats(currentCalculations), [currentCalculations]);
+    const prevStats = useMemo(() => calculateStats(prevCalculations), [prevCalculations]);
     
-    if (isLoadingCurrent || isLoadingPrev) {
-        return (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Skeleton className="h-28" />
-                <Skeleton className="h-28" />
-                <Skeleton className="h-28" />
-                <Skeleton className="h-28" />
-            </div>
-        );
-    }
-    
+    const changePeriodText = useMemo(() => {
+        switch (timeRange) {
+            case 'day': return 'dari kemarin';
+            case 'week': return 'dari minggu lalu';
+            case 'month': return 'dari bulan lalu';
+        }
+    }, [timeRange]);
+
+    const isLoading = isLoadingCurrent || isLoadingPrev;
+
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard 
-                title="Estimasi Profit"
-                value={formatCurrency(currentStats.estimatedProfit)}
-                icon={DollarSign}
-                change={currentStats.estimatedProfit - prevStats.estimatedProfit}
-                changeType="value"
-            />
-             <StatCard 
-                title="Total Pendapatan"
-                value={formatCurrency(currentStats.totalRevenue)}
-                icon={LineChart}
-                change={currentStats.totalRevenue - prevStats.totalRevenue}
-                changeType="value"
-            />
-            <StatCard 
-                title="Margin Rata-rata"
-                value={`${currentStats.averageMargin.toFixed(1)}%`}
-                icon={Percent}
-                change={currentStats.averageMargin - prevStats.averageMargin}
-                changeType="percentage"
-            />
-             <StatCard 
-                title="Produk Dihitung"
-                value={currentStats.totalProducts.toString()}
-                icon={Hash}
-                change={currentStats.totalProducts - prevStats.totalProducts}
-                changeType="number"
-            />
+        <div>
+            <div className="flex justify-end mb-4">
+                <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
+                    <TabsList>
+                        <TabsTrigger value="day">Hari Ini</TabsTrigger>
+                        <TabsTrigger value="week">Minggu Ini</TabsTrigger>
+                        <TabsTrigger value="month">Bulan Ini</TabsTrigger>
+                    </TabsList>
+                </Tabs>
+            </div>
+            {isLoading ? (
+                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Skeleton className="h-28" />
+                    <Skeleton className="h-28" />
+                    <Skeleton className="h-28" />
+                    <Skeleton className="h-28" />
+                </div>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <StatCard 
+                        title="Estimasi Profit"
+                        value={formatCurrency(currentStats.estimatedProfit)}
+                        icon={DollarSign}
+                        change={currentStats.estimatedProfit - prevStats.estimatedProfit}
+                        changeType="value"
+                        periodText={changePeriodText}
+                    />
+                    <StatCard 
+                        title="Total Pendapatan"
+                        value={formatCurrency(currentStats.totalRevenue)}
+                        icon={LineChart}
+                        change={currentStats.totalRevenue - prevStats.totalRevenue}
+                        changeType="value"
+                        periodText={changePeriodText}
+                    />
+                    <StatCard 
+                        title="Margin Rata-rata"
+                        value={`${currentStats.averageMargin.toFixed(1)}%`}
+                        icon={Percent}
+                        change={currentStats.averageMargin - prevStats.averageMargin}
+                        changeType="percentage"
+                        periodText={changePeriodText}
+                    />
+                    <StatCard 
+                        title="Produk Dihitung"
+                        value={currentStats.totalProducts.toString()}
+                        icon={Hash}
+                        change={currentStats.totalProducts - prevStats.totalProducts}
+                        changeType="number"
+                        periodText={changePeriodText}
+                    />
+                </div>
+            )}
         </div>
     );
 }
-
 
 interface StatCardProps {
     title: string;
@@ -129,13 +162,16 @@ interface StatCardProps {
     icon: React.ElementType;
     change: number;
     changeType: 'percentage' | 'value' | 'number';
+    periodText: string;
 }
 
-function StatCard({ title, value, icon: Icon, change, changeType }: StatCardProps) {
+function StatCard({ title, value, icon: Icon, change, changeType, periodText }: StatCardProps) {
     const isPositive = change >= 0;
+    const isNeutral = change === 0 || !isFinite(change);
 
     const formatChange = () => {
         const absChange = Math.abs(change);
+        if (!isFinite(absChange)) return 'N/A';
         switch (changeType) {
             case 'value':
                 return formatCurrency(absChange);
@@ -147,11 +183,11 @@ function StatCard({ title, value, icon: Icon, change, changeType }: StatCardProp
     };
     
     const changeText = () => {
-        if (change === 0) {
-            return "Tidak ada perubahan dari bulan lalu";
+        if (isNeutral) {
+            return `Tidak ada data ${periodText}`;
         }
         const formattedChange = formatChange();
-        return `${isPositive ? `+${formattedChange}` : `-${formattedChange}`} dari bulan lalu`;
+        return `${isPositive ? `+${formattedChange}` : `-${formattedChange}`} ${periodText}`;
     };
 
     return (
@@ -163,7 +199,7 @@ function StatCard({ title, value, icon: Icon, change, changeType }: StatCardProp
             <CardContent>
                 <div className="text-2xl font-bold">{value}</div>
                 <div className="text-xs text-muted-foreground flex items-center">
-                    {change !== 0 ? (
+                    {!isNeutral ? (
                         isPositive ? <ArrowUp className="h-4 w-4 text-green-500"/> : <ArrowDown className="h-4 w-4 text-destructive"/>
                     ) : (
                         <AlertCircle className="h-4 w-4" />
@@ -174,4 +210,3 @@ function StatCard({ title, value, icon: Icon, change, changeType }: StatCardProp
         </Card>
     );
 }
-

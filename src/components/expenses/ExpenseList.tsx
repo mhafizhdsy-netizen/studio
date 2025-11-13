@@ -44,16 +44,7 @@ export interface Expense {
     date: Timestamp;
 }
 
-const categoryColors: { [key: string]: string } = {
-    "Sewa Tempat": "bg-blue-500",
-    "Listrik": "bg-yellow-500",
-    "Gaji Karyawan": "bg-green-500",
-    "Biaya Pengemasan": "bg-purple-500",
-    "Pemasaran": "bg-pink-500",
-    "Lainnya": "bg-gray-500",
-};
-
-export function ExpenseList({ refreshKey }: { refreshKey: number }) {
+export function ExpenseList() {
   const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -61,10 +52,11 @@ export function ExpenseList({ refreshKey }: { refreshKey: number }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // The useCollection hook is now real-time, so no refreshKey is needed.
   const expensesQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return query(collection(firestore, 'users', user.uid, 'expenses'), orderBy('date', 'desc'));
-  }, [user, firestore, refreshKey]);
+  }, [user, firestore]);
 
   const { data: expenses, isLoading, error } = useCollection<Expense>(expensesQuery);
 
@@ -162,5 +154,3 @@ export function ExpenseList({ refreshKey }: { refreshKey: number }) {
     </>
   );
 }
-
-    
