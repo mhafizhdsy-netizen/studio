@@ -202,7 +202,8 @@ export function ProfileForm() {
       
       // --- Start Non-blocking Operations ---
       if (photo) {
-        await handleNonBlockingPhotoUpload(); // now we await this, but after the main changes
+        // IMPORTANT: Do NOT await this. Let it run in the background.
+        handleNonBlockingPhotoUpload();
       }
       // --- End Non-blocking Operations ---
 
@@ -366,5 +367,3 @@ export function ProfileForm() {
     </Card>
   );
 }
-
-    
