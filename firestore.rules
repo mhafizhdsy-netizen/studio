@@ -24,7 +24,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if isSignedIn(); // Allow listing users for starting chats
-      allow create: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId) && resource != null;
     }
@@ -68,7 +68,7 @@ service cloud.firestore {
      */
     match /conversations/{convoId} {
         // Allow a user to query for conversations they are a part of.
-        allow list: if isSignedIn() && request.auth.uid in request.query.where.participantIds;
+        allow list: if isSignedIn() && request.auth.uid == request.query.filters.participantIds.value;
         allow get, update: if isParticipant(convoId);
         allow create: if isSignedIn() && request.auth.uid in request.resource.data.participantIds;
 
