@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BarChart, Calculator, Share2, Users } from "lucide-react";
+import { ArrowRight, BarChart, Bot, Calculator, History, Share2 } from "lucide-react";
 import { placeholderImages } from "@/lib/placeholder-images";
 
 const heroImage = placeholderImages.find(p => p.id === "hero");
@@ -70,7 +70,7 @@ export default function LandingPage() {
               Semua yang kamu butuhin buat ngatur harga jual dan maksimalkan cuan.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
             <FeatureCard
               icon={<Calculator className="h-8 w-8 text-primary" />}
               title="Kalkulator HPP Interaktif"
@@ -81,15 +81,20 @@ export default function LandingPage() {
               title="Visualisasi Biaya"
               description="Lihat rincian biaya dalam pie chart yang gampang dimengerti. Jadi tahu mana biaya paling besar."
             />
+             <FeatureCard
+              icon={<Bot className="h-8 w-8 text-primary" />}
+              title="Analisis Profit AI"
+              description="Dapatkan strategi, saran efisiensi, dan benchmark harga pasar dari AI untuk memaksimalkan keuntunganmu."
+            />
             <FeatureCard
-              icon={<Users className="h-8 w-8 text-primary" />}
+              icon={<History className="h-8 w-8 text-primary" />}
               title="Riwayat Tersimpan"
               description="Semua perhitungan HPP-mu aman tersimpan. Bisa kamu lihat, edit, atau hapus kapan aja."
             />
             <FeatureCard
               icon={<Share2 className="h-8 w-8 text-primary" />}
-              title="Bagikan Hasil"
-              description="Bagikan hasil perhitunganmu ke tim atau teman bisnismu. Kolaborasi jadi lebih gampang."
+              title="Bagikan ke Komunitas"
+              description="Bagikan hasil perhitunganmu ke tim atau jadi inspirasi bagi pengusaha lain di komunitas."
             />
           </div>
         </section>
