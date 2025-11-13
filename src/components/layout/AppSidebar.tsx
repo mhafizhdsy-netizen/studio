@@ -19,6 +19,7 @@ import {
   Shield,
   User as UserIcon,
   Bot,
+  MessageSquare,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -92,11 +93,22 @@ export function AppSidebar() {
            <SidebarMenuItem>
             <SidebarMenuButton
               asChild
+              isActive={pathname.startsWith('/ai-chat')}
+            >
+              <Link href="/ai-chat">
+                <Bot />
+                Teman Bisnis AI
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
               isActive={pathname.startsWith('/messages')}
             >
               <Link href="/messages">
-                <Bot />
-                Teman Bisnis AI
+                <MessageSquare />
+                Chat Anonim
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

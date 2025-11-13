@@ -5,11 +5,10 @@ import { useState, useRef, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useUser, useStorage } from "@/firebase";
+import { useUser } from "@/firebase";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Paperclip, Loader2, Calculator } from "lucide-react";
-import { uploadFile } from "@/firebase/storage";
 import { ShareCalculationDialog } from "./ShareCalculationDialog";
 import type { Calculation } from "../dashboard/CalculationHistory";
 
@@ -17,14 +16,12 @@ const formSchema = z.object({
   text: z.string(),
 });
 
-interface ChatInputProps {
+interface AIChatInputProps {
   onSendMessage: (text?: string, imageUrl?: string, calculation?: Calculation) => void;
-  disabled?: boolean;
 }
 
-export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
+export function AIChatInput({ onSendMessage }: AIChatInputProps) {
   const { user } = useUser();
-  const storage = useStorage();
   const [isUploading, setIsUploading] = useState(false);
   const [isShareCalcOpen, setIsShareCalcOpen] = useState(false);
 
@@ -36,24 +33,27 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!values.text || disabled) return;
+    if (!values.text) return;
     onSendMessage(values.text);
     form.reset();
   };
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0 || disabled) return;
-    if (!storage || !user) return;
+    if (!e.target.files || e.target.files.length === 0) return;
+    if (!user) return;
 
     setIsUploading(true);
     const file = e.target.files[0];
-    const filePath = `chat-files/anonymous_chat/${user.uid}/${Date.now()}-${file.name}`;
     
     try {
-        const downloadUrl = await uploadFile(storage, filePath, file, () => {});
-        onSendMessage(undefined, downloadUrl);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const dataUrl = reader.result as string;
+            onSendMessage(undefined, dataUrl);
+        };
     } catch (error) {
-        console.error("File upload failed", error);
+        console.error("File processing failed", error);
     } finally {
         setIsUploading(false);
     }
@@ -67,10 +67,10 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   return (
     <>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-center gap-2">
-        <Button type="button" variant="ghost" size="icon" onClick={() => setIsShareCalcOpen(true)} disabled={disabled}>
+        <Button type="button" variant="ghost" size="icon" onClick={() => setIsShareCalcOpen(true)}>
             <Calculator className="h-5 w-5" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading || disabled}>
+        <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
           {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
         </Button>
         <Input
@@ -82,11 +82,10 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
         />
         <Input
           {...form.register("text")}
-          placeholder={disabled ? "Menunggu teman ngobrol..." : "Ketik pesanmu..."}
+          placeholder="Ketik pesanmu atau unggah file..."
           autoComplete="off"
-          disabled={disabled}
         />
-        <Button type="submit" size="icon" disabled={disabled}>
+        <Button type="submit" size="icon">
           <Send className="h-5 w-5" />
         </Button>
       </form>

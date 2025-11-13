@@ -4,6 +4,7 @@
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for private data (user profiles, calculations, and AI chat history).
  * It allows public read access to shared calculations and community comments.
+ * It manages access to anonymous chat sessions based on participation.
  * Write access is generally restricted to authenticated owners of the data.
  */
 rules_version = '2';
@@ -60,12 +61,36 @@ service cloud.firestore {
       }
     }
     
+    /**
+     * @description Controls access to anonymous chat sessions.
+     * @path /chat_sessions/{sessionId}
+     */
+    match /chat_sessions/{sessionId} {
+      allow list: if isSignedIn();
+      allow get: if isParticipant(sessionId);
+      allow create: if isSignedIn() && request.resource.data.participantIds.hasOnly([request.auth.uid]) && request.resource.data.status == 'pending';
+      allow update: if isParticipant(sessionId);
+
+      /**
+       * @description Controls access to messages within a chat session.
+       * @path /chat_sessions/{sessionId}/messages/{messageId}
+       */
+      match /messages/{messageId} {
+        allow read, list, create: if isParticipant(sessionId);
+        allow update, delete: if false; // Messages are immutable
+      }
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isParticipant(sessionId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_sessions/$(sessionId)).data.participantIds;
     }
   }
 }

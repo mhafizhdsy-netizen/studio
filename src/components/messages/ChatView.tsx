@@ -2,77 +2,61 @@
 "use client";
 
 import { cn, formatCurrency } from "@/lib/utils";
-import { Loader2, Calculator, Info, Bot, User } from "lucide-react";
+import { User, Calculator } from "lucide-react";
 import Image from "next/image";
 import type { Timestamp } from 'firebase/firestore';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
-import Markdown from 'react-markdown';
 
-export interface MessagePart {
-    text?: string;
-    media?: {
-        url: string;
-        contentType?: string;
-    };
-    data?: any;
+export interface MessageContent {
+    text: string | null;
+    imageUrl: string | null;
+    calculation: any | null; // Can be a Calculation object
 }
 
 export interface Message {
     id: string;
-    role: 'user' | 'model';
-    content: MessagePart[];
+    senderId: string;
+    content: MessageContent;
     createdAt: Timestamp;
 }
 
-export function ChatMessage({ message, isUser }: { message: Message, isUser: boolean }) {
-    
-    const renderContent = (part: MessagePart, index: number) => {
-        if (part.text) {
-             return <Markdown key={index} components={{
-                p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2" {...props} />,
-                ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2" {...props} />,
-                li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
-            }}>{part.text}</Markdown>
-        }
-        if (part.media) {
-            return (
-                 <a href={part.media.url} target="_blank" rel="noopener noreferrer" key={index}>
-                    <Image src={part.media.url!} alt={'User upload'} width={256} height={256} className="rounded-lg max-w-xs object-cover mt-2" />
-                </a>
-            )
-        }
-        if (part.data?.type === 'calculation') {
-            return <SharedCalculationCard key={index} calculation={part.data} />;
-        }
-        return null;
-    }
-
-    return (
-        <div className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
-             {!isUser && (
-                <Avatar className="h-9 w-9 self-start">
-                    <AvatarImage src="/logo-ai.png" />
-                    <AvatarFallback><Bot /></AvatarFallback>
-                </Avatar>
-            )}
-            <div className={cn(
-                "p-3 rounded-lg max-w-sm md:max-w-2xl", 
-                isUser ? "bg-primary text-primary-foreground" : "bg-muted"
-            )}>
-                {message.content.map(renderContent)}
-            </div>
-             {isUser && (
-                <Avatar className="h-9 w-9 self-start">
-                     {/* Placeholder for user avatar, you can replace it with actual user data */}
-                    <AvatarFallback><User /></AvatarFallback>
-                </Avatar>
-            )}
-        </div>
-    )
+interface ChatViewProps {
+    messages: Message[];
+    currentUser: User | null;
 }
+
+export function ChatView({ messages, currentUser }: ChatViewProps) {
+    if (messages.length === 0) {
+        return (
+            <div className="text-center text-muted-foreground">
+                <p>Kalian sudah terhubung. Mulai obrolan yuk!</p>
+            </div>
+        );
+    }
+    
+    return (
+        <div className="space-y-4">
+            {messages.map(message => {
+                const isUser = message.senderId === currentUser?.uid;
+                return (
+                    <div key={message.id} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
+                        {!isUser && <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground"><User className="h-5 w-5"/></div>}
+                        <div className={cn(
+                            "p-3 rounded-lg max-w-sm md:max-w-md", 
+                            isUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                        )}>
+                            {message.content.text && <p>{message.content.text}</p>}
+                            {message.content.imageUrl && (
+                                <Image src={message.content.imageUrl} alt={'User upload'} width={200} height={200} className="rounded-lg mt-2"/>
+                            )}
+                            {message.content.calculation && <SharedCalculationCard calculation={message.content.calculation} />}
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
 
 function SharedCalculationCard({ calculation }: { calculation: any }) {
     if (!calculation) {

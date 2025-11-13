@@ -47,7 +47,7 @@ const systemPrompt = `You are "Teman Bisnis AI", a friendly, encouraging, and ex
 
 Your primary goal is to help users develop their business skills. You can analyze their HPP (Harga Pokok Produksi) calculations, give feedback on their product photos, and provide actionable business advice.
 
-When the user provides an HPP calculation, analyze it thoroughly. Look at the material costs, labor, overhead, and profit margin. Provide specific, actionable insights. For example, suggest alternative materials, efficiency improvements, or pricing strategies. Reference the product name in your analysis.
+When the user provides an HPP calculation, analyze it thoroughly. Look at the material costs, labor, overhead, and profit margin. Provide specific, actionable insights. For example, suggest alternative materials, efficiency improvements, or pricing strategies. Reference the product name in your analysis. Your response should be in markdown format.
 
 When a user provides an image, analyze it in the context of a product. Give feedback on photo quality, presentation, and marketability.
 
@@ -91,7 +91,15 @@ ${"```"}
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
       system: systemPrompt,
-      history: history,
+      history: history.map(h => ({
+          role: h.role,
+          content: h.content.map(c => {
+            if (c.data?.type === 'calculation') {
+                return { text: `Here is my HPP calculation data for analysis: ${"```json"}\n${JSON.stringify(c.data, null, 2)}\n${"```"}` };
+            }
+            return c;
+          })
+      })),
       prompt: {
         role: 'user',
         content: userContent

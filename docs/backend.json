@@ -200,6 +200,57 @@
         "createdAt"
       ]
     },
+    "ChatSession": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatSession",
+      "type": "object",
+      "description": "Represents a single anonymous chat session between two users.",
+      "properties": {
+        "participantIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "An array containing the UIDs of the two participants."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "active", "ended"],
+          "description": "The current status of the chat session."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the session was created."
+        }
+      },
+      "required": ["participantIds", "status", "createdAt"]
+    },
+    "ChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Represents a single message within an anonymous chat session.",
+      "properties": {
+        "senderId": {
+          "type": "string",
+          "description": "The UID of the user who sent the message."
+        },
+        "content": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string" },
+            "imageUrl": { "type": "string", "format": "uri" },
+            "calculation": { "type": "object" }
+          },
+          "description": "The multi-format content of the message."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the message was sent."
+        }
+      },
+      "required": ["senderId", "content", "createdAt"]
+    },
     "AiChatMessage": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AiChatMessage",
@@ -322,6 +373,27 @@
         }
       },
       {
+        "path": "/chat_sessions/{sessionId}",
+        "definition": {
+          "entityName": "ChatSession",
+          "schema": { "$ref": "#/backend/entities/ChatSession" },
+          "description": "Stores metadata for an anonymous chat session. Access is restricted to participants.",
+          "params": [{ "name": "sessionId", "description": "The unique ID of the chat session." }]
+        }
+      },
+      {
+        "path": "/chat_sessions/{sessionId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": { "$ref": "#/backend/entities/ChatMessage" },
+          "description": "Stores messages for a specific anonymous chat session.",
+          "params": [
+            { "name": "sessionId", "description": "The unique ID of the chat session." },
+            { "name": "messageId", "description": "The unique ID of the message." }
+          ]
+        }
+      },
+      {
         "path": "/users/{userId}/ai_conversations/{conversationId}/messages/{messageId}",
         "definition": {
           "entityName": "AiChatMessage",
@@ -335,6 +407,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is updated for the AI Business Friend feature. The previous chat_sessions and related collections are removed. A new sub-collection `ai_conversations` is added under each user to store the history of their chats with the AI. This ensures chat history is private to each user and can be retrieved easily. The `AiChatMessage` entity is designed to support multi-modal messages (text, images, structured data)."
+    "reasoning": "The Firestore structure is updated to support both the anonymous chat and the AI Business Friend features. The anonymous chat uses the top-level `chat_sessions` collection. The AI chat history is stored in a private sub-collection `ai_conversations` under each user to ensure privacy."
   }
 }
