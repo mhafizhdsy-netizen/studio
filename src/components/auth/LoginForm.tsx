@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid." }),
-  password: z.string().min(6, { message: "Password minimal 6 karakter." }),
+  password: z.string().min(1, { message: "Password tidak boleh kosong." }),
 });
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -115,17 +115,14 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="text-left">
-        <h1 className="text-3xl font-bold font-headline">Selamat Datang Kembali!</h1>
-        <p className="text-muted-foreground mt-2">
-          Belum punya akun?{" "}
-          <Link href="/signup" className="text-primary hover:underline font-semibold">
-            Daftar di sini
-          </Link>
+      <div className="grid gap-2 text-center">
+        <h1 className="text-2xl font-bold">Masuk</h1>
+        <p className="text-balance text-muted-foreground">
+          Masukkan emailmu untuk masuk ke akun
         </p>
       </div>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <FormField
             control={form.control}
             name="email"
@@ -144,7 +141,15 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <div className="flex items-center">
+                    <FormLabel>Password</FormLabel>
+                    <Link
+                        href="#"
+                        className="ml-auto inline-block text-xs text-primary hover:underline"
+                    >
+                        Lupa password?
+                    </Link>
+                </div>
                 <FormControl>
                   <Input type="password" placeholder="••••••••" {...field} />
                 </FormControl>
@@ -152,26 +157,22 @@ export function LoginForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full font-bold h-11" disabled={isLoadingEmail}>
+          <Button type="submit" className="w-full font-bold" disabled={isLoadingEmail}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Masuk
           </Button>
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingGoogle}>
+                {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
+                Masuk dengan Google
+            </Button>
         </form>
       </Form>
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
-            Atau lanjut dengan
-          </span>
-        </div>
+      <div className="mt-4 text-center text-sm">
+        Belum punya akun?{" "}
+        <Link href="/signup" className="underline text-primary font-semibold">
+          Daftar
+        </Link>
       </div>
-      <Button variant="outline" className="w-full h-11" onClick={handleGoogleSignIn} disabled={isLoadingGoogle}>
-        {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
-        Google
-      </Button>
     </>
   );
 }

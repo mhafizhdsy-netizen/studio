@@ -14,32 +14,27 @@ export default function AuthLayout({
 }) {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-      <div className="relative flex items-center justify-center p-4 sm:p-8 min-h-screen">
-         <div className="absolute top-6 left-6 z-10">
-            <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
-              <Logo />
-              <span className="text-xl font-bold font-headline">
-                HitunginAja
-              </span>
-            </Link>
-          </div>
-        <Card className="mx-auto w-full max-w-md">
-            <CardContent className="p-6 md:p-8 grid gap-6">
+      <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-[350px] gap-6">
+            <div className="grid gap-2 text-center">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                    <Logo />
+                    <h1 className="text-3xl font-bold font-headline">HitunginAja</h1>
+                </div>
                 {children}
-            </CardContent>
-        </Card>
-      </div>
-       <div className="hidden bg-muted lg:flex items-center justify-center relative p-10">
-        {heroImage && (
-            <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl">
-                 <Image
-                    src={heroImage.imageUrl}
-                    alt={heroImage.description}
-                    fill
-                    className="object-cover dark:brightness-[0.4]"
-                    data-ai-hint={heroImage.imageHint}
-                />
             </div>
+        </div>
+      </div>
+       <div className="hidden bg-muted lg:block">
+        {heroImage && (
+            <Image
+                src={heroImage.imageUrl}
+                alt={heroImage.description}
+                width="1920"
+                height="1080"
+                className="h-full w-full object-cover dark:brightness-[0.3]"
+                data-ai-hint={heroImage.imageHint}
+            />
         )}
       </div>
     </div>

@@ -19,10 +19,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera, User } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 
@@ -48,12 +46,8 @@ export function SignupForm() {
   const firestore = useFirestore();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,14 +57,6 @@ export function SignupForm() {
       password: "",
     },
   });
-
-  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
-    }
-  };
 
   const createUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
     if (!firestore) return;
@@ -97,14 +83,10 @@ export function SignupForm() {
         let photoURL = '';
 
         if (photoFile && supabase) {
-            setIsUploading(true);
             const cleanFileName = `${Math.random().toString(36).substring(2)}.${photoFile.name.split('.').pop()}`;
             const filePath = `public/profile-images/${user.uid}/${cleanFileName}`;
             
-            photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath, (progress) => {
-                setUploadProgress(progress);
-            });
-            setIsUploading(false);
+            photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath, () => {});
         }
 
         await updateProfile(user, { displayName: values.name, photoURL: photoURL || undefined });
@@ -121,8 +103,8 @@ export function SignupForm() {
             description: "Email ini mungkin sudah terdaftar. Coba email lain.",
             variant: "destructive",
         });
-        setIsLoadingEmail(false);
-        setIsUploading(false);
+    } finally {
+      setIsLoadingEmail(false);
     }
   }
 
@@ -152,49 +134,19 @@ export function SignupForm() {
     setIsLoadingGoogle(false);
   }
 
-  const isLoading = isLoadingEmail || isLoadingGoogle || isUploading;
+  const isLoading = isLoadingEmail || isLoadingGoogle;
 
   return (
     <>
-      <div className="text-left">
-        <h1 className="text-3xl font-bold font-headline">Buat Akun Gratis</h1>
-        <p className="text-muted-foreground mt-2">
-          Sudah punya akun?{" "}
-          <Link href="/login" className="text-primary hover:underline font-semibold">
-            Masuk di sini
-          </Link>
-        </p>
-      </div>
-
-       <div className="flex flex-col items-center gap-2 pt-4">
-           <div className="relative">
-              <Avatar className="h-24 w-24 cursor-pointer border-2 border-dashed" onClick={() => fileInputRef.current?.click()}>
-                  <AvatarImage src={photoPreview || undefined} alt="Foto Profil"/>
-                  <AvatarFallback className="bg-muted">
-                     <User className="h-10 w-10 text-muted-foreground" />
-                  </AvatarFallback>
-              </Avatar>
-              <div 
-                  className="absolute bottom-1 right-1 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90 transition-colors"
-                  onClick={() => supabase && fileInputRef.current?.click()}
-              >
-                  <Camera className="h-4 w-4" />
-              </div>
-          </div>
-          <p className="text-sm text-muted-foreground">Unggah Foto Profil (Opsional)</p>
-          {uploadProgress !== null && <Progress value={uploadProgress} className="w-full h-1 mt-2" />}
-          <Input
-            type="file"
-            ref={fileInputRef}
-            onChange={handlePhotoChange}
-            className="hidden"
-            accept="image/png, image/jpeg, image/webp"
-            disabled={isLoading || !supabase}
-          />
+      <div className="grid gap-2 text-center">
+            <h1 className="text-2xl font-bold">Buat Akun</h1>
+            <p className="text-balance text-muted-foreground">
+                Masukkan informasimu untuk membuat akun
+            </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <FormField
             control={form.control}
             name="name"
@@ -234,26 +186,22 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full font-bold h-11" disabled={isLoading}>
+          <Button type="submit" className="w-full font-bold" disabled={isLoading}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isUploading ? `Mengunggah (${Math.round(uploadProgress || 0)}%)...` : "Buat Akun"}
+            Buat Akun
           </Button>
+           <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+                {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
+                Daftar dengan Google
+            </Button>
         </form>
       </Form>
-      <div className="relative my-4">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">
-            Atau daftar dengan
-          </span>
-        </div>
+      <div className="mt-4 text-center text-sm">
+        Sudah punya akun?{" "}
+        <Link href="/login" className="underline text-primary font-semibold">
+          Masuk
+        </Link>
       </div>
-      <Button variant="outline" className="w-full h-11" onClick={handleGoogleSignIn} disabled={isLoading}>
-         {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
-        Google
-      </Button>
     </>
   );
 }
