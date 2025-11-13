@@ -13,8 +13,6 @@ import { chatWithBusinessCoach, ChatInput as AIChatInputType } from "@/ai/flows/
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-const CONVERSATION_ID = "main_conversation"; // Using a single conversation per user for now
-
 // Helper to convert Firestore Timestamps to plain objects recursively
 const toPlainObject = (obj: any): any => {
   if (obj === null || obj === undefined) {
@@ -26,7 +24,8 @@ const toPlainObject = (obj: any): any => {
   if (Array.isArray(obj)) {
     return obj.map(toPlainObject);
   }
-  if (typeof obj === 'object') {
+  // Ensure it's a real object before recursing
+  if (typeof obj === 'object' && obj.constructor === Object) {
     const newObj: { [key: string]: any } = {};
     for (const key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -99,7 +98,7 @@ export default function AIChatPage() {
             };
 
              const aiInput: AIChatInputType = {
-                history: [...plainHistory, currentUserMessage] as any,
+                history: [...plainHistory, currentUserMessage],
             };
 
             const aiResponseText = await chatWithBusinessCoach(aiInput);
