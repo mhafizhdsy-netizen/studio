@@ -1,19 +1,19 @@
-
 import type {Config} from 'tailwindcss';
 
-export default {
+const config: Config = {
   darkMode: ['class'],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  prefix: '',
   theme: {
     container: {
       center: true,
-      padding: "2rem",
+      padding: '2rem',
       screens: {
-        "2xl": "1400px",
+        '2xl': '1400px',
       },
     },
     extend: {
@@ -23,55 +23,55 @@ export default {
         code: ['monospace'],
       },
       colors: {
-        background: 'hsl(var(--theme-background))',
-        foreground: 'hsl(var(--theme-foreground))',
-        card: {
-          DEFAULT: 'hsl(var(--theme-card))',
-          foreground: 'hsl(var(--theme-card-foreground))',
-        },
-        popover: {
-          DEFAULT: 'hsl(var(--theme-popover))',
-          foreground: 'hsl(var(--theme-popover-foreground))',
-        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: 'hsl(var(--theme-primary))',
-          foreground: 'hsl(var(--theme-primary-foreground))',
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--theme-secondary))',
-          foreground: 'hsl(var(--theme-secondary-foreground))',
-        },
-        muted: {
-          DEFAULT: 'hsl(var(--theme-muted))',
-          foreground: 'hsl(var(--theme-muted-foreground))',
-        },
-        accent: {
-          DEFAULT: 'hsl(var(--theme-accent))',
-          foreground: 'hsl(var(--theme-accent-foreground))',
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
         },
         destructive: {
-          DEFAULT: 'hsl(var(--theme-destructive))',
-          foreground: 'hsl(var(--theme-destructive-foreground))',
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
         },
-        border: 'hsl(var(--theme-border))',
-        input: 'hsl(var(--theme-input))',
-        ring: 'hsl(var(--theme-ring))',
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
         chart: {
-          '1': 'hsl(var(--theme-chart-1))',
-          '2': 'hsl(var(--theme-chart-2))',
-          '3': 'hsl(var(--theme-chart-3))',
-          '4': 'hsl(var(--theme-chart-4))',
-          '5': 'hsl(var(--theme-chart-5))',
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
         },
         sidebar: {
-          DEFAULT: 'hsl(var(--theme-sidebar-background))',
-          foreground: 'hsl(var(--theme-sidebar-foreground))',
-          primary: 'hsl(var(--theme-sidebar-primary))',
-          'primary-foreground': 'hsl(var(--theme-sidebar-primary-foreground))',
-          accent: 'hsl(var(--theme-sidebar-accent))',
-          'accent-foreground': 'hsl(var(--theme-sidebar-accent-foreground))',
-          border: 'hsl(var(--theme-sidebar-border))',
-          ring: 'hsl(var(--theme-sidebar-ring))',
+          DEFAULT: 'hsl(var(--sidebar-background))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          primary: 'hsl(var(--sidebar-primary))',
+          'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
+          accent: 'hsl(var(--sidebar-accent))',
+          'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
+          border: 'hsl(var(--sidebar-border))',
+          ring: 'hsl(var(--sidebar-ring))',
         },
       },
       borderRadius: {
@@ -104,4 +104,6 @@ export default {
     },
   },
   plugins: [require('tailwindcss-animate')],
-} satisfies Config;
+};
+
+export default config;

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera, Lightbulb, TrendingUp } from "lucide-react";
+import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/utils";
@@ -24,7 +24,6 @@ import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { Progress } from "../ui/progress";
 import { uploadFile } from "@/firebase/storage";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 
 const materialSchema = z.object({
@@ -66,34 +65,6 @@ const motivationalToasts = [
     { title: "Jenius! 🧠", description: "Strategi hargamu udah di level pro! Lanjutkan!" },
 ];
 
-function SmartPricingAssistant({ margin }: { margin: number }) {
-  let suggestion = null;
-
-  if (margin > 0 && margin < 20) {
-    suggestion = (
-      <Alert variant="destructive">
-        <Lightbulb className="h-4 w-4" />
-        <AlertTitle>Saran Harga</AlertTitle>
-        <AlertDescription>
-          Margin profitmu terlihat agak tipis. Coba pertimbangkan untuk menaikkan harga jual sekitar 10-15% agar bisnismu punya ruang napas yang lebih lega.
-        </AlertDescription>
-      </Alert>
-    );
-  } else if (margin > 50) {
-    suggestion = (
-      <Alert>
-        <TrendingUp className="h-4 w-4" />
-        <AlertTitle>Peluang Cuan!</AlertTitle>
-        <AlertDescription>
-          Wow, margin profit-mu tinggi! Ini kesempatan bagus. Kamu bisa coba bikin promo, diskon bundling, atau kasih bonus ke pelanggan setia untuk meningkatkan penjualan.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  return suggestion ? <div className="mt-6">{suggestion}</div> : null;
-}
-
 
 export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const { user } = useUser();
@@ -134,7 +105,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     name: "materials",
   });
 
-  const watchAllFields = form.watch();
   const watchSharePublicly = form.watch("sharePublicly");
 
   useEffect(() => {
@@ -444,7 +414,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               <span className="font-extrabold text-2xl text-primary">{formatCurrency(result.suggestedPrice)}</span>
                           </div>
                       </div>
-                      <SmartPricingAssistant margin={watchAllFields.margin} />
                       <div className="space-y-4 pt-4 hide-on-print">
                           <div className="flex items-center space-x-2">
                               <Controller
