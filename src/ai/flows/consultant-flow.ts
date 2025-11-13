@@ -7,17 +7,14 @@
 
 import { ai } from '@/ai/genkit';
 import {
-  ConsultantInputSchema,
-  ConsultantOutputSchema,
   type ConsultantInput,
   type ConsultantOutput,
 } from './consultant-schemas';
-import { generate } from 'genkit';
 
 export async function consultAI(
   input: ConsultantInput
 ): Promise<ConsultantOutput> {
-  const llmResponse = await generate({
+  const llmResponse = await ai.generate({
     model: 'googleai/gemini-2.5-flash',
     prompt: input.prompt,
     history: input.history,
