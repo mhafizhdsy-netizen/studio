@@ -23,9 +23,9 @@ export function ReportCharts({ calculations, expenses }: ReportChartsProps) {
     const estimatedProfit = totalRevenue - (totalProductionCost + totalOperationalCost);
     
     return [
-      { name: "Pendapatan", value: totalRevenue, fill: "hsl(var(--chart-2))" },
-      { name: "Profit", value: Math.max(0, estimatedProfit), fill: "hsl(var(--chart-1))" },
-      { name: "Biaya", value: totalProductionCost + totalOperationalCost, fill: "hsl(var(--chart-5))" },
+      { name: "Pendapatan", value: totalRevenue, fill: "hsl(142.1 76.2% 36.3%)" }, // Green for Revenue
+      { name: "Profit", value: Math.max(0, estimatedProfit), fill: "hsl(221.2 83.2% 53.3%)" }, // Blue for Profit
+      { name: "Biaya", value: totalProductionCost + totalOperationalCost, fill: "hsl(19.1 91.2% 55.3%)" }, // Orange/Red for Cost
     ];
   }, [calculations, expenses]);
 
