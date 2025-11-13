@@ -37,6 +37,11 @@ const toPlainObject = (obj: any): any => {
   return obj;
 };
 
+// A static ID for the main conversation with the AI.
+// In a more advanced app, this could be dynamic to support multiple conversations.
+const CONVERSATION_ID = "main_conversation";
+
+
 export default function AIChatPage() {
     const { user } = useUser();
     const firestore = useFirestore();
