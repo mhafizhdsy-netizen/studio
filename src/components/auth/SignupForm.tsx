@@ -149,7 +149,7 @@ export function SignupForm() {
   const isLoading = isLoadingEmail || isLoadingGoogle;
 
   return (
-    <div className="w-full">
+    <div className="flex flex-col gap-6">
       <div className="grid gap-2 text-center">
             <h1 className="text-3xl font-bold">Buat Akun Gratis</h1>
             <p className="text-balance text-muted-foreground">
@@ -158,10 +158,10 @@ export function SignupForm() {
       </div>
 
        <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 mt-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <div className="flex flex-col items-center gap-4">
                 <div 
-                    className="relative p-1 rounded-full border-2 border-dashed border-muted-foreground cursor-pointer hover:border-primary transition-colors"
+                    className="relative p-1 rounded-full border-2 border-dashed border-muted-foreground/50 cursor-pointer hover:border-primary transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                 >
                     <Avatar className="h-24 w-24">
@@ -232,7 +232,7 @@ export function SignupForm() {
             </Button>
         </form>
       </Form>
-      <div className="mt-6 text-center text-sm">
+      <div className="text-center text-sm">
         Sudah punya akun?{" "}
         <Link href="/login" className="underline text-primary font-semibold">
           Masuk di sini
@@ -242,3 +242,4 @@ export function SignupForm() {
   );
 }
 
+    
