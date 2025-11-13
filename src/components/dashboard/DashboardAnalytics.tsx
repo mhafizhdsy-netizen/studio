@@ -90,9 +90,9 @@ export function DashboardAnalytics() {
     
     const changePeriodText = useMemo(() => {
         switch (timeRange) {
-            case 'day': return 'dari kemarin';
-            case 'week': return 'dari minggu lalu';
-            case 'month': return 'dari bulan lalu';
+            case 'day': return 'dibanding kemarin';
+            case 'week': return 'dibanding minggu lalu';
+            case 'month': return 'dibanding bulan lalu';
         }
     }, [timeRange]);
 
