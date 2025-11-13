@@ -21,17 +21,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Timestamp } from "firebase/firestore";
 
 // Helper to convert Firestore Timestamps within a calculation object
 const convertCalcTimestamps = (calc: any): any => {
-    if (!calc) return calc;
+    if (!calc) return null;
     const newCalc = { ...calc };
     if (newCalc.createdAt && typeof newCalc.createdAt.toDate === 'function') {
         newCalc.createdAt = newCalc.createdAt.toDate().toISOString();
     }
     if (newCalc.updatedAt && typeof newCalc.updatedAt.toDate === 'function') {
         newCalc.updatedAt = newCalc.updatedAt.toDate().toISOString();
+    }
+    // Also handle materials if they exist
+    if (Array.isArray(newCalc.materials)) {
+        newCalc.materials = newCalc.materials.map((mat: any) => ({ ...mat }));
     }
     return newCalc;
 };
@@ -58,7 +61,7 @@ export default function AIChatPage() {
              userContent.push({
                 data: {
                     type: 'calculation',
-                    ...convertCalcTimestamps(calculation),
+                    ...calculation, // Pass the raw calculation object
                 }
             });
         }
@@ -92,9 +95,11 @@ export default function AIChatPage() {
                         // For calculations, ensure timestamps are converted.
                         if (part.data?.type === 'calculation') {
                             newPart.data = convertCalcTimestamps(part.data);
+                        } else if (part.data) {
+                            newPart.data = part.data; // Keep other data as is
                         }
                         return newPart;
-                    }).filter(Boolean) // Filter out any empty parts that might have been created
+                    }).filter(p => Object.keys(p).length > 0) // Filter out any empty parts that might have been created
                 }));
 
 
@@ -206,5 +211,3 @@ export default function AIChatPage() {
         </>
     )
 }
-
-    
