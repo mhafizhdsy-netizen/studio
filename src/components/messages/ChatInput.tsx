@@ -5,11 +5,11 @@ import { useState, useRef, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useUser, useStorage } from "@/firebase";
+import { useUser } from "@/firebase";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Paperclip, Loader2, Calculator } from "lucide-react";
-import { uploadFile } from "@/firebase/storage";
+import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { ShareCalculationDialog } from "./ShareCalculationDialog";
 import type { Calculation } from "../dashboard/CalculationHistory";
 
@@ -24,7 +24,6 @@ interface ChatInputProps {
 
 export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   const { user } = useUser();
-  const storage = useStorage();
   const [isUploading, setIsUploading] = useState(false);
   const [isShareCalcOpen, setIsShareCalcOpen] = useState(false);
 
@@ -43,14 +42,14 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || disabled) return;
-    if (!storage || !user) return;
+    if (!supabase || !user) return;
 
     setIsUploading(true);
     const file = e.target.files[0];
-    const filePath = `chat-files/anonymous_chat/${user.uid}/${Date.now()}-${file.name}`;
+    const filePath = `public/chat-files/anonymous_chat/${user.uid}/${Date.now()}-${file.name}`;
     
     try {
-        const downloadUrl = await uploadFile(storage, filePath, file, () => {});
+        const downloadUrl = await uploadFileToSupabase(file, 'user-assets', filePath);
         onSendMessage(undefined, downloadUrl);
     } catch (error) {
         console.error("File upload failed", error);
@@ -70,7 +69,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
         <Button type="button" variant="ghost" size="icon" onClick={() => setIsShareCalcOpen(true)} disabled={disabled}>
             <Calculator className="h-5 w-5" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading || disabled}>
+        <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading || disabled || !supabase}>
           {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
         </Button>
         <Input

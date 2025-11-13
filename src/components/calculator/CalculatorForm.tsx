@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useFirestore, useStorage, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, serverTimestamp, collection } from 'firebase/firestore';
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import { ExportDialog } from "./ExportDialog";
 import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { Progress } from "../ui/progress";
-import { uploadFile } from "@/firebase/storage";
+import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 
 
 const materialSchema = z.object({
@@ -69,7 +69,6 @@ const motivationalToasts = [
 export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -134,7 +133,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
     const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    if (!storage || !user) {
+    if (!supabase || !user) {
       toast({ title: "Error", description: "Layanan penyimpanan tidak tersedia.", variant: "destructive" });
       return;
     }
@@ -145,10 +144,10 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     setIsUploading(true);
     setUploadProgress(0);
 
-    const filePath = `product-images/${user.uid}/${calcIdRef.current}/${file.name}`;
+    const filePath = `public/product-images/${user.uid}/${calcIdRef.current}/${file.name}`;
 
     try {
-      const newPhotoURL = await uploadFile(storage, filePath, file, (progress) => {
+      const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (progress) => {
         setUploadProgress(progress);
       });
       setImageUrl(newPhotoURL);
@@ -260,7 +259,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
             <CardContent className="space-y-4">
                <div
                 className="relative aspect-video w-full bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-border cursor-pointer hover:border-primary transition-colors"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => supabase && fileInputRef.current?.click()}
               >
                 {imageUrl ? (
                   <Image src={imageUrl} alt="Pratinjau Produk" layout="fill" className="object-cover rounded-lg" />
@@ -285,7 +284,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                   onChange={handlePhotoChange}
                   className="hidden"
                   accept="image/png, image/jpeg, image/webp"
-                  disabled={isUploading}
+                  disabled={isUploading || !supabase}
                 />
               </div>
               <div>

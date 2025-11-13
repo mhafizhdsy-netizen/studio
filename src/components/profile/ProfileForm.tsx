@@ -5,7 +5,7 @@ import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useAuth, useFirestore, useStorage } from "@/firebase";
+import { useUser, useAuth, useFirestore } from "@/firebase";
 import {
   updateProfile,
   updateEmail,
@@ -13,7 +13,7 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
 } from "firebase/auth";
-import { uploadFile } from "@/firebase/storage";
+import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { doc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,7 +88,6 @@ export function ProfileForm() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const firestore = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -120,7 +119,7 @@ export function ProfileForm() {
 
   const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    if (!storage || !user || !auth.currentUser) {
+    if (!supabase || !user || !auth.currentUser) {
       toast({
         title: "Gagal",
         description: "Layanan pengguna tidak tersedia.",
@@ -136,13 +135,13 @@ export function ProfileForm() {
     setIsUploading(true);
     setUploadProgress(0);
 
-    const filePath = `profile-images/${user.uid}/${file.name}`;
+    const filePath = `public/profile-images/${user.uid}/${file.name}`;
 
     try {
-      const newPhotoURL = await uploadFile(
-        storage,
-        filePath,
+      const newPhotoURL = await uploadFileToSupabase(
         file,
+        'user-assets',
+        filePath,
         (progress) => {
           setUploadProgress(progress);
         }
@@ -184,7 +183,7 @@ export function ProfileForm() {
       : "?";
 
   async function onSubmit(data: ProfileFormData) {
-    if (!user || !auth) return;
+    if (!user || !auth || !firestore) return;
     setIsSubmitting(true);
 
     try {
@@ -278,8 +277,8 @@ export function ProfileForm() {
                   size="icon"
                   variant="secondary"
                   className="absolute bottom-0 right-0 rounded-full h-7 w-7"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
+                  onClick={() => supabase && fileInputRef.current?.click()}
+                  disabled={isUploading || !supabase}
                 >
                   {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                 </Button>
@@ -289,7 +288,7 @@ export function ProfileForm() {
                   onChange={handlePhotoChange}
                   className="hidden"
                   accept="image/png, image/jpeg, image/webp"
-                  disabled={isUploading}
+                  disabled={isUploading || !supabase}
                 />
               </div>
               <div className="flex-grow space-y-2">
@@ -386,5 +385,4 @@ export function ProfileForm() {
     </Card>
   );
 }
-
     

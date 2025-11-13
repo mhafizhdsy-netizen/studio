@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, useFirestore, useStorage } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera, User } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { uploadFile } from "@/firebase/storage";
+import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nama minimal 2 karakter." }),
@@ -47,7 +47,6 @@ export function SignupForm() {
   const router = useRouter();
   const auth = useAuth();
   const firestore = useFirestore();
-  const storage = useStorage();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -82,12 +81,13 @@ export function SignupForm() {
     // Only create the document if it doesn't exist to avoid overwriting existing user data on re-login
     if (!userDoc.exists()) {
         await setDoc(userDocRef, {
+            id: uid,
             name,
             email,
             photoURL: photoURL || '',
             createdAt: serverTimestamp(),
             onboardingCompleted: false, // Set onboarding as not completed for new users
-        });
+        }, { merge: true });
     }
   }
 
@@ -99,10 +99,10 @@ export function SignupForm() {
         const user = userCredential.user;
         let photoURL = '';
 
-        if (photoFile && storage) {
+        if (photoFile && supabase) {
             setIsUploading(true);
-            const filePath = `profile-images/${user.uid}/${photoFile.name}`;
-            photoURL = await uploadFile(storage, filePath, photoFile, (progress) => {
+            const filePath = `public/profile-images/${user.uid}/${photoFile.name}`;
+            photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath, (progress) => {
                 setUploadProgress(progress);
             });
             setIsUploading(false);
@@ -179,7 +179,7 @@ export function SignupForm() {
                     </Avatar>
                     <div 
                         className="absolute bottom-1 right-1 bg-primary text-primary-foreground rounded-full p-1.5 cursor-pointer hover:bg-primary/90 transition-colors"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => supabase && fileInputRef.current?.click()}
                     >
                         <Camera className="h-4 w-4" />
                     </div>
@@ -191,7 +191,7 @@ export function SignupForm() {
                   onChange={handlePhotoChange}
                   className="hidden"
                   accept="image/png, image/jpeg, image/webp"
-                  disabled={isLoading}
+                  disabled={isLoading || !supabase}
                 />
             </div>
             <FormField

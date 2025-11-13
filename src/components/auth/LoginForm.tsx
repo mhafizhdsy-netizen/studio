@@ -77,14 +77,16 @@ export function LoginForm() {
     if (!firestore) return;
     const userDocRef = doc(firestore, 'users', uid);
     const userDoc = await getDoc(userDocRef);
+    // Hanya buat dokumen jika belum ada
     if (!userDoc.exists()) {
         await setDoc(userDocRef, {
+            id: uid,
             name,
             email,
             photoURL: photoURL || '',
             createdAt: serverTimestamp(),
-            onboardingCompleted: false, // Set onboarding as not completed for new users
-        });
+            onboardingCompleted: false,
+        }, { merge: true });
     }
   }
 
