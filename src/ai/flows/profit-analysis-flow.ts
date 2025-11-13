@@ -38,6 +38,7 @@ Your task is to provide actionable advice. The goal is to bridge the gap between
 
 Generate a JSON object with the following structure:
 - "insights.summary": Berikan ringkasan singkat dan memotivasi.
+- "insights.marketPriceBenchmark": Based on the product name and materials, provide a realistic market price benchmark range for a similar product in Indonesian Rupiah (e.g., "Rp 95.000 - Rp 120.000").
 - "insights.materialSuggestions": Berikan 2-3 saran konkret untuk mengurangi biaya bahan baku. Jadilah spesifik.
 - "insights.efficiencySuggestions": Berikan 1-2 saran untuk efisiensi produksi (tenaga kerja, overhead).
 - "insights.pricingStrategy": Berikan saran tentang penyesuaian harga jual, dengan mempertimbangkan saran-saran lainnya.

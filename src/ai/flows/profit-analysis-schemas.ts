@@ -36,6 +36,11 @@ export const ProfitAnalysisOutputSchema = z.object({
       .describe(
         'A brief, encouraging summary of the feasibility of reaching the target margin and the overall strategy.'
       ),
+    marketPriceBenchmark: z
+      .string()
+      .describe(
+        'The estimated market price range for a similar product, in Indonesian Rupiah (e.g., "Rp 95.000 - Rp 120.000").'
+      ),
     materialSuggestions: z
       .array(z.string())
       .describe(

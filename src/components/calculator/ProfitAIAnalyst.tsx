@@ -29,6 +29,7 @@ import {
   Settings,
   DollarSign,
   Info,
+  BadgePercent,
 } from 'lucide-react';
 import { analyzeProfitMargin } from '@/ai/flows/profit-analysis-flow';
 import type {
@@ -150,8 +151,19 @@ export function ProfitAIAnalyst({
                 {analysisResult.insights.summary}
               </AlertDescription>
             </Alert>
-            <Accordion type="single" collapsible defaultValue="item-1">
+            <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
               <AccordionItem value="item-1">
+                <AccordionTrigger>
+                  <div className="flex items-center gap-2">
+                    <BadgePercent className="h-4 w-4" />
+                    Benchmark Harga Pasar
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <p className="text-muted-foreground">{analysisResult.insights.marketPriceBenchmark}</p>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-2">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4" />
@@ -168,7 +180,7 @@ export function ProfitAIAnalyst({
                   </ul>
                 </AccordionContent>
               </AccordionItem>
-              <AccordionItem value="item-2">
+              <AccordionItem value="item-3">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2">
                     <Settings className="h-4 w-4" />
@@ -185,7 +197,7 @@ export function ProfitAIAnalyst({
                   </ul>
                 </AccordionContent>
               </AccordionItem>
-               <AccordionItem value="item-3">
+               <AccordionItem value="item-4">
                 <AccordionTrigger>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
