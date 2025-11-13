@@ -172,12 +172,6 @@ export function ProfileForm() {
          throw new Error("Password saat ini dibutuhkan untuk mengubah email atau password.");
       }
 
-      // --- Start Non-blocking Operations ---
-      if (photo) {
-        handleNonBlockingPhotoUpload(); // Don't await this
-      }
-      // --- End Non-blocking Operations ---
-
       // Update Profile Name (this is fast)
       if (data.name !== user.displayName) {
         await updateProfile(user, { displayName: data.name });
@@ -192,7 +186,7 @@ export function ProfileForm() {
       if (data.newPassword) {
         await updatePassword(user, data.newPassword);
       }
-
+      
       // Update Firestore user document (without photoURL initially)
       const userDocRef = doc(firestore, "users", user.uid);
       await setDoc(
@@ -200,11 +194,17 @@ export function ProfileForm() {
         { name: data.name, email: data.email },
         { merge: true }
       );
-
+      
       toast({
         title: "Profil Berhasil Diperbarui!",
         description: "Informasi akunmu sudah berhasil disimpan. Foto profil akan diperbarui sesaat lagi jika diubah.",
       });
+      
+      // --- Start Non-blocking Operations ---
+      if (photo) {
+        await handleNonBlockingPhotoUpload(); // now we await this, but after the main changes
+      }
+      // --- End Non-blocking Operations ---
 
       // Reset form to clear password fields
       form.reset({
@@ -286,7 +286,7 @@ export function ProfileForm() {
                     </FormItem>
                   )}
                 />
-                {uploadProgress !== null && <Progress value={uploadProgress} className="w-full" />}
+                {uploadProgress !== null && <Progress value={uploadProgress} className="w-full h-2" />}
               </div>
             </div>
 
