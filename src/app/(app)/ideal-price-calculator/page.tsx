@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -26,7 +27,7 @@ const idealPriceSchema = z.object({
     .min(0, "Margin harus positif")
     .max(1000, "Margin terlalu besar"),
 });
-type IdealPriceFormData = z.infer<typeof typeof idealPriceSchema>;
+type IdealPriceFormData = z.infer<typeof idealPriceSchema>;
 
 // Schema for Pre-VAT Price Calculator
 const preVatPriceSchema = z.object({
@@ -36,7 +37,7 @@ const preVatPriceSchema = z.object({
     .min(0, "Tarif PPN harus positif")
     .max(100, "Tarif PPN tidak boleh > 100%"),
 });
-type PreVatPriceFormData = z.infer<typeof typeof preVatPriceSchema>;
+type PreVatPriceFormData = z.infer<typeof preVatPriceSchema>;
 
 // Ideal Price Calculator Component
 function IdealPriceCalculator() {
