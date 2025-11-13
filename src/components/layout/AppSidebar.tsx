@@ -24,6 +24,7 @@ import {
   Megaphone,
   Calculator,
   Bot,
+  Landmark,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -95,7 +96,8 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
+          <SidebarSeparator className="my-1"/>
+           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
               isActive={pathname.startsWith('/calculator')}
@@ -128,6 +130,18 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/loan-calculator')}
+            >
+              <Link href="/loan-calculator">
+                <Landmark />
+                Kalkulator Pinjaman
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarSeparator className="my-1"/>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
@@ -150,6 +164,7 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarSeparator className="my-1"/>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
