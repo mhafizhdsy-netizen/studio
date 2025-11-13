@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { AlertCircle, ArrowDown, ArrowUp, CheckCircle, TrendingUp } from 'lucide-react';
 
@@ -73,6 +73,8 @@ export function AdsAnalysisResult({ results }: AdsAnalysisResultProps) {
     ROAS: r.roas,
   })).sort((a,b) => b.ROAS - a.ROAS);
 
+  const chartHeight = useMemo(() => Math.max(250, results.length * 60), [results.length]);
+
   return (
     <div className="sticky top-6 space-y-6">
         <SimpleAIInsight results={results}/>
@@ -81,15 +83,15 @@ export function AdsAnalysisResult({ results }: AdsAnalysisResultProps) {
           <CardTitle>Perbandingan Biaya & Pendapatan</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={{}} className="min-h-[200px] w-full">
-            <ResponsiveContainer width="100%" height={Math.max(200, results.length * 40)}>
-              <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
-                <XAxis type="number" tickFormatter={(value) => formatCurrency(value as number)} />
-                <YAxis dataKey="name" type="category" hide/>
-                <ChartTooltip
+          <ChartContainer config={{}} className="min-h-[250px] w-full">
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} />
+                <YAxis tickFormatter={(value) => formatCurrency(value as number, true)} />
+                <Tooltip
                   cursor={{ fill: 'hsl(var(--muted))' }}
-                  content={<ChartTooltipContent formatter={(value, name) => `${formatCurrency(value as number)}`} />}
+                  content={<ChartTooltipContent formatter={(value) => formatCurrency(value as number)} />}
                 />
                 <Bar dataKey="Biaya" fill="hsl(var(--chart-4))" radius={4} />
                 <Bar dataKey="Pendapatan" fill="hsl(var(--chart-1))" radius={4} />
@@ -103,13 +105,13 @@ export function AdsAnalysisResult({ results }: AdsAnalysisResultProps) {
           <CardTitle>Peringkat ROAS Kampanye</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={{}} className="min-h-[200px] w-full">
-            <ResponsiveContainer width="100%" height={Math.max(200, results.length * 40)}>
-              <BarChart data={roasChartData} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false}/>
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 12 }} />
-                <ChartTooltip
+          <ChartContainer config={{}} className="min-h-[250px] w-full">
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <BarChart data={roasChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} interval={0} />
+                <YAxis />
+                <Tooltip
                   cursor={{ fill: 'hsl(var(--muted))' }}
                   content={<ChartTooltipContent formatter={(value) => `${(value as number).toFixed(2)}x`} />}
                 />
