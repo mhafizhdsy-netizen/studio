@@ -3,26 +3,31 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BarChart, Bot, Calculator, History, Share2, DollarSign, Megaphone } from "lucide-react";
+import { ArrowRight, BarChart, Bot, Calculator, History, Share2, DollarSign, Megaphone, CheckCircle } from "lucide-react";
 import { placeholderImages } from "@/lib/placeholder-images";
 
 const heroImage = placeholderImages.find(p => p.id === "hero");
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <div className="flex flex-col min-h-[100dvh] bg-background">
+      <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2">
           <Calculator className="h-8 w-8 text-primary" />
           <span className="text-2xl font-bold font-headline text-foreground">
             HitunginAja
           </span>
         </Link>
-        <div className="flex items-center gap-4">
+        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+            <Link href="#fitur" className="text-muted-foreground hover:text-foreground transition-colors">Fitur</Link>
+            <Link href="#harga" className="text-muted-foreground hover:text-foreground transition-colors">Harga</Link>
+            <Link href="#faq" className="text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
+        </nav>
+        <div className="flex items-center gap-2">
           <Button variant="ghost" asChild>
             <Link href="/login">Masuk</Link>
           </Button>
-          <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
+          <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20">
             <Link href="/signup">Mulai Gratis</Link>
           </Button>
         </div>
@@ -30,17 +35,20 @@ export default function LandingPage() {
 
       <main className="flex-grow">
         <section className="container mx-auto px-4 sm:px-6 lg:px-8 text-center py-20 md:py-32">
+          <div className="bg-primary/10 text-primary font-semibold py-1 px-3 rounded-full inline-block mb-4 border border-primary/20">
+            Kalkulator HPP Paling Cuan untuk UMKM
+          </div>
           <h1 className="text-4xl md:text-6xl font-extrabold font-headline text-foreground tracking-tight">
-            Hitung HPP Bisnismu, <br />
-            <span className="text-primary">Bukan Pusingnya.</span>
+            Stop Pusing Mikirin HPP. <br className="hidden md:block"/>
+            <span className="text-primary">Fokus Bikin Profit.</span>
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
-            HitunginAja adalah cara modern buat pengusaha muda Indonesia menghitung Harga Pokok Produksi (HPP) dengan cepat, akurat, dan asik.banyak tools yang bakal bikin perkembangan bisnismu.
+            HitunginAja membantu ribuan pengusaha muda seperti kamu menentukan harga jual yang tepat, menganalisis profit, dan mengembangkan bisnis dengan lebih percaya diri.
           </p>
           <div className="mt-8 flex justify-center gap-4">
-            <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg">
+            <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/30 transition-transform hover:scale-105">
               <Link href="/signup">
-                Coba Sekarang, Gratis! <ArrowRight className="ml-2 h-5 w-5" />
+                Coba Sekarang, 100% Gratis! <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
           </div>
@@ -48,71 +56,104 @@ export default function LandingPage() {
 
         {heroImage && (
           <section className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="relative aspect-[16/9] w-full max-w-5xl mx-auto rounded-xl shadow-2xl overflow-hidden border">
-              <Image
-                src={heroImage.imageUrl}
-                alt={heroImage.description}
-                fill
-                className="object-cover"
-                data-ai-hint={heroImage.imageHint}
-                priority
-              />
-               <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
+            <div className="relative w-full max-w-6xl mx-auto rounded-2xl shadow-2xl shadow-primary/10 overflow-hidden border-4 border-primary/20 bg-muted p-2">
+                 <div className="relative aspect-[16/9] rounded-lg overflow-hidden">
+                    <Image
+                        src={heroImage.imageUrl}
+                        alt={heroImage.description}
+                        fill
+                        className="object-cover"
+                        data-ai-hint={heroImage.imageHint}
+                        priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
+                 </div>
             </div>
           </section>
         )}
 
-        <section className="container mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <section id="fitur" className="container mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold font-headline text-foreground">
-              Fitur Canggih untuk Bisnis Kekinian
+              Bukan Sekedar Kalkulator Biasa
             </h2>
-            <p className="mt-4 max-w-xl mx-auto text-muted-foreground">
-              Semua yang kamu butuhin buat ngatur harga jual dan maksimalkan cuan.
+            <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
+              Semua yang kamu butuhkan untuk mengelola harga, memaksimalkan profit, dan membuat keputusan bisnis yang lebih cerdas.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard
               icon={<Calculator className="h-8 w-8 text-primary" />}
-              title="Kalkulator HPP Interaktif"
-              description="Masukkan semua biaya produksi, dari bahan baku sampai overhead. Biar HitunginAja yang hitung totalnya."
+              title="Kalkulator HPP Rinci & Cepat"
+              description="Hitung biaya produksi dengan mode rinci atau dapatkan estimasi cepat. Fleksibel sesuai kebutuhanmu."
             />
             <FeatureCard
               icon={<DollarSign className="h-8 w-8 text-primary" />}
-              title="Kalkulator Harga Jual"
-              description="Tentukan harga jual ideal berdasarkan target profit dan hitung harga dasar sebelum PPN dengan mudah."
+              title="Saran Harga Jual Ideal"
+              description="Tentukan harga jual yang pas berdasarkan target profit margin dan hitung harga dasar sebelum PPN dengan mudah."
             />
             <FeatureCard
               icon={<Megaphone className="h-8 w-8 text-primary" />}
               title="Analisis Iklan (ROAS & ROI)"
-              description="Ukur efektivitas kampanye iklanmu dengan menghitung Return on Ad Spend (ROAS) dan ROI untuk setiap iklan."
+              description="Ukur efektivitas setiap kampanye iklanmu untuk memastikan budget marketingmu tidak sia-sia."
             />
              <FeatureCard
               icon={<Bot className="h-8 w-8 text-primary" />}
               title="Analisis Profit AI"
-              description="Dapatkan strategi, saran efisiensi, dan benchmark harga pasar dari AI untuk memaksimalkan keuntunganmu."
+              description="Dapatkan strategi efisiensi, benchmark harga pasar, dan saran praktis dari AI untuk meningkatkan keuntungan."
             />
              <FeatureCard
               icon={<BarChart className="h-8 w-8 text-primary" />}
-              title="Visualisasi Biaya"
-              description="Lihat rincian biaya dalam pie chart yang gampang dimengerti. Jadi tahu mana biaya paling besar."
-            />
-            <FeatureCard
-              icon={<History className="h-8 w-8 text-primary" />}
-              title="Riwayat Tersimpan"
-              description="Semua perhitungan HPP-mu aman tersimpan. Bisa kamu lihat, edit, atau hapus kapan aja."
+              title="Laporan Keuangan Visual"
+              description="Lihat rincian biaya dan alokasi profit dalam chart yang interaktif dan mudah dimengerti."
             />
             <FeatureCard
               icon={<Share2 className="h-8 w-8 text-primary" />}
-              title="Bagikan ke Komunitas"
-              description="Bagikan hasil perhitunganmu ke tim atau jadi inspirasi bagi pengusaha lain di komunitas."
+              title="Inspirasi dari Komunitas"
+              description="Bagikan hasil perhitunganmu secara anonim dan dapatkan inspirasi dari sesama pengusaha di komunitas."
             />
           </div>
         </section>
+        
+        <section id="harga" className="bg-muted py-24 md:py-32">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="text-center mb-16">
+                    <h2 className="text-3xl md:text-4xl font-bold font-headline text-foreground">
+                      Harga yang Gak Bikin Pusing
+                    </h2>
+                    <p className="mt-4 max-w-2xl mx-auto text-muted-foreground">
+                      Fokus kami adalah membantu bisnismu tumbuh. Mulai dengan paket gratis kami, selamanya.
+                    </p>
+                </div>
+                <div className="flex justify-center">
+                    <Card className="w-full max-w-md bg-background shadow-2xl shadow-primary/10 border-primary/30">
+                        <CardHeader className="text-center pb-8">
+                            <CardTitle className="text-4xl font-extrabold font-headline">Gratis</CardTitle>
+                            <p className="text-muted-foreground">Untuk Pengusaha & UMKM</p>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <ul className="space-y-3">
+                                <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary"/> Kalkulator HPP Tanpa Batas</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary"/> Analisis Profit dengan AI</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary"/> Laporan Keuangan Bulanan</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary"/> Kalkulator Iklan & Harga Jual</li>
+                                <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary"/> Akses Komunitas</li>
+                            </ul>
+                             <Button size="lg" asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/30 transition-transform hover:scale-105 mt-6">
+                                <Link href="/signup">
+                                    Daftar Sekarang, Gratis Selamanya
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </section>
+
       </main>
 
-      <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} HitunginAja. Dibuat dengan 🔥 untuk pengusaha muda Indonesia.</p>
+      <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-muted-foreground">
+        <p>&copy; {new Date().getFullYear()} HitunginAja. Dibuat dengan 🔥 untuk memajukan UMKM Indonesia.</p>
       </footer>
     </div>
   );
@@ -120,15 +161,15 @@ export default function LandingPage() {
 
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <Card className="bg-card/50 dark:bg-card/20 border-border/50 transform transition-transform duration-300 hover:scale-105 hover:shadow-primary/20 hover:shadow-lg">
-      <CardHeader className="items-center">
-        <div className="bg-primary/10 p-3 rounded-full">
+    <Card className="bg-card/50 dark:bg-card/20 border-border/50 transform transition-all duration-300 hover:scale-105 hover:shadow-primary/10 hover:shadow-lg hover:border-primary/30">
+      <CardHeader>
+        <div className="bg-primary/10 p-3 rounded-lg inline-block">
           {icon}
         </div>
       </CardHeader>
-      <CardContent className="text-center">
-        <CardTitle className="font-headline text-lg mb-2">{title}</CardTitle>
-        <p className="text-muted-foreground text-sm">{description}</p>
+      <CardContent>
+        <CardTitle className="font-headline text-xl mb-2">{title}</CardTitle>
+        <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
       </CardContent>
     </Card>
   );
