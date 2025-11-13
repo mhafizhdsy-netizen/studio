@@ -90,7 +90,7 @@ export function OnboardingGuide() {
     {
       icon: <Wand2 className="h-12 w-12 text-accent" />,
       title: "Hitung HPP & Margin",
-      description: "Tentukan target profit margin kamu, lalu klik 'Hitung HPP'. GenHPP akan secara otomatis menghitung semuanya untukmu.",
+      description: "Tentukan target profit margin kamu, lalu klik 'Hitung HPP'. HitunginAja akan secara otomatis menghitung semuanya untukmu.",
     },
     {
       icon: <Lightbulb className="h-12 w-12 text-yellow-400" />,
@@ -103,7 +103,7 @@ export function OnboardingGuide() {
     <Dialog open={showOnboarding}>
       <DialogContent className="max-w-md" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="font-headline text-2xl text-center">Selamat Datang di GenHPP!</DialogTitle>
+          <DialogTitle className="font-headline text-2xl text-center">Selamat Datang di HitunginAja!</DialogTitle>
           <DialogDescription className="text-center">
             Yuk, ikuti 3 langkah mudah untuk memulai.
           </DialogDescription>

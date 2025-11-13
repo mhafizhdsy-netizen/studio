@@ -1,10 +1,11 @@
+
 import type { Metadata } from "next";
 import { FirebaseClientProvider } from "@/firebase";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "GenHPP - Kalkulator HPP Modern",
+  title: "HitunginAja - Kalkulator HPP Modern",
   description: "Kalkulator HPP modern untuk anak muda Indonesia.",
 };
 

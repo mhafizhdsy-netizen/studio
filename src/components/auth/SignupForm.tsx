@@ -109,7 +109,7 @@ export function SignupForm() {
 
         toast({
             title: "Akun Berhasil Dibuat!",
-            description: "Selamat datang di GenHPP! Yuk mulai hitung HPP pertamamu.",
+            description: "Selamat datang di HitunginAja! Yuk mulai hitung HPP pertamamu.",
         });
         router.push("/dashboard");
     } catch (error) {

@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { Calculator } from "lucide-react";
 
@@ -12,7 +13,7 @@ export default function AuthLayout({
         <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
           <Calculator className="h-6 w-6" />
           <span className="text-xl font-bold font-headline">
-            GenHPP
+            HitunginAja
           </span>
         </Link>
       </div>

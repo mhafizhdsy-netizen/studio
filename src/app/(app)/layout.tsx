@@ -35,7 +35,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden">
             <SidebarTrigger />
-            <h1 className="text-lg font-semibold font-headline">GenHPP</h1>
+            <h1 className="text-lg font-semibold font-headline">HitunginAja</h1>
         </header>
         {children}
         </SidebarInset>

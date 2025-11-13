@@ -485,5 +485,3 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
-
-    

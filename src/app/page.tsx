@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ export default function LandingPage() {
         <Link href="/" className="flex items-center gap-2">
           <Calculator className="h-8 w-8 text-primary" />
           <span className="text-2xl font-bold font-headline text-foreground">
-            GenHPP
+            HitunginAja
           </span>
         </Link>
         <div className="flex items-center gap-4">
@@ -34,7 +35,7 @@ export default function LandingPage() {
             <span className="text-primary">Bukan Pusingnya.</span>
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
-            GenHPP adalah cara modern buat pengusaha muda Indonesia menghitung Harga Pokok Produksi (HPP) dengan cepat, akurat, dan asik.
+            HitunginAja adalah cara modern buat pengusaha muda Indonesia menghitung Harga Pokok Produksi (HPP) dengan cepat, akurat, dan asik.
           </p>
           <div className="mt-8 flex justify-center gap-4">
             <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg">
@@ -74,7 +75,7 @@ export default function LandingPage() {
             <FeatureCard
               icon={<Calculator className="h-8 w-8 text-primary" />}
               title="Kalkulator HPP Interaktif"
-              description="Masukkan semua biaya produksi, dari bahan baku sampai overhead. Biar GenHPP yang hitung totalnya."
+              description="Masukkan semua biaya produksi, dari bahan baku sampai overhead. Biar HitunginAja yang hitung totalnya."
             />
             <FeatureCard
               icon={<DollarSign className="h-8 w-8 text-primary" />}
@@ -106,7 +107,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} GenHPP. Dibuat dengan 🔥 untuk pengusaha muda Indonesia.</p>
+        <p>&copy; {new Date().getFullYear()} HitunginAja. Dibuat dengan 🔥 untuk pengusaha muda Indonesia.</p>
       </footer>
     </div>
   );

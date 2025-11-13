@@ -64,7 +64,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Calculator className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold font-headline">GenHPP</span>
+            <span className="text-xl font-bold font-headline">HitunginAja</span>
           </Link>
         </div>
       </SidebarHeader>
@@ -199,5 +199,3 @@ export function AppSidebar() {
     </>
   );
 }
-
-    
