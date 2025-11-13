@@ -13,30 +13,34 @@ import { chatWithBusinessCoach, ChatInput as AIChatInputType } from "@/ai/flows/
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-// Helper to convert Firestore Timestamps to plain objects recursively
-const toPlainObject = (obj: any): any => {
-  if (obj instanceof Timestamp) {
-    return { seconds: obj.seconds, nanoseconds: obj.nanoseconds };
-  }
-  if (Array.isArray(obj)) {
-    return obj.map(toPlainObject);
-  }
-  if (obj !== null && typeof obj === 'object' && obj.constructor === Object) {
-    const newObj: { [key: string]: any } = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        newObj[key] = toPlainObject(obj[key]);
-      }
-    }
-    return newObj;
-  }
-  return obj;
-};
-
-
 // A static ID for the main conversation with the AI.
 // In a more advanced app, this could be dynamic to support multiple conversations.
 const CONVERSATION_ID = "main_conversation";
+
+// Helper to convert Firestore Timestamps to plain objects recursively
+const convertObjectTimestamps = (obj: any): any => {
+    if (!obj) return obj;
+
+    if (obj instanceof Timestamp) {
+        return obj.toDate().toISOString();
+    }
+
+    if (Array.isArray(obj)) {
+        return obj.map(convertObjectTimestamps);
+    }
+
+    if (typeof obj === 'object') {
+        const newObj: { [key: string]: any } = {};
+        for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                newObj[key] = convertObjectTimestamps(obj[key]);
+            }
+        }
+        return newObj;
+    }
+
+    return obj;
+};
 
 
 export default function AIChatPage() {
@@ -70,13 +74,11 @@ export default function AIChatPage() {
         const userContent: MessagePart[] = [];
         if (text) userContent.push({ text });
         if (imageUrl) userContent.push({ media: { url: imageUrl } });
-        
-        const plainCalculation = calculation ? toPlainObject(calculation) : null;
-        if (plainCalculation) {
+        if (calculation) {
              userContent.push({
                 data: {
                     type: 'calculation',
-                    ...plainCalculation,
+                    ...convertObjectTimestamps(calculation),
                 }
             });
         }
@@ -91,16 +93,21 @@ export default function AIChatPage() {
         setIsAiTyping(true);
 
         try {
-            // Ensure history is also plain objects before sending to server
-            const plainHistory = (messages || []).map(m => toPlainObject(m));
-            
-            const currentUserMessage = {
+            // Build a clean history for the AI, ensuring all parts are valid.
+            const historyForAI = (messages || [])
+                .filter(msg => msg && msg.content) // Ensure message and its content exist
+                .map(msg => ({
+                    role: msg.role,
+                    content: convertObjectTimestamps(msg.content),
+                }));
+
+            const currentUserMessageForAI = {
                 role: 'user' as const,
                 content: userContent,
             };
 
              const aiInput: AIChatInputType = {
-                history: [...plainHistory, currentUserMessage],
+                history: [...historyForAI, currentUserMessageForAI],
             };
 
             const aiResponseText = await chatWithBusinessCoach(aiInput);
