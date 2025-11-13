@@ -75,6 +75,19 @@ service cloud.firestore {
       allow list: if true;
       allow write: if isSignedIn();
       allow delete: if isSignedIn();
+      
+      /**
+       * @description Controls access to comments on public calculations.
+       * @path /public_calculations/{calcId}/comments/{commentId}
+       * @allow (read, list) Anyone can read comments.
+       * @allow (create) Authenticated users can create comments.
+       * @principle Public read access, authenticated-only creates.
+       */
+      match /comments/{commentId} {
+        allow read, list: if true;
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if false; // For simplicity, editing/deleting is disallowed
+      }
     }
 
     function isSignedIn() {

@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Lightbulb, Package } from "lucide-react";
 import Image from "next/image";
+import { CommentSection } from "./CommentSection";
 
 interface PublicCalculationDetailDialogProps {
   calculation: PublicCalculation | null;
@@ -34,6 +35,7 @@ export function PublicCalculationDetailDialog({
   }
 
   const {
+    id,
     productName,
     productImageUrl,
     materials,
@@ -144,6 +146,7 @@ export function PublicCalculationDetailDialog({
               </Card>
             )}
 
+            <CommentSection calculationId={id} />
           </div>
         </ScrollArea>
       </DialogContent>

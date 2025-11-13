@@ -20,9 +20,9 @@
           "format": "email"
         },
         "photoURL": {
-            "type": "string",
-            "description": "The URL of the user's profile picture.",
-            "format": "uri"
+          "type": "string",
+          "description": "The URL of the user's profile picture.",
+          "format": "uri"
         },
         "createdAt": {
           "type": "string",
@@ -57,9 +57,9 @@
           "description": "The name of the product for which HPP was calculated."
         },
         "productImageUrl": {
-            "type": "string",
-            "description": "The URL for the product's image.",
-            "format": "uri"
+          "type": "string",
+          "description": "The URL for the product's image.",
+          "format": "uri"
         },
         "materials": {
           "type": "array",
@@ -127,9 +127,9 @@
           "description": "The name of the product."
         },
         "productImageUrl": {
-            "type": "string",
-            "description": "The URL for the product's image.",
-            "format": "uri"
+          "type": "string",
+          "description": "The URL for the product's image.",
+          "format": "uri"
         },
         "totalHPP": {
           "type": "number",
@@ -156,6 +156,47 @@
         "totalHPP",
         "suggestedPrice",
         "margin",
+        "createdAt"
+      ]
+    },
+    "Comment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Comment",
+      "type": "object",
+      "description": "Represents a comment made by a user on a public calculation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the comment."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The UID of the user who made the comment."
+        },
+        "userName": {
+          "type": "string",
+          "description": "The display name of the user."
+        },
+        "userPhotoURL": {
+          "type": "string",
+          "description": "The photo URL of the user.",
+          "format": "uri"
+        },
+        "text": {
+          "type": "string",
+          "description": "The content of the comment."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the comment was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "userName",
+        "text",
         "createdAt"
       ]
     }
@@ -216,6 +257,26 @@
             {
               "name": "calcId",
               "description": "The unique ID of the public calculation."
+            }
+          ]
+        }
+      },
+       {
+        "path": "/public_calculations/{calcId}/comments/{commentId}",
+        "definition": {
+          "entityName": "Comment",
+          "schema": {
+            "$ref": "#/backend/entities/Comment"
+          },
+          "description": "Stores comments for a public calculation. Anyone can read, but only authenticated users can write. The 'calcId' parameter corresponds to the ID of the public calculation.",
+          "params": [
+            {
+              "name": "calcId",
+              "description": "The unique ID of the public calculation."
+            },
+            {
+              "name": "commentId",
+              "description": "The unique ID of the comment."
             }
           ]
         }
