@@ -184,7 +184,7 @@ function StatCard({ title, value, icon: Icon, change, changeType, periodText }: 
     
     const changeText = () => {
         if (isNeutral) {
-            return `Tidak ada data ${periodText}`;
+            return `Tidak ada data ${periodText.replace('dibanding ', '')}`;
         }
         const formattedChange = formatChange();
         return `${isPositive ? `+${formattedChange}` : `-${formattedChange}`} ${periodText}`;
@@ -210,3 +210,4 @@ function StatCard({ title, value, icon: Icon, change, changeType, periodText }: 
         </Card>
     );
 }
+
