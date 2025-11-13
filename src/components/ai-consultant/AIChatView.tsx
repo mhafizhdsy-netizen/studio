@@ -10,6 +10,7 @@ import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '../ui/button';
 
 export interface AIChatMessage {
   id: string;
@@ -82,7 +83,7 @@ export function AIChatView({ history, isResponding }: AIChatViewProps) {
                     </AvatarFallback>
                 </Avatar>
             )}
-            <div className='group relative'>
+            <div className='group flex flex-col items-start gap-2'>
                 <div
                 className={cn(
                     'p-4 rounded-lg max-w-2xl prose dark:prose-invert',
@@ -105,13 +106,25 @@ export function AIChatView({ history, isResponding }: AIChatViewProps) {
                 </ReactMarkdown>
                 </div>
                  {!isUser && !message.isError && (
-                    <button 
+                    <Button 
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleCopy(message.content, message.id)}
-                        className="absolute -top-3 -right-3 p-1.5 bg-background border rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
                         aria-label="Salin pesan"
                     >
-                       {copiedMessageId === message.id ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
-                    </button>
+                       {copiedMessageId === message.id ? (
+                           <>
+                               <Check className="h-4 w-4 mr-2 text-primary" />
+                               Tersalin
+                           </>
+                       ) : (
+                           <>
+                               <Copy className="h-4 w-4 mr-2" />
+                               Salin
+                           </>
+                       )}
+                    </Button>
                  )}
             </div>
              {isUser && user && (
