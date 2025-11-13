@@ -4,7 +4,6 @@
 import { cn, formatCurrency } from "@/lib/utils";
 import { Calculator, Bot, User } from "lucide-react";
 import Image from "next/image";
-import type { Timestamp } from 'firebase/firestore';
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import Markdown from 'react-markdown';
 import { useUser } from "@/firebase";
@@ -22,7 +21,6 @@ export interface AIMessage {
     id: string;
     role: 'user' | 'model';
     content: MessagePart[];
-    createdAt: Timestamp;
 }
 
 export function AIChatMessage({ message, isUser }: { message: AIMessage, isUser: boolean }) {
