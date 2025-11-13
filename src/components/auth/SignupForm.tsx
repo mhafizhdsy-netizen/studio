@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, ChangeEvent } from "react";
@@ -81,7 +82,8 @@ export function SignupForm() {
         name,
         email,
         photoURL: photoURL || '',
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        onboardingCompleted: false, // Set onboarding as not completed for new users
     }, { merge: true });
   }
 

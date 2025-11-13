@@ -6,10 +6,13 @@ import { CalculationHistory } from "@/components/dashboard/CalculationHistory";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MonthlyExpenseSummary } from "@/components/expenses/MonthlyExpenseSummary";
+import { DashboardAnalytics } from "@/components/dashboard/DashboardAnalytics";
+import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
 
 export default function DashboardPage() {
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+       <OnboardingGuide />
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold md:text-2xl font-headline">Dashboard</h1>
         <Button asChild className="font-bold">
@@ -19,6 +22,10 @@ export default function DashboardPage() {
           </Link>
         </Button>
       </div>
+      
+       <Suspense fallback={<AnalyticsSkeleton />}>
+        <DashboardAnalytics />
+      </Suspense>
 
        <Suspense fallback={<Skeleton className="h-24 rounded-lg" />}>
         <MonthlyExpenseSummary />
@@ -35,6 +42,17 @@ export default function DashboardPage() {
   );
 }
 
+function AnalyticsSkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Skeleton className="h-28 rounded-lg" />
+      <Skeleton className="h-28 rounded-lg" />
+      <Skeleton className="h-28 rounded-lg" />
+      <Skeleton className="h-28 rounded-lg" />
+    </div>
+  )
+}
+
 function DashboardSkeleton() {
   return (
     <div className="w-full space-y-4">
@@ -47,5 +65,3 @@ function DashboardSkeleton() {
     </div>
   )
 }
-
-    

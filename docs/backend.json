@@ -29,14 +29,16 @@
           "type": "string",
           "description": "Timestamp indicating when the user account was created.",
           "format": "date-time"
+        },
+        "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Flag to check if user has completed the onboarding flow."
         }
       },
       "required": [
         "id",
         "name",
-        "email",
-        "photoURL",
-        "createdAt"
+        "email"
       ]
     },
     "Calculation": {
