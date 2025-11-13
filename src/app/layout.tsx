@@ -5,8 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "HitunginAja - Kalkulator HPP Modern",
-  description: "Kalkulator HPP modern untuk anak muda Indonesia.",
+  title: "HitunginAja: Kalkulator HPP & Bisnis untuk UMKM Indonesia",
+  description: "HitunginAja adalah aplikasi kalkulator HPP, profit, dan analisis bisnis gratis untuk UMKM dan pengusaha muda Indonesia. Dapatkan saran harga jual, analisis iklan, dan konsultasi AI.",
+  keywords: ["kalkulator HPP", "UMKM", "bisnis", "harga jual", "analisis profit", "konsultan AI", "wirausaha"],
   icons: {
     icon: '/favicon.svg',
   },
