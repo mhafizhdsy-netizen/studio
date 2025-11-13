@@ -48,10 +48,10 @@ export function AIChatMessage({ message, isUser }: { message: AIMessage, isUser:
                 td: ({node, ...props}) => <td className="p-2 border border-border" {...props} />,
             }}>{part.text}</Markdown>
         }
-        if (part.media) {
+        if (part.media?.url) {
             return (
                  <a href={part.media.url} target="_blank" rel="noopener noreferrer" key={index}>
-                    <Image src={part.media.url!} alt={'User upload'} width={256} height={256} className="rounded-lg max-w-xs object-cover mt-2" />
+                    <Image src={part.media.url} alt={'User upload'} width={256} height={256} className="rounded-lg max-w-xs object-cover mt-2" />
                 </a>
             )
         }
@@ -107,3 +107,5 @@ function SharedCalculationCard({ calculation }: { calculation: any }) {
         </div>
     )
 }
+
+    

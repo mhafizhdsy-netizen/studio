@@ -8,20 +8,20 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
+const MessagePartSchema = z.object({
+  text: z.string().optional(),
+  media: z
+    .object({
+      url: z.string().describe("A data URI of an image."),
+      contentType: z.string().optional(),
+    })
+    .optional(),
+  data: z.any().optional(), // Can contain calculation data
+});
+
 const HistoryMessageSchema = z.object({
   role: z.enum(['user', 'model']),
-  content: z.array(
-    z.object({
-      text: z.string().optional(),
-      media: z
-        .object({
-          url: z.string(),
-          contentType: z.string().optional(),
-        })
-        .optional(),
-      data: z.any().optional(), // Can contain calculation data
-    })
-  ),
+  content: z.array(MessagePartSchema),
 });
 
 const ChatInputSchema = z.object({
@@ -45,12 +45,12 @@ Your primary goal is to help users develop their business skills. You can analyz
 
 When the user provides an HPP calculation, analyze it thoroughly. Look at the material costs, labor, overhead, and profit margin. Provide specific, actionable insights. Reference the product name in your analysis. Your response should be in markdown format.
 
-When a user provides an image, analyze it in the context of a product. Give feedback on photo quality, presentation, and marketability.
+When a user provides an image (via a data URI), analyze it in the context of a product photo. Give feedback on photo quality, presentation, and marketability.
 
 Always be encouraging and break down complex topics into easy-to-understand steps.
 
-User's calculation data will be provided as a JSON object inside a message part. You should format it for analysis.
-User's image will be provided via a media url.`;
+User's calculation data will be provided as a JSON object inside a 'data' part of a message. You should format it for analysis.
+User's image will be provided via a 'media' part with a data URI.`;
 
 
 const businessCoachFlow = ai.defineFlow(
@@ -60,10 +60,9 @@ const businessCoachFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input) => {
+    // The history from the client is already in the correct format.
+    // We just pass it directly to the AI.
     const { history } = input;
-    
-    // The history from the client now includes the latest user message
-    // and is already in the correct format.
     
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
@@ -74,3 +73,5 @@ const businessCoachFlow = ai.defineFlow(
     return output.text;
   }
 );
+
+    

@@ -25,16 +25,14 @@ import { useToast } from "@/hooks/use-toast";
 // Helper to convert Firestore Timestamps within a calculation object
 const convertCalcTimestamps = (calc: any): any => {
     if (!calc) return null;
-    const newCalc = { ...calc };
-    if (newCalc.createdAt && typeof newCalc.createdAt.toDate === 'function') {
-        newCalc.createdAt = newCalc.createdAt.toDate().toISOString();
+    // Create a deep copy to avoid modifying the original object
+    const newCalc = JSON.parse(JSON.stringify(calc));
+    
+    if (newCalc.createdAt && typeof newCalc.createdAt === 'object') {
+        newCalc.createdAt = new Date(newCalc.createdAt.seconds * 1000).toISOString();
     }
-    if (newCalc.updatedAt && typeof newCalc.updatedAt.toDate === 'function') {
-        newCalc.updatedAt = newCalc.updatedAt.toDate().toISOString();
-    }
-    // Also handle materials if they exist
-    if (Array.isArray(newCalc.materials)) {
-        newCalc.materials = newCalc.materials.map((mat: any) => ({ ...mat }));
+    if (newCalc.updatedAt && typeof newCalc.updatedAt === 'object') {
+        newCalc.updatedAt = new Date(newCalc.updatedAt.seconds * 1000).toISOString();
     }
     return newCalc;
 };
@@ -48,6 +46,7 @@ export default function AIChatPage() {
     const { toast } = useToast();
 
     useEffect(() => {
+        // Scroll to the bottom whenever messages change
         if (scrollAreaRef.current) {
             scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
         }
@@ -56,16 +55,20 @@ export default function AIChatPage() {
     const handleSendMessage = async (text?: string, imageUrl?: string, calculation?: Calculation) => {
         const userContent: MessagePart[] = [];
         if (text) userContent.push({ text });
-        if (imageUrl) userContent.push({ media: { url: imageUrl } });
+        if (imageUrl) userContent.push({ media: { url: imageUrl, contentType: 'image/jpeg' } }); // Assuming jpeg for simplicity
         if (calculation) {
+             // Ensure calculation is a plain object without Timestamps
+             const plainCalculation = convertCalcTimestamps(calculation);
              userContent.push({
                 data: {
                     type: 'calculation',
-                    ...calculation, // Pass the raw calculation object
+                    ...plainCalculation,
                 }
             });
         }
         
+        if (userContent.length === 0) return;
+
         const userMessage: AIMessage = {
             id: `user-${Date.now()}`,
             role: 'user',
@@ -77,34 +80,18 @@ export default function AIChatPage() {
         setIsAiTyping(true);
 
         try {
-            // Build a clean history for the AI.
-            // This is the most critical part to fix the recurring error.
-            const historyForAI = newMessages
-                .filter(msg => msg && msg.content && msg.content.length > 0) // Ensure message and content are valid
-                .map(msg => ({
+            // The history for the AI is just the current message list
+            const aiInput: AIChatInputType = {
+                history: newMessages.map(msg => ({
                     role: msg.role,
                     content: msg.content.map(part => {
-                        // Securely create parts, ensuring no undefined data
                         const newPart: any = {};
-                        if (part.text) {
-                            newPart.text = part.text;
-                        }
-                        if (part.media) {
-                            newPart.media = part.media;
-                        }
-                        // For calculations, ensure timestamps are converted.
-                        if (part.data?.type === 'calculation') {
-                            newPart.data = convertCalcTimestamps(part.data);
-                        } else if (part.data) {
-                            newPart.data = part.data; // Keep other data as is
-                        }
+                        if (part.text) newPart.text = part.text;
+                        if (part.media) newPart.media = part.media;
+                        if (part.data) newPart.data = part.data;
                         return newPart;
-                    }).filter(p => Object.keys(p).length > 0) // Filter out any empty parts that might have been created
-                }));
-
-
-             const aiInput: AIChatInputType = {
-                history: historyForAI as any, // Cast to any to match Zod schema on the server
+                    })
+                }))
             };
 
             const aiResponseText = await chatWithBusinessCoach(aiInput);
@@ -211,3 +198,5 @@ export default function AIChatPage() {
         </>
     )
 }
+
+    
