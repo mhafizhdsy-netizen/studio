@@ -35,7 +35,7 @@ export default function LandingPage() {
             <span className="text-primary">Bukan Pusingnya.</span>
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground">
-            HitunginAja adalah cara modern buat pengusaha muda Indonesia menghitung Harga Pokok Produksi (HPP) dengan cepat, akurat, dan asik.
+            HitunginAja adalah cara modern buat pengusaha muda Indonesia menghitung Harga Pokok Produksi (HPP) dengan cepat, akurat, dan asik.banyak tools yang bakal bikin perkembangan bisnismu.
           </p>
           <div className="mt-8 flex justify-center gap-4">
             <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg">
