@@ -7,7 +7,8 @@ import { Loader2, MessageSquareDashed, Bot, Sparkles, Trash2 } from "lucide-reac
 import { AIChatInput } from "@/components/messages/AIChatInput";
 import { AIChatMessage, type AIMessage, type MessagePart } from "@/components/messages/AIChatView";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { chatWithBusinessCoach, ChatInput as AIChatInputType } from "@/ai/flows/business-coach-flow";
+import { chatWithBusinessCoach } from "@/ai/flows/business-coach-flow";
+import type { ChatInput as AIChatInputType } from "@/ai/flows/business-coach-schemas";
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
