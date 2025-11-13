@@ -13,7 +13,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-      <div className="relative flex items-center justify-center p-6 lg:p-8">
+      <div className="relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
          <div className="absolute top-6 left-6 lg:top-8 lg:left-8 z-10">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
               <Logo />
@@ -22,7 +22,7 @@ export default function AuthLayout({
               </span>
             </Link>
           </div>
-        <div className="mx-auto w-full max-w-md space-y-6">
+        <div className="mx-auto grid w-full max-w-md gap-6">
            {children}
         </div>
       </div>
@@ -32,7 +32,7 @@ export default function AuthLayout({
                  <Image
                     src={heroImage.imageUrl}
                     alt={heroImage.description}
-                    layout="fill"
+                    fill
                     className="object-cover dark:brightness-[0.4]"
                     data-ai-hint={heroImage.imageHint}
                 />
