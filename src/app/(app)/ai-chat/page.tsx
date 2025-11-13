@@ -38,16 +38,9 @@ export default function AIChatPage() {
         }
     }, [messages]);
 
-    const convertCalculationToPlainObject = (calc: Calculation): object => {
-        const plainCalc = { ...calc };
-        // Convert any Timestamps to ISO strings
-        if (plainCalc.createdAt instanceof Timestamp) {
-            plainCalc.createdAt = (plainCalc.createdAt.toDate().toISOString() as any);
-        }
-        if (plainCalc.updatedAt instanceof Timestamp) {
-            plainCalc.updatedAt = (plainCalc.updatedAt.toDate().toISOString() as any);
-        }
-        return plainCalc;
+    const convertToPlainObject = (obj: any): object => {
+        // Creates a deep copy and converts Timestamps
+        return JSON.parse(JSON.stringify(obj));
     }
 
     const handleSendMessage = async (text?: string, imageUrl?: string, calculation?: Calculation) => {
@@ -61,7 +54,7 @@ export default function AIChatPage() {
         
         let plainCalculation = null;
         if (calculation) {
-             plainCalculation = convertCalculationToPlainObject(calculation);
+             plainCalculation = convertToPlainObject(calculation);
              userContent.push({
                 data: {
                     type: 'calculation',
@@ -81,23 +74,10 @@ export default function AIChatPage() {
 
         try {
             // Ensure history is also plain objects before sending to server
-            const history = (messages || []).map(m => ({
-                role: m.role,
-                content: m.content.map(c => {
-                    const plainContent: { text?: string; media?: any; data?: any } = {};
-                    if (c.text) plainContent.text = c.text;
-                    if (c.media) plainContent.media = c.media;
-                    if (c.data?.type === 'calculation') {
-                        plainContent.data = convertCalculationToPlainObject(c.data as Calculation);
-                    } else if (c.data) {
-                        plainContent.data = c.data;
-                    }
-                    return plainContent;
-                })
-            }));
+            const history = (messages || []).map(m => convertToPlainObject(m));
             
              const aiInput: AIChatInputType = {
-                history,
+                history: history as any, // Cast to any to match Zod schema expectation after conversion
                 message: text,
                 imageUrl,
                 calculation: plainCalculation, // Send the plain object to the server function

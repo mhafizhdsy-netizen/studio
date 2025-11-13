@@ -93,27 +93,15 @@ const businessCoachFlow = ai.defineFlow(
     }
 
     // Process the history to format any calculation data within it
-    const processedHistory = history.map(msg => {
-      const newContent: MessagePart[] = [];
-      msg.content.forEach(part => {
-        if (part.data?.type === 'calculation' && part.data) {
-          newContent.push({ text: formatCalculationToText(part.data) });
-        } else {
-          // Pass through other valid parts like text and media
-          const validPart: MessagePart = {};
-          if (part.text) validPart.text = part.text;
-          if (part.media) validPart.media = part.media;
-          if (Object.keys(validPart).length > 0) {
-              newContent.push(validPart);
-          }
+    const processedHistory = history.map(msg => ({
+      role: msg.role,
+      content: msg.content.map(part => {
+        if (part.data?.type === 'calculation') {
+          return { text: formatCalculationToText(part.data) };
         }
-      });
-
-      return {
-        role: msg.role,
-        content: newContent,
-      };
-    });
+        return part;
+      }).filter(Boolean),
+    }));
     
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
