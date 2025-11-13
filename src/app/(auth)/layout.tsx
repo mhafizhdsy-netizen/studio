@@ -13,7 +13,7 @@ export default function AuthLayout({
 }) {
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
-      <div className="relative flex items-center justify-center p-6 sm:p-12">
+      <div className="relative flex items-center justify-center p-4 sm:p-8 md:p-12 min-h-screen">
          <div className="absolute top-6 left-6 z-10">
             <Link href="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
               <Logo />
