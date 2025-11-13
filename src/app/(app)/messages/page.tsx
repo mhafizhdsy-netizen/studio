@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
-import { collection, query, where, limit, getDocs, doc, writeBatch, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, limit, getDocs, doc, writeBatch, serverTimestamp, setDoc, updateDoc, orderBy } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
 import { Loader2, MessageSquareDashed, UserRoundX, Wand2, Zap } from "lucide-react";
 import { ChatInput } from "@/components/messages/ChatInput";
@@ -33,27 +33,16 @@ export default function AnonymousChatPage() {
         const activeQuery = query(
             collection(firestore, 'chat_sessions'),
             where('participantIds', 'array-contains', user.uid),
-            where('status', '==', 'active')
+            where('status', 'in', ['active', 'pending'])
         );
         const activeSnap = await getDocs(activeQuery);
 
         if (!activeSnap.empty) {
             const activeSession = { id: activeSnap.docs[0].id, ...activeSnap.docs[0].data() } as ChatSession;
             setSession(activeSession);
-            setIsLoading(false);
-            return;
-        }
-
-        const pendingQuery = query(
-            collection(firestore, 'chat_sessions'),
-            where('participantIds', 'array-contains', user.uid),
-            where('status', '==', 'pending')
-        );
-        const pendingSnap = await getDocs(pendingQuery);
-         if (!pendingSnap.empty) {
-            const pendingSession = { id: pendingSnap.docs[0].id, ...pendingSnap.docs[0].data() } as ChatSession;
-            setSession(pendingSession);
-            setIsSearching(true);
+            if (activeSession.status === 'pending') {
+                setIsSearching(true);
+            }
         }
 
         setIsLoading(false);
@@ -88,23 +77,18 @@ export default function AnonymousChatPage() {
         const q = query(
             collection(firestore, 'chat_sessions'),
             where('status', '==', 'pending'),
-            where('participantIds', 'not-in', [[user.uid]]),
             limit(1)
         );
         const querySnapshot = await getDocs(q);
+        
+        const availableSession = querySnapshot.docs.find(doc => !doc.data().participantIds.includes(user.uid));
 
-        if (!querySnapshot.empty) {
+
+        if (availableSession) {
             // Join an existing pending session
-            const sessionDoc = querySnapshot.docs[0];
+            const sessionDoc = availableSession;
             const sessionData = sessionDoc.data() as ChatSession;
             
-            if(sessionData.participantIds.includes(user.uid)) {
-                 // This case should be rare due to the query, but as a safeguard
-                 setSession({ id: sessionDoc.id, ...sessionData });
-                 setIsSearching(false);
-                 return;
-            }
-
             const batch = writeBatch(firestore);
             batch.update(sessionDoc.ref, {
                 status: 'active',
@@ -186,7 +170,7 @@ export default function AnonymousChatPage() {
 function ActiveChatScreen({ session, onLeave, isSearching }: { session: ChatSession, onLeave: () => void, isSearching: boolean }) {
     const { user } = useUser();
     const firestore = useFirestore();
-    const scrollAreaRef = useState<HTMLDivElement | null>(null)[0];
+    const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
     const messagesQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -199,10 +183,10 @@ function ActiveChatScreen({ session, onLeave, isSearching }: { session: ChatSess
     const { data: messages, isLoading } = useCollection<Message>(messagesQuery);
     
     useEffect(() => {
-        if (scrollAreaRef) {
-            scrollAreaRef.scrollTo({ top: scrollAreaRef.scrollHeight, behavior: 'smooth' });
+        if (scrollAreaRef.current) {
+            scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
         }
-    }, [messages, scrollAreaRef]);
+    }, [messages]);
 
     if(isSearching || session.status === 'pending') {
         return (
@@ -228,33 +212,31 @@ function ActiveChatScreen({ session, onLeave, isSearching }: { session: ChatSess
                     Keluar
                 </Button>
             </header>
-             <div className="flex-1 overflow-y-auto p-4">
-                 <ScrollArea className="h-full" ref={scrollAreaRef}>
-                    <div className="space-y-6 pr-4">
-                        {isLoading ? (
-                            <div className="flex justify-center items-center h-full">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary"/>
-                            </div>
-                        ) : messages?.length === 0 ? (
-                           <div className="flex flex-col items-center justify-center text-center w-full h-full text-muted-foreground py-10">
-                                <MessageSquareDashed className="h-12 w-12 mb-4" />
-                                <p>Mulai percakapan!</p>
-                            </div>
-                        ) : (
-                            messages?.map(message => (
-                                <ChatMessage key={message.id} message={message} isMe={message.senderId === user?.uid} />
-                            ))
-                        )}
-                        {session.status === 'closed' && (
-                             <Alert variant="destructive" className="mt-4">
-                                <UserRoundX className="h-4 w-4" />
-                                <AlertTitle>Obrolan Ditutup</AlertTitle>
-                                <AlertDescription>Teman ngobrolmu telah meninggalkan percakapan. Cari teman baru untuk memulai lagi.</AlertDescription>
-                            </Alert>
-                        )}
-                    </div>
-                </ScrollArea>
-            </div>
+             <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+                <div className="space-y-6 pr-4">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-full">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary"/>
+                        </div>
+                    ) : messages?.length === 0 ? (
+                       <div className="flex flex-col items-center justify-center text-center w-full h-full text-muted-foreground py-10">
+                            <MessageSquareDashed className="h-12 w-12 mb-4" />
+                            <p>Mulai percakapan!</p>
+                        </div>
+                    ) : (
+                        messages?.map(message => (
+                            <ChatMessage key={message.id} message={message} isMe={message.senderId === user?.uid} />
+                        ))
+                    )}
+                    {session.status === 'closed' && (
+                         <Alert variant="destructive" className="mt-4">
+                            <UserRoundX className="h-4 w-4" />
+                            <AlertTitle>Obrolan Ditutup</AlertTitle>
+                            <AlertDescription>Teman ngobrolmu telah meninggalkan percakapan. Cari teman baru untuk memulai lagi.</AlertDescription>
+                        </Alert>
+                    )}
+                </div>
+            </ScrollArea>
              <footer className="p-4 border-t">
                 {session.status === 'active' ? (
                      <ChatInput conversationId={session.id} />
@@ -265,3 +247,5 @@ function ActiveChatScreen({ session, onLeave, isSearching }: { session: ChatSess
         </div>
     )
 }
+
+    
