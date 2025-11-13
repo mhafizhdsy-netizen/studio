@@ -121,29 +121,46 @@ export function ProfileForm() {
       .substring(0, 2)
       .toUpperCase();
 
+  async function handleNonBlockingPhotoUpload() {
+    if (!photo || !storage || !user || !auth) return;
+
+    try {
+      const newPhotoURL = await uploadProfileImage(storage, user.uid, photo);
+      // Once uploaded, update the user profile and firestore in the background
+      if (auth.currentUser) {
+        await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
+        const userDocRef = doc(firestore, "users", user.uid);
+        await setDoc(userDocRef, { photoURL: newPhotoURL }, { merge: true });
+      }
+    } catch (uploadError) {
+      console.error("Failed to upload photo in background:", uploadError);
+      // Optionally, show a non-intrusive toast notification for background failures
+    }
+  }
+
   async function onSubmit(data: ProfileFormData) {
     if (!user || !auth) return;
     setIsSubmitting(true);
 
     try {
       // Re-authentication if password or email is being changed
-      if (data.currentPassword && (data.newPassword || data.email !== user.email)) {
+      const needsReauth = data.newPassword || data.email !== user.email;
+      if (data.currentPassword && needsReauth) {
         const credential = EmailAuthProvider.credential(user.email!, data.currentPassword);
         await reauthenticateWithCredential(user, credential);
+      } else if (!data.currentPassword && needsReauth) {
+         throw new Error("Password saat ini dibutuhkan untuk mengubah email atau password.");
       }
 
-      // Update Photo
-      let newPhotoURL = user.photoURL;
-      if (photo && storage) {
-        newPhotoURL = await uploadProfileImage(storage, user.uid, photo);
+      // --- Start Non-blocking Operations ---
+      if (photo) {
+        handleNonBlockingPhotoUpload(); // Don't await this
       }
+      // --- End Non-blocking Operations ---
 
-      // Update Profile (Name & Photo)
-      if (data.name !== user.displayName || newPhotoURL !== user.photoURL) {
-        await updateProfile(user, {
-          displayName: data.name,
-          photoURL: newPhotoURL,
-        });
+      // Update Profile Name (this is fast)
+      if (data.name !== user.displayName) {
+        await updateProfile(user, { displayName: data.name });
       }
 
       // Update Email
@@ -156,21 +173,19 @@ export function ProfileForm() {
         await updatePassword(user, data.newPassword);
       }
 
-      // Update Firestore user document
+      // Update Firestore user document (without photoURL initially)
       const userDocRef = doc(firestore, "users", user.uid);
       await setDoc(
         userDocRef,
-        {
-          name: data.name,
-          email: data.email,
-        },
+        { name: data.name, email: data.email },
         { merge: true }
       );
 
       toast({
         title: "Profil Berhasil Diperbarui!",
-        description: "Informasi akunmu sudah berhasil disimpan.",
+        description: "Informasi akunmu sudah berhasil disimpan. Foto profil akan diperbarui sesaat lagi.",
       });
+
       // Reset form to clear password fields
       form.reset({
         ...data,
@@ -178,15 +193,15 @@ export function ProfileForm() {
         newPassword: "",
         confirmPassword: "",
       });
+
     } catch (error: any) {
       console.error(error);
       let description = "Terjadi kesalahan. Coba lagi nanti.";
-      if (error.code === 'auth/wrong-password') {
-        description = "Password saat ini yang kamu masukkan salah."
+      if (error.code === 'auth/wrong-password' || error.message.includes("Password saat ini dibutuhkan")) {
+        description = "Password saat ini yang kamu masukkan salah atau kosong."
       } else if (error.code === 'auth/email-already-in-use') {
         description = "Email ini sudah digunakan oleh akun lain."
-      }
-       else if (error.code === 'auth/requires-recent-login') {
+      } else if (error.code === 'auth/requires-recent-login') {
         description = "Perlu login ulang untuk melakukan aksi ini. Silakan logout dan login kembali."
       }
       toast({
@@ -270,7 +285,7 @@ export function ProfileForm() {
               <CardHeader>
                 <CardTitle className="text-lg">Ubah Password</CardTitle>
                 <CardDescription>
-                  Biarkan kosong jika tidak ingin mengubah password.
+                  Isi jika ingin mengubah password. Anda harus memasukkan password saat ini.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -328,3 +343,5 @@ export function ProfileForm() {
     </Card>
   );
 }
+
+    
