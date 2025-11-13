@@ -13,32 +13,25 @@ import { chatWithBusinessCoach, ChatInput as AIChatInputType } from "@/ai/flows/
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-// A static ID for the main conversation with the AI.
-// In a more advanced app, this could be dynamic to support multiple conversations.
 const CONVERSATION_ID = "main_conversation";
 
 // Helper to convert Firestore Timestamps to plain objects recursively
-const convertObjectTimestamps = (obj: any): any => {
-    if (!obj) return obj;
-
+const toPlainObject = (obj: any): any => {
     if (obj instanceof Timestamp) {
         return obj.toDate().toISOString();
     }
-
     if (Array.isArray(obj)) {
-        return obj.map(convertObjectTimestamps);
+        return obj.map(item => toPlainObject(item));
     }
-
-    if (typeof obj === 'object') {
-        const newObj: { [key: string]: any } = {};
+    if (obj && typeof obj === 'object') {
+        const plainObj: { [key: string]: any } = {};
         for (const key in obj) {
             if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                newObj[key] = convertObjectTimestamps(obj[key]);
+                plainObj[key] = toPlainObject(obj[key]);
             }
         }
-        return newObj;
+        return plainObj;
     }
-
     return obj;
 };
 
@@ -49,7 +42,6 @@ export default function AIChatPage() {
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
     const [isAiTyping, setIsAiTyping] = useState(false);
 
-    // Path to the messages subcollection for the current user
     const messagesQuery = useMemoFirebase(() => {
         if (!user || !firestore) return null;
         return query(
@@ -78,12 +70,11 @@ export default function AIChatPage() {
              userContent.push({
                 data: {
                     type: 'calculation',
-                    ...convertObjectTimestamps(calculation),
+                    ...toPlainObject(calculation),
                 }
             });
         }
         
-        // Add user message to Firestore
         const userMessageData = {
             role: 'user' as const,
             content: userContent,
@@ -95,10 +86,10 @@ export default function AIChatPage() {
         try {
             // Build a clean history for the AI, ensuring all parts are valid.
             const historyForAI = (messages || [])
-                .filter(msg => msg && msg.content) // Ensure message and its content exist
+                .filter(msg => msg && Array.isArray(msg.content)) // Ensure message and its content exist and is an array
                 .map(msg => ({
                     role: msg.role,
-                    content: convertObjectTimestamps(msg.content),
+                    content: toPlainObject(msg.content),
                 }));
 
             const currentUserMessageForAI = {
@@ -112,7 +103,6 @@ export default function AIChatPage() {
 
             const aiResponseText = await chatWithBusinessCoach(aiInput);
 
-            // Add AI response to Firestore
             const aiMessageData = {
                 role: 'model' as const,
                 content: [{ text: aiResponseText }],
