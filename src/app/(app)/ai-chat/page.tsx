@@ -7,7 +7,7 @@ import { collection, query, orderBy, serverTimestamp, Timestamp } from 'firebase
 import { Button } from "@/components/ui/button";
 import { Loader2, MessageSquareDashed, Bot, Sparkles } from "lucide-react";
 import { AIChatInput } from "@/components/messages/AIChatInput";
-import { AIChatMessage, type AIMessage } from "@/components/messages/AIChatView";
+import { AIChatMessage, type AIMessage, type MessagePart } from "@/components/messages/AIChatView";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { chatWithBusinessCoach, ChatInput as AIChatInputType } from "@/ai/flows/business-coach-flow";
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
@@ -63,13 +63,12 @@ export default function AIChatPage() {
         
         const messagesColRef = collection(firestore, 'users', user.uid, 'ai_conversations', CONVERSATION_ID, 'messages');
 
-        const userContent: any[] = [];
+        const userContent: MessagePart[] = [];
         if (text) userContent.push({ text });
         if (imageUrl) userContent.push({ media: { url: imageUrl } });
         
-        let plainCalculation = null;
         if (calculation) {
-             plainCalculation = toPlainObject(calculation);
+             const plainCalculation = toPlainObject(calculation);
              userContent.push({
                 data: {
                     type: 'calculation',
@@ -91,11 +90,13 @@ export default function AIChatPage() {
             // Ensure history is also plain objects before sending to server
             const history = (messages || []).map(m => toPlainObject(m));
             
+            const currentUserMessage = {
+                role: 'user' as const,
+                content: userContent,
+            };
+
              const aiInput: AIChatInputType = {
-                history: history as any, // Cast to any to match Zod schema expectation after conversion
-                message: text,
-                imageUrl,
-                calculation: plainCalculation, // Send the plain object to the server function
+                history: [...history, currentUserMessage] as any,
             };
 
             const aiResponseText = await chatWithBusinessCoach(aiInput);

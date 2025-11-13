@@ -27,9 +27,6 @@ const HistoryMessageSchema = z.object({
 
 const ChatInputSchema = z.object({
   history: z.array(HistoryMessageSchema),
-  message: z.string().optional(),
-  imageUrl: z.string().optional(),
-  calculation: z.any().optional(), // Can be a plain object
 });
 
 const ChatOutputSchema = z.string();
@@ -53,23 +50,9 @@ When a user provides an image, analyze it in the context of a product. Give feed
 
 Always be encouraging and break down complex topics into easy-to-understand steps.
 
-User's calculation data will be provided as a JSON object.
+User's calculation data will be provided as a JSON object inside a message part. You should format it for analysis.
 User's image will be provided via a media url.`;
 
-const formatCalculationToText = (calculation: any) => {
-    return `
-Here is my HPP calculation data for analysis:
-Product Name: ${calculation.productName}
-Total HPP: ${calculation.totalHPP}
-Suggested Price: ${calculation.suggestedPrice}
-Margin: ${calculation.margin}%
----
-Full Data:
-${"```json"}
-${JSON.stringify(calculation, null, 2)}
-${"```"}
-`;
-}
 
 const businessCoachFlow = ai.defineFlow(
   {
@@ -78,39 +61,15 @@ const businessCoachFlow = ai.defineFlow(
     outputSchema: ChatOutputSchema,
   },
   async (input) => {
-    const { history, message, imageUrl, calculation } = input;
-
-    // Process the history to format any calculation data within it
-    const processedHistory = history.map(msg => ({
-      role: msg.role,
-      content: msg.content.map(part => {
-        if (part.data?.type === 'calculation') {
-          return { text: formatCalculationToText(part.data) };
-        }
-        return part;
-      }).filter((part): part is MessagePart => !!part),
-    }));
+    const { history } = input;
     
-    // Construct the current user message
-    const userMessageContent: MessagePart[] = [];
-    if (message) {
-      userMessageContent.push({ text: message });
-    }
-    if (imageUrl) {
-      userMessageContent.push({ media: { url: imageUrl } });
-    }
-    if (calculation) {
-      userMessageContent.push({ text: formatCalculationToText(calculation) });
-    }
-
+    // The history from the client now includes the latest user message
+    // and is already in the correct format.
+    
     const { output } = await ai.generate({
       model: 'googleai/gemini-2.5-flash',
       system: systemPrompt,
-      history: processedHistory,
-      prompt: {
-        role: 'user',
-        content: userMessageContent
-      }
+      history: history as any,
     });
 
     return output.text;
