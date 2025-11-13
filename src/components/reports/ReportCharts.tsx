@@ -35,13 +35,23 @@ export function ReportCharts({ calculations, expenses }: ReportChartsProps) {
       categoryMap[exp.category] = (categoryMap[exp.category] || 0) + exp.amount;
     });
     
-    const colors = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
+    // Define a broader color palette to ensure uniqueness
+    const categoryColors: { [key: string]: string } = {
+        "Sewa Tempat": "hsl(var(--chart-1))",
+        "Listrik & Air": "hsl(var(--chart-2))",
+        "Gaji Karyawan": "hsl(var(--chart-3))",
+        "Biaya Pengemasan": "hsl(var(--chart-4))",
+        "Pemasaran": "hsl(var(--chart-5))",
+        "Lainnya": "hsl(220 71% 52%)", // Adding a new distinct color
+    };
+
+    const fallbackColors = ["hsl(260 71% 52%)", "hsl(300 71% 52%)", "hsl(340 71% 52%)"];
     
     return Object.entries(categoryMap)
         .map(([name, value], index) => ({
             name,
             value,
-            fill: colors[index % colors.length]
+            fill: categoryColors[name] || fallbackColors[index % fallbackColors.length]
         }))
         .sort((a,b) => b.value - a.value);
 
@@ -120,5 +130,3 @@ export function ReportCharts({ calculations, expenses }: ReportChartsProps) {
     </div>
   );
 }
-
-    
