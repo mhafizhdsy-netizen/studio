@@ -1,268 +1,36 @@
 
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
-import { collection, query, where, limit, getDocs, doc, writeBatch, serverTimestamp, setDoc, updateDoc, orderBy, addDoc } from 'firebase/firestore';
+import { useState, useEffect, useRef } from "react";
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
+import { collection, query, orderBy, serverTimestamp, Timestamp, doc } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
-import { Loader2, MessageSquareDashed, UserRoundX, Wand2, Zap, UsersRound } from "lucide-react";
+import { Loader2, MessageSquareDashed, Bot, Sparkles, Wand2 } from "lucide-react";
 import { ChatInput } from "@/components/messages/ChatInput";
-import { ChatMessage, type Message } from "@/components/messages/ChatView"; // Reusing ChatMessage and Message type
+import { ChatMessage, type Message as AIMessage } from "@/components/messages/ChatView";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { errorEmitter, FirestorePermissionError } from "@/firebase";
+import { chatWithBusinessCoach, ChatInput as AIChatInput } from "@/ai/flows/business-coach-flow";
+import type { Calculation } from "@/components/dashboard/CalculationHistory";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-interface ChatSession {
-    id: string;
-    participantIds: string[];
-    status: 'pending' | 'active' | 'closed';
-    createdAt: any;
-}
+const CONVERSATION_ID = "main_conversation"; // Using a single conversation per user for now
 
-export default function AnonymousChatPage() {
-    const { user } = useUser();
-    const firestore = useFirestore();
-    const [session, setSession] = useState<ChatSession | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSearching, setIsSearching] = useState(false);
-    const [notFound, setNotFound] = useState(false);
-    
-    // Check for an existing active or pending session for the current user
-    const findActiveSession = useCallback(async () => {
-        if (!user || !firestore) return;
-        setIsLoading(true);
-
-        const activeQuery = query(
-            collection(firestore, 'chat_sessions'),
-            where('participantIds', 'array-contains', user.uid),
-            where('status', 'in', ['active', 'pending'])
-        );
-
-        try {
-            const activeSnap = await getDocs(activeQuery);
-            if (!activeSnap.empty) {
-                const activeSession = { id: activeSnap.docs[0].id, ...activeSnap.docs[0].data() } as ChatSession;
-                setSession(activeSession);
-                if (activeSession.status === 'pending') {
-                    setIsSearching(true);
-                }
-            }
-        } catch (error) {
-             const permissionError = new FirestorePermissionError({
-                path: 'chat_sessions',
-                operation: 'list',
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [user, firestore]);
-
-    useEffect(() => {
-        findActiveSession();
-    }, [findActiveSession]);
-
-    // Listen for changes on the pending session
-    const pendingSessionRef = useMemoFirebase(() => {
-        if (!firestore || !session || session.status !== 'pending') return null;
-        return doc(firestore, 'chat_sessions', session.id);
-    }, [firestore, session]);
-
-    const { data: liveSession } = useDoc<ChatSession>(pendingSessionRef);
-
-    useEffect(() => {
-        if (liveSession && liveSession.status === 'active') {
-            setSession(liveSession);
-            setIsSearching(false);
-        }
-    }, [liveSession]);
-
-
-    const handleFindChat = async () => {
-        if (!user || !firestore) return;
-
-        setIsSearching(true);
-        setNotFound(false);
-
-        const q = query(
-            collection(firestore, 'chat_sessions'),
-            where('status', '==', 'pending'),
-            limit(1)
-        );
-        
-        try {
-            const querySnapshot = await getDocs(q);
-            const availableSessionDoc = querySnapshot.docs.find(doc => !doc.data().participantIds.includes(user.uid));
-
-            if (availableSessionDoc) {
-                // Join an existing pending session
-                const sessionData = availableSessionDoc.data() as ChatSession;
-                const newParticipants = [...sessionData.participantIds, user.uid];
-                
-                const batch = writeBatch(firestore);
-                batch.update(availableSessionDoc.ref, {
-                    status: 'active',
-                    participantIds: newParticipants
-                });
-                
-                const systemMessage = {
-                    senderId: 'system',
-                    type: 'system' as const,
-                    text: 'Kamu telah terhubung dengan teman ngobrol baru!',
-                    createdAt: serverTimestamp(),
-                };
-                const messagesColRef = collection(firestore, 'chat_sessions', availableSessionDoc.id, 'messages');
-                batch.set(doc(messagesColRef), systemMessage);
-
-                await batch.commit().catch(serverError => {
-                    const permissionError = new FirestorePermissionError({
-                        path: availableSessionDoc.ref.path,
-                        operation: 'update',
-                        requestResourceData: { status: 'active', participantIds: newParticipants },
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                });
-
-                setSession({ id: availableSessionDoc.id, ...sessionData, status: 'active', participantIds: newParticipants });
-                setIsSearching(false);
-            } else {
-                // No session found, show notFound UI
-                setNotFound(true);
-                setIsSearching(false);
-            }
-        } catch (error) {
-            if (!(error instanceof FirestorePermissionError)) {
-                 const permissionError = new FirestorePermissionError({
-                    path: 'chat_sessions',
-                    operation: 'list',
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            }
-            setIsSearching(false);
-        }
-    };
-    
-    const handleCreateAndWait = async () => {
-        if (!user || !firestore) return;
-        setIsSearching(true);
-        setNotFound(false);
-         try {
-            // Create a new pending session
-            const newSessionData: Omit<ChatSession, 'id'> = {
-                participantIds: [user.uid],
-                status: 'pending',
-                createdAt: serverTimestamp(),
-            };
-            const newSessionRef = await addDoc(collection(firestore, 'chat_sessions'), newSessionData)
-                .catch(serverError => {
-                    const permissionError = new FirestorePermissionError({
-                        path: 'chat_sessions',
-                        operation: 'create',
-                        requestResourceData: newSessionData,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                    throw serverError; // Prevent further execution if addDoc fails
-                });
-            setSession({ id: newSessionRef.id, ...newSessionData } as ChatSession);
-            // isSearching remains true, as we are now in waiting mode
-        } catch(error) {
-            setIsSearching(false);
-        }
-    }
-
-    const handleLeaveChat = async () => {
-        if (!session || !firestore) return;
-        
-        updateDoc(doc(firestore, 'chat_sessions', session.id), { status: 'closed' })
-        .catch(serverError => {
-             const permissionError = new FirestorePermissionError({
-                path: `chat_sessions/${session.id}`,
-                operation: 'update',
-                requestResourceData: { status: 'closed' }
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        });
-
-        setSession(null);
-        setIsSearching(false);
-    }
-
-    if (isLoading) {
-        return (
-            <div className="flex flex-1 items-center justify-center h-full">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-        );
-    }
-    
-    if (session) {
-        return <ActiveChatScreen session={session} onLeave={handleLeaveChat} isSearching={isSearching} />
-    }
-
-    if (notFound) {
-         return (
-            <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 lg:gap-6 lg:p-6 text-center">
-                <div className="rounded-full bg-muted p-6">
-                    <UsersRound className="h-16 w-16 text-muted-foreground" />
-                </div>
-                <h1 className="text-2xl font-semibold md:text-3xl font-headline">Yah, Lagi Sepi Nih...</h1>
-                <p className="max-w-md text-muted-foreground">
-                    Saat ini belum ada teman ngobrol yang tersedia. Mau coba cari lagi atau jadi yang pertama menunggu?
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <Button size="lg" onClick={handleFindChat} disabled={isSearching} variant="outline">
-                        {isSearching ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Zap className="mr-2 h-5 w-5" />}
-                        Coba Cari Lagi
-                    </Button>
-                    <Button size="lg" onClick={handleCreateAndWait} disabled={isSearching} className="font-bold">
-                        {isSearching ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Wand2 className="mr-2 h-5 w-5" />}
-                        Jadilah yang Pertama & Tunggu
-                    </Button>
-                </div>
-            </main>
-        );
-    }
-
-    return (
-        <main className="flex flex-1 flex-col items-center justify-center gap-4 p-4 lg:gap-6 lg:p-6 text-center">
-            <div className="rounded-full bg-primary/10 p-6">
-                <Wand2 className="h-16 w-16 text-primary" />
-            </div>
-            <h1 className="text-2xl font-semibold md:text-3xl font-headline">Chat Anonim Acak</h1>
-            <p className="max-w-md text-muted-foreground">
-                Siap untuk dapat teman diskusi baru? Klik tombol di bawah untuk terhubung secara acak dengan pengusaha muda lainnya!
-            </p>
-            <Button size="lg" onClick={handleFindChat} disabled={isSearching} className="font-bold text-lg">
-                {isSearching ? (
-                    <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Mencari...
-                    </>
-                ) : (
-                    <>
-                        <Zap className="mr-2 h-5 w-5" />
-                        Cari Teman Ngobrol
-                    </>
-                )}
-            </Button>
-        </main>
-    );
-}
-
-function ActiveChatScreen({ session, onLeave, isSearching }: { session: ChatSession, onLeave: () => void, isSearching: boolean }) {
+export default function AIChatPage() {
     const { user } = useUser();
     const firestore = useFirestore();
     const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+    const [isAiTyping, setIsAiTyping] = useState(false);
 
+    // Path to the messages subcollection for the current user
     const messagesQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
+        if (!user || !firestore) return null;
         return query(
-            collection(firestore, 'chat_sessions', session.id, 'messages'),
+            collection(firestore, 'users', user.uid, 'ai_conversations', CONVERSATION_ID, 'messages'),
             orderBy('createdAt', 'asc')
         );
-    }, [firestore, session.id]);
+    }, [user, firestore]);
 
-    const { data: messages, isLoading } = useCollection<Message>(messagesQuery);
+    const { data: messages, isLoading } = useCollection<AIMessage>(messagesQuery);
     
     useEffect(() => {
         if (scrollAreaRef.current) {
@@ -270,65 +38,124 @@ function ActiveChatScreen({ session, onLeave, isSearching }: { session: ChatSess
         }
     }, [messages]);
 
-    if(isSearching || session.status === 'pending') {
-        return (
-             <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 lg:gap-6 lg:p-6 text-center">
-                <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                <h1 className="text-2xl font-semibold md:text-3xl font-headline mt-4">Mencari Teman Ngobrol...</h1>
-                <p className="max-w-md text-muted-foreground">
-                    Sabar ya, sistem lagi nyariin kamu partner diskusi yang paling pas.
-                </p>
-                 <Button variant="destructive" onClick={onLeave} className="mt-4">Batal</Button>
-            </div>
-        )
-    }
+    const handleSendMessage = async (text?: string, imageUrl?: string, calculation?: Calculation) => {
+        if (!user || !firestore) return;
+        
+        const messagesColRef = collection(firestore, 'users', user.uid, 'ai_conversations', CONVERSATION_ID, 'messages');
 
+        const userContent: any[] = [];
+        if (text) userContent.push({ text });
+        if (imageUrl) userContent.push({ media: { url: imageUrl } });
+        if (calculation) {
+             userContent.push({
+                data: {
+                    type: 'calculation',
+                    ...calculation,
+                }
+            });
+        }
+        
+        // Add user message to Firestore
+        const userMessageData = {
+            role: 'user' as const,
+            content: userContent,
+            createdAt: serverTimestamp(),
+        };
+        addDocumentNonBlocking(messagesColRef, userMessageData);
+        setIsAiTyping(true);
+
+        try {
+            const history = (messages || []).map(m => ({
+                role: m.role,
+                content: m.content.map(c => ({
+                    text: c.text,
+                    media: c.media,
+                    data: c.data,
+                }))
+            }));
+            
+             const aiInput: AIChatInput = {
+                history,
+                message: text,
+                imageUrl,
+                calculation,
+            };
+
+            const aiResponseText = await chatWithBusinessCoach(aiInput);
+
+            // Add AI response to Firestore
+            const aiMessageData = {
+                role: 'model' as const,
+                content: [{ text: aiResponseText }],
+                createdAt: serverTimestamp(),
+            };
+            addDocumentNonBlocking(messagesColRef, aiMessageData);
+
+        } catch (error) {
+            console.error("Error calling AI coach:", error);
+            const errorMessage = {
+                role: 'model' as const,
+                content: [{ text: "Waduh, koneksi ke AI lagi ada gangguan. Coba tanya lagi beberapa saat ya." }],
+                createdAt: serverTimestamp(),
+            };
+            addDocumentNonBlocking(messagesColRef, errorMessage);
+        } finally {
+            setIsAiTyping(false);
+        }
+    };
+    
     return (
         <div className="flex-1 flex flex-col h-[calc(100vh-theme(height.14)-1px)]">
              <header className="p-4 border-b flex items-center justify-between gap-3">
-                <div>
-                    <h3 className="font-semibold text-lg">Kamu & Teman Ngobrol Anonim</h3>
-                    <p className="text-sm text-muted-foreground">Status: <span className="text-green-500 font-medium">Terhubung</span></p>
+                <div className="flex items-center gap-3">
+                    <Avatar>
+                        <AvatarImage src="/logo-ai.png" />
+                        <AvatarFallback><Bot /></AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                            Teman Bisnis AI 
+                            <Sparkles className="h-4 w-4 text-primary"/>
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                            {isAiTyping ? 'Lagi ngetik...' : 'Online'}
+                        </p>
+                    </div>
                 </div>
-                <Button variant="destructive" onClick={onLeave}>
-                    <UserRoundX className="h-4 w-4 mr-2" />
-                    Keluar
-                </Button>
             </header>
              <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
                 <div className="space-y-6 pr-4">
                     {isLoading ? (
-                        <div className="flex justify-center items-center h-full">
+                        <div className="flex justify-center items-center h-full pt-10">
                             <Loader2 className="h-8 w-8 animate-spin text-primary"/>
                         </div>
                     ) : messages?.length === 0 ? (
                        <div className="flex flex-col items-center justify-center text-center w-full h-full text-muted-foreground py-10">
                             <MessageSquareDashed className="h-12 w-12 mb-4" />
-                            <p>Mulai percakapan!</p>
+                            <h3 className="font-bold text-lg text-foreground">Mulai Percakapan</h3>
+                            <p className="max-w-md mx-auto">Tanya apa aja soal bisnismu! Minta analisis HPP, feedback foto produk, atau strategi marketing. Aku siap bantu!</p>
                         </div>
                     ) : (
                         messages?.map(message => (
-                            <ChatMessage key={message.id} message={message} isMe={message.senderId === user?.uid} />
+                            <ChatMessage key={message.id} message={message} isUser={message.role === 'user'} />
                         ))
                     )}
-                    {session.status === 'closed' && (
-                         <Alert variant="destructive" className="mt-4">
-                            <UserRoundX className="h-4 w-4" />
-                            <AlertTitle>Obrolan Ditutup</AlertTitle>
-                            <AlertDescription>Teman ngobrolmu telah meninggalkan percakapan. Cari teman baru untuk memulai lagi.</AlertDescription>
-                        </Alert>
+                    {isAiTyping && (
+                         <div className="flex items-end gap-2 justify-start">
+                            <Avatar className="h-9 w-9">
+                                <AvatarImage src="/logo-ai.png" />
+                                <AvatarFallback><Bot /></AvatarFallback>
+                            </Avatar>
+                            <div className="p-3 rounded-lg max-w-sm md:max-w-md bg-muted">
+                                <Loader2 className="h-5 w-5 animate-spin"/>
+                            </div>
+                        </div>
                     )}
                 </div>
             </ScrollArea>
              <footer className="p-4 border-t">
-                {session.status === 'active' ? (
-                     <ChatInput conversationId={session.id} />
-                ) : (
-                    <p className="text-center text-sm text-muted-foreground">Obrolan telah berakhir.</p>
-                )}
+                <ChatInput onSendMessage={handleSendMessage} />
             </footer>
         </div>
     )
 }
-
-    

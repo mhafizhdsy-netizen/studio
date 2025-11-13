@@ -1,29 +1,28 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useUser, useFirestore, useStorage, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp } from "firebase/firestore";
+import { useUser, useStorage } from "@/firebase";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Paperclip, Loader2, Calculator } from "lucide-react";
 import { uploadFile } from "@/firebase/storage";
 import { ShareCalculationDialog } from "./ShareCalculationDialog";
+import type { Calculation } from "../dashboard/CalculationHistory";
 
 const formSchema = z.object({
-  text: z.string().min(1, "Pesan tidak boleh kosong."),
+  text: z.string(),
 });
 
 interface ChatInputProps {
-  conversationId: string;
+  onSendMessage: (text?: string, imageUrl?: string, calculation?: Calculation) => void;
 }
 
-export function ChatInput({ conversationId }: ChatInputProps) {
+export function ChatInput({ onSendMessage }: ChatInputProps) {
   const { user } = useUser();
-  const firestore = useFirestore();
   const storage = useStorage();
   const [isUploading, setIsUploading] = useState(false);
   const [isShareCalcOpen, setIsShareCalcOpen] = useState(false);
@@ -36,42 +35,26 @@ export function ChatInput({ conversationId }: ChatInputProps) {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    if (!user || !firestore) return;
-    
-    const messageData = {
-      senderId: user.uid,
-      type: 'text' as const,
-      text: values.text,
-      createdAt: serverTimestamp(),
-    };
-    
-    const messagesColRef = collection(firestore, 'chat_sessions', conversationId, 'messages');
-    addDocumentNonBlocking(messagesColRef, messageData);
-
+    if (!values.text) return;
+    onSendMessage(values.text);
     form.reset();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     if (!storage || !user) return;
 
     setIsUploading(true);
     const file = e.target.files[0];
-    const filePath = `chat-files/${conversationId}/${user.uid}/${Date.now()}-${file.name}`;
+    const filePath = `chat-files/ai_coach/${user.uid}/${Date.now()}-${file.name}`;
     
     try {
-        const downloadURL = await uploadFile(storage, filePath, file, () => {}); // Progress not shown here for simplicity
-        
-        const messageData = {
-            senderId: user.uid,
-            type: 'image' as const,
-            mediaUrl: downloadURL,
-            mediaName: file.name,
-            createdAt: serverTimestamp(),
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const dataUrl = reader.result as string;
+            onSendMessage(undefined, dataUrl);
         };
-        const messagesColRef = collection(firestore, 'chat_sessions', conversationId, 'messages');
-        addDocumentNonBlocking(messagesColRef, messageData);
-
     } catch (error) {
         console.error("File upload failed", error);
     } finally {
@@ -79,19 +62,8 @@ export function ChatInput({ conversationId }: ChatInputProps) {
     }
   };
   
-  const handleShareCalculation = (calculationId: string, calculationName: string) => {
-    if (!user || !firestore) return;
-    
-    const messageData = {
-      senderId: user.uid,
-      type: 'calculation' as const,
-      calculationId: calculationId,
-      createdAt: serverTimestamp(),
-      text: `Membagikan perhitungan: ${calculationName}` // Add text for context
-    };
-    
-    const messagesColRef = collection(firestore, 'chat_sessions', conversationId, 'messages');
-    addDocumentNonBlocking(messagesColRef, messageData);
+  const handleShareCalculation = (calculation: Calculation) => {
+    onSendMessage(undefined, undefined, calculation);
     setIsShareCalcOpen(false);
   };
 
@@ -113,7 +85,7 @@ export function ChatInput({ conversationId }: ChatInputProps) {
         />
         <Input
           {...form.register("text")}
-          placeholder="Ketik pesanmu..."
+          placeholder="Ketik pesanmu atau unggah file..."
           autoComplete="off"
         />
         <Button type="submit" size="icon">

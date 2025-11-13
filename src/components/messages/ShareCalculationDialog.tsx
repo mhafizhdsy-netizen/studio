@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState }from "react";
@@ -20,7 +21,7 @@ import { formatCurrency } from "@/lib/utils";
 interface ShareCalculationDialogProps {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
-    onShare: (calculationId: string, calculationName: string) => void;
+    onShare: (calculation: Calculation) => void;
 }
 
 export function ShareCalculationDialog({ isOpen, onOpenChange, onShare }: ShareCalculationDialogProps) {
@@ -43,7 +44,7 @@ export function ShareCalculationDialog({ isOpen, onOpenChange, onShare }: ShareC
     );
 
     const handleSelect = (calc: Calculation) => {
-        onShare(calc.id, calc.productName);
+        onShare(calc);
         onOpenChange(false);
         setSearchTerm("");
     }
@@ -53,7 +54,7 @@ export function ShareCalculationDialog({ isOpen, onOpenChange, onShare }: ShareC
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>Bagikan Perhitungan</DialogTitle>
-                    <DialogDescription>Pilih perhitungan HPP yang ingin Anda bagikan dalam obrolan.</DialogDescription>
+                    <DialogDescription>Pilih perhitungan HPP yang ingin Anda analisa bersama AI.</DialogDescription>
                 </DialogHeader>
                 <div className="py-2">
                     <Input 
@@ -97,5 +98,3 @@ export function ShareCalculationDialog({ isOpen, onOpenChange, onShare }: ShareC
         </Dialog>
     )
 }
-
-    

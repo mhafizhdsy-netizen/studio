@@ -18,7 +18,7 @@ import {
   Users,
   Shield,
   User as UserIcon,
-  MessageSquare,
+  Bot,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
@@ -89,6 +89,17 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/messages')}
+            >
+              <Link href="/messages">
+                <Bot />
+                Teman Bisnis AI
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
@@ -97,17 +108,6 @@ export function AppSidebar() {
               <Link href="/community">
                 <Users />
                 Komunitas
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/messages')}
-            >
-              <Link href="/messages">
-                <MessageSquare />
-                Chat Anonim
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -163,5 +163,3 @@ export function AppSidebar() {
     </>
   );
 }
-
-    

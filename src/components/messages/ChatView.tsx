@@ -1,96 +1,87 @@
 
 "use client";
 
-import { doc } from 'firebase/firestore';
 import { cn, formatCurrency } from "@/lib/utils";
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import type { Calculation } from "../dashboard/CalculationHistory";
-import { Loader2, Calculator, Info } from "lucide-react";
+import { Loader2, Calculator, Info, Bot, User } from "lucide-react";
 import Image from "next/image";
 import type { Timestamp } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
+import Markdown from 'react-markdown';
+
+export interface MessagePart {
+    text?: string;
+    media?: {
+        url: string;
+        contentType?: string;
+    };
+    data?: any;
+}
 
 export interface Message {
     id: string;
-    senderId: string;
-    type: 'text' | 'image' | 'calculation' | 'system';
-    text?: string;
-    mediaUrl?: string;
-    mediaName?: string;
-    calculationId?: string;
+    role: 'user' | 'model';
+    content: MessagePart[];
     createdAt: Timestamp;
 }
 
-export function ChatMessage({ message, isMe }: { message: Message, isMe: boolean }) {
+export function ChatMessage({ message, isUser }: { message: Message, isUser: boolean }) {
     
-    const renderContent = () => {
-        switch(message.type) {
-            case 'text':
-                return <p className="text-sm whitespace-pre-wrap">{message.text}</p>;
-            case 'image':
-                return (
-                    <a href={message.mediaUrl} target="_blank" rel="noopener noreferrer">
-                        <Image src={message.mediaUrl!} alt={message.mediaName || 'Gambar'} width={256} height={256} className="rounded-lg max-w-xs object-cover" />
-                    </a>
-                );
-            case 'calculation':
-                return <SharedCalculationCard calculationId={message.calculationId!} />;
-            case 'system':
-                return (
-                    <Alert className="bg-background/80 border-none">
-                        <Info className="h-4 w-4" />
-                        <AlertDescription>
-                            {message.text}
-                        </AlertDescription>
-                    </Alert>
-                );
-            default:
-                return null;
+    const renderContent = (part: MessagePart, index: number) => {
+        if (part.text) {
+             return <Markdown key={index} components={{
+                p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2" {...props} />,
+                ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2" {...props} />,
+                li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
+            }}>{part.text}</Markdown>
         }
-    }
-    
-    if (message.type === 'system') {
-        return (
-             <div className="text-center text-xs text-muted-foreground my-2">
-                {message.text}
-            </div>
-        )
+        if (part.media) {
+            return (
+                 <a href={part.media.url} target="_blank" rel="noopener noreferrer" key={index}>
+                    <Image src={part.media.url!} alt={'User upload'} width={256} height={256} className="rounded-lg max-w-xs object-cover mt-2" />
+                </a>
+            )
+        }
+        if (part.data?.type === 'calculation') {
+            return <SharedCalculationCard key={index} calculation={part.data} />;
+        }
+        return null;
     }
 
     return (
-        <div className={cn("flex items-end gap-2", isMe ? "justify-end" : "justify-start")}>
+        <div className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
+             {!isUser && (
+                <Avatar className="h-9 w-9 self-start">
+                    <AvatarImage src="/logo-ai.png" />
+                    <AvatarFallback><Bot /></AvatarFallback>
+                </Avatar>
+            )}
             <div className={cn(
-                "p-3 rounded-lg max-w-sm md:max-w-md", 
-                isMe ? "bg-primary text-primary-foreground" : "bg-muted"
+                "p-3 rounded-lg max-w-sm md:max-w-2xl", 
+                isUser ? "bg-primary text-primary-foreground" : "bg-muted"
             )}>
-                {renderContent()}
+                {message.content.map(renderContent)}
             </div>
+             {isUser && (
+                <Avatar className="h-9 w-9 self-start">
+                     {/* Placeholder for user avatar, you can replace it with actual user data */}
+                    <AvatarFallback><User /></AvatarFallback>
+                </Avatar>
+            )}
         </div>
     )
 }
 
-function SharedCalculationCard({ calculationId }: { calculationId: string }) {
-    const firestore = useFirestore();
-    
-    const calcDocRef = useMemoFirebase(() => {
-        if (!firestore || !calculationId) return null;
-        // Public calculations are readable by anyone.
-        return doc(firestore, 'public_calculations', calculationId);
-    }, [firestore, calculationId]);
-
-    const { data: calculation, isLoading } = useDoc<Calculation>(calcDocRef);
-    
-    if (isLoading) {
-        return <div className="flex items-center gap-2 p-2 rounded-lg bg-background/50 text-foreground"><Loader2 className="h-4 w-4 animate-spin"/> <p className="text-sm">Memuat perhitungan...</p></div>
-    }
-
+function SharedCalculationCard({ calculation }: { calculation: any }) {
     if (!calculation) {
-        return <div className="flex items-center gap-2 p-2 rounded-lg bg-background/50 text-destructive-foreground"><Calculator className="h-4 w-4"/> <p className="text-sm">Perhitungan tidak ditemukan atau tidak publik.</p></div>
+        return <div className="flex items-center gap-2 p-2 rounded-lg bg-background/50 text-destructive-foreground"><Calculator className="h-4 w-4"/> <p className="text-sm">Data perhitungan tidak valid.</p></div>
     }
 
     return (
-        <div className="p-3 rounded-lg bg-background/50 text-foreground w-64">
-            <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><Calculator className="h-3 w-3"/> Perhitungan Dibagikan</p>
+        <div className="p-3 rounded-lg bg-background/50 text-foreground w-64 mt-2">
+            <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1"><Calculator className="h-3 w-3"/> Perhitungan HPP Dibagikan</p>
             <p className="font-bold truncate mt-1">{calculation.productName}</p>
             <div className="text-xs mt-2 space-y-1">
                 <div className="flex justify-between">

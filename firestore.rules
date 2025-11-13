@@ -2,16 +2,9 @@
  * @fileoverview Firestore Security Rules for GenHPP application.
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for private data (user profiles and calculations),
- * while allowing public read access to shared calculations. Write access to public calculations is restricted
- * to authenticated users. The anonymous chat functionality is restricted to participants of a given session.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profiles, accessible only by the authenticated user with matching UID.
- * - /users/{userId}/calculations/{calcId}: Stores calculation history for each user, accessible only by the authenticated user with matching UID.
- * - /public_calculations/{calcId}: Stores publicly shared calculation data, readable by anyone, writable only by authenticated users.
- * - /chat_sessions/{sessionId}: Stores anonymous chat session data. Accessible only by participants.
- * - /chat_sessions/{sessionId}/messages/{messageId}: Stores messages for a chat. Accessible only by participants.
+ * This ruleset enforces a strict user-ownership model for private data (user profiles, calculations, and AI chat history).
+ * It allows public read access to shared calculations and community comments.
+ * Write access is generally restricted to authenticated owners of the data.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -26,6 +19,15 @@ service cloud.firestore {
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId) && resource != null;
+
+      /**
+       * @description Controls access to AI chat messages for a specific user.
+       * @path /users/{userId}/ai_conversations/{conversationId}/messages/{messageId}
+       */
+      match /ai_conversations/{conversationId}/messages/{messageId} {
+        allow read, list, create: if isOwner(userId);
+        allow update, delete: if false; // Messages are immutable for simplicity
+      }
     }
 
     /**
@@ -58,40 +60,12 @@ service cloud.firestore {
       }
     }
     
-    /**
-     * @description Controls access to anonymous chat sessions.
-     * @path /chat_sessions/{sessionId}
-     */
-    match /chat_sessions/{sessionId} {
-      // Anyone can query for pending sessions to join one.
-      allow list: if isSignedIn(); 
-      // Participants can get or update an existing session.
-      allow get, update: if isParticipant(sessionId);
-      // A user can create a new session if they are the only participant listed initially.
-      allow create: if isSignedIn()
-                    && request.resource.data.participantIds.hasOnly([request.auth.uid])
-                    && request.resource.data.status == 'pending';
-
-      /**
-       * @description Controls access to messages within a chat session.
-       * @path /chat_sessions/{sessionId}/messages/{messageId}
-       */
-      match /messages/{messageId} {
-          allow read, create: if isParticipant(sessionId);
-          allow update, delete: if false; // For simplicity
-      }
-    }
-
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isParticipant(sessionId) {
-      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_sessions/$(sessionId)).data.participantIds;
     }
   }
 }
