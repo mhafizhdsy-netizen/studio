@@ -15,7 +15,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      router.replace("/login");
+      // Jika tidak terautentikasi, arahkan ke halaman utama (landing page)
+      router.replace("/");
     }
   }, [user, isUserLoading, router]);
 

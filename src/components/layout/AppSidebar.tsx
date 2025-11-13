@@ -51,6 +51,7 @@ export function AppSidebar() {
     if(auth) {
         await auth.signOut();
     }
+    // Arahkan ke landing page setelah logout
     router.push('/');
   };
 

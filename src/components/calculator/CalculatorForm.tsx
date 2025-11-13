@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, sanitizeFileName } from "@/lib/utils";
 import { CostPieChart } from "./CostPieChart";
 import { Switch } from "@/components/ui/switch";
 import { ProfitAIAnalyst } from "./ProfitAIAnalyst";
@@ -144,9 +144,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     setIsUploading(true);
     setUploadProgress(0);
     
-    const fileExtension = file.name.split('.').pop();
-    const randomFileName = `${Math.random().toString(36).substring(2)}.${fileExtension}`;
-    const filePath = `public/product-images/${user.uid}/${calcIdRef.current}/${randomFileName}`;
+    const cleanFileName = sanitizeFileName(file.name);
+    const filePath = `public/product-images/${user.uid}/${calcIdRef.current}/${cleanFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (progress) => {
@@ -238,7 +237,9 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         delete (publicData as any).isPublic;
 
         setDocumentNonBlocking(publicCalcRef, publicData, { merge: true });
-    } else if (existingCalculation && existingCalculation.isPublic) {
+    } else if (existingCalculation?.isPublic) {
+        // Jika perhitungan sebelumnya publik dan sekarang tidak, hapus dari publik.
+        // Kita tidak akan menghapus file dari Supabase untuk kesederhanaan.
         deleteDocumentNonBlocking(publicCalcRef);
     }
 
@@ -304,16 +305,16 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
               </CardHeader>
               <CardContent className="space-y-4">
               {fields.map((field, index) => (
-                  <div key={field.id} className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-2 items-end p-3 rounded-md border">
+                  <div key={field.id} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end p-3 rounded-md border">
                       <div className="flex-grow">
                           <Label>Nama Bahan</Label>
                           <Input placeholder="cth: Kain Katun" {...form.register(`materials.${index}.name`)} />
                       </div>
-                      <div>
+                      <div className="w-full sm:w-32">
                           <Label>Biaya Satuan</Label>
                           <Input type="number" placeholder="Rp" {...form.register(`materials.${index}.cost`)} />
                       </div>
-                      <div>
+                      <div className="w-full sm:w-20">
                           <Label>Jumlah</Label>
                           <Input type="number" {...form.register(`materials.${index}.qty`)} />
                       </div>
@@ -486,5 +487,3 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
-
-    

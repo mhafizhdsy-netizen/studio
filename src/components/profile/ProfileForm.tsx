@@ -36,6 +36,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { sanitizeFileName } from "@/lib/utils";
 
 const profileFormSchema = z
   .object({
@@ -135,9 +136,8 @@ export function ProfileForm() {
     setIsUploading(true);
     setUploadProgress(0);
 
-    const fileExtension = file.name.split('.').pop();
-    const randomFileName = `${Math.random().toString(36).substring(2)}.${fileExtension}`;
-    const filePath = `public/profile-images/${user.uid}/${randomFileName}`;
+    const cleanFileName = sanitizeFileName(file.name);
+    const filePath = `public/profile-images/${user.uid}/${cleanFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(
@@ -266,7 +266,7 @@ export function ProfileForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="relative">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={photoURL || undefined} />
@@ -293,7 +293,7 @@ export function ProfileForm() {
                   disabled={isUploading || !supabase}
                 />
               </div>
-              <div className="flex-grow space-y-2">
+              <div className="flex-grow w-full space-y-2">
                  <FormField
                   control={form.control}
                   name="name"
@@ -387,5 +387,3 @@ export function ProfileForm() {
     </Card>
   );
 }
-
-    
