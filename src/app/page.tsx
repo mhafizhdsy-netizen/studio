@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BarChart, Bot, Calculator, History, Share2 } from "lucide-react";
+import { ArrowRight, BarChart, Bot, Calculator, History, Share2, DollarSign } from "lucide-react";
 import { placeholderImages } from "@/lib/placeholder-images";
 
 const heroImage = placeholderImages.find(p => p.id === "hero");
@@ -77,14 +77,19 @@ export default function LandingPage() {
               description="Masukkan semua biaya produksi, dari bahan baku sampai overhead. Biar GenHPP yang hitung totalnya."
             />
             <FeatureCard
-              icon={<BarChart className="h-8 w-8 text-primary" />}
-              title="Visualisasi Biaya"
-              description="Lihat rincian biaya dalam pie chart yang gampang dimengerti. Jadi tahu mana biaya paling besar."
+              icon={<DollarSign className="h-8 w-8 text-primary" />}
+              title="Kalkulator Harga Jual"
+              description="Tentukan harga jual ideal berdasarkan target profit dan hitung harga dasar sebelum PPN dengan mudah."
             />
              <FeatureCard
               icon={<Bot className="h-8 w-8 text-primary" />}
               title="Analisis Profit AI"
               description="Dapatkan strategi, saran efisiensi, dan benchmark harga pasar dari AI untuk memaksimalkan keuntunganmu."
+            />
+             <FeatureCard
+              icon={<BarChart className="h-8 w-8 text-primary" />}
+              title="Visualisasi Biaya"
+              description="Lihat rincian biaya dalam pie chart yang gampang dimengerti. Jadi tahu mana biaya paling besar."
             />
             <FeatureCard
               icon={<History className="h-8 w-8 text-primary" />}
