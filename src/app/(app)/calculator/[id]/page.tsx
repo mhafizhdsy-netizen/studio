@@ -1,7 +1,7 @@
 
 "use client";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { CalculatorForm } from "@/components/calculator/CalculatorForm";
 import { Loader2, ServerCrash } from "lucide-react";
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
@@ -26,17 +26,26 @@ export default function EditCalculatorPage() {
 
   useEffect(() => {
     if (userProfile?.isAdmin) {
-      // If admin, we need to find the owner of the calculation
-      // For simplicity now, we assume the edit page is for their own calcs
-      // or that ownerId will be provided. Let's fetch the public doc to get ownerId.
       const getOwner = async () => {
-        if (!firestore) return;
-        const publicDocRef = doc(firestore, 'public_calculations', id);
-        const publicDoc = await (await import('firebase/firestore')).getDoc(publicDocRef);
-        if (publicDoc.exists() && publicDoc.data()?.userId) {
-          setOwnerId(publicDoc.data()?.userId);
-        } else {
-           setOwnerId(user.uid); // Fallback to current user if not found in public
+        if (!firestore || !id || !user) return;
+        try {
+          const publicDocRef = doc(firestore, 'public_calculations', id);
+          const publicDoc = await getDoc(publicDocRef);
+          if (publicDoc.exists() && publicDoc.data()?.userId) {
+            setOwnerId(publicDoc.data()?.userId);
+          } else {
+            // Fallback: Check if it's the admin's own calculation
+            const adminCalcRef = doc(firestore, 'users', user.uid, 'calculations', id);
+            const adminCalcDoc = await getDoc(adminCalcRef);
+            if (adminCalcDoc.exists()) {
+              setOwnerId(user.uid);
+            } else {
+              setOwnerId(null); // Or handle 'not found' case
+            }
+          }
+        } catch (e) {
+            // If any error, assume it is admin's own calc for now
+            setOwnerId(user.uid);
         }
       };
       getOwner();
