@@ -44,6 +44,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import {
     AlertDialog,
@@ -906,5 +907,3 @@ export function AdminDashboard() {
     </Card>
   );
 }
-
-    
