@@ -33,10 +33,10 @@ import { Progress } from "../ui/progress";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { ProductDescriptionGenerator } from "./ProductDescriptionGenerator";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { moderateImage } from "@/ai/flows/image-moderation-flow";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Calculation } from "../dashboard/CalculationHistory";
+import { Button } from "../ui/button";
 
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
@@ -636,4 +636,3 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   );
 }
 
-    
