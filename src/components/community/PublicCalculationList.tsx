@@ -21,7 +21,7 @@ import { PublicCalculationDetailDialog } from "./PublicCalculationDetailDialog";
 import Image from "next/image";
 
 // PublicCalculation now includes the full breakdown
-export interface PublicCalculation extends Omit<Calculation, 'userId' | 'isPublic'> {
+export interface PublicCalculation extends Calculation {
     userName: string;
     userPhotoURL?: string;
     isFeatured?: boolean;

@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import type { PublicCalculation } from "../community/PublicCalculationList";
 
 export interface Calculation {
   id: string;
@@ -37,6 +38,9 @@ export interface Calculation {
   isPublic?: boolean;
   productQuantity: number;
   productionTips?: string;
+  // Fields from PublicCalculation that might be merged in some contexts
+  userName?: string;
+  userPhotoURL?: string;
 }
 
 export function CalculationHistory() {

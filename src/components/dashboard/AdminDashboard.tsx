@@ -32,6 +32,7 @@ import {
   Trash2,
   Pin,
   PinOff,
+  Edit,
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -53,6 +54,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import Link from 'next/link';
 
 interface UserProfile {
   id: string;
@@ -69,6 +71,7 @@ interface PublicCalculation {
   userName: string;
   isFeatured?: boolean;
   createdAt: any;
+  userId: string;
 }
 
 function StatCard({
@@ -372,6 +375,12 @@ function ContentManager() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
+                           <DropdownMenuItem asChild>
+                                <Link href={`/calculator/${calc.id}`}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
+                                </Link>
+                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
                               handleToggleFeature(calc.id, calc.isFeatured)
@@ -436,5 +445,3 @@ export function AdminDashboard() {
     </Card>
   );
 }
-
-    

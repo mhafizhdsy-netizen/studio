@@ -219,15 +219,13 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         totalHPP: result.totalHPP,
         suggestedPrice: result.suggestedPrice,
         isPublic: data.sharePublicly || false,
-        userId: user.uid,
+        userId: existingCalculation?.userId || user.uid,
         productQuantity: data.productQuantity,
         productionTips: data.productionTips || "",
     };
 
     // Main calculation document
-    const calcRef = existingCalculation
-        ? doc(firestore, 'users', user.uid, 'calculations', existingCalculation.id)
-        : doc(collection(firestore, 'users', user.uid, 'calculations'), calcIdRef.current);
+    const calcRef = doc(firestore, 'users', calculationData.userId, calcIdRef.current);
 
     const dataToSave = existingCalculation
         ? { ...calculationData, updatedAt: serverTimestamp() }
@@ -242,18 +240,15 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     if (data.sharePublicly) {
         const publicData: any = {
             ...calculationData,
-            userName: user.displayName || 'Anonymous',
-            userPhotoURL: user.photoURL || '',
+            userName: existingCalculation?.userName || user.displayName || 'Anonymous',
+            userPhotoURL: existingCalculation?.userPhotoURL || user.photoURL || '',
             createdAt: existingCalculation?.createdAt || serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
-        delete publicData.userId; 
         delete publicData.isPublic;
 
         setDocumentNonBlocking(publicCalcRef, publicData, { merge: true });
     } else if (existingCalculation?.isPublic) {
-        // Jika perhitungan sebelumnya publik dan sekarang tidak, hapus dari publik.
-        // Kita tidak akan menghapus file dari Supabase untuk kesederhanaan.
         deleteDocumentNonBlocking(publicCalcRef);
     }
 
@@ -559,5 +554,3 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
-
-    

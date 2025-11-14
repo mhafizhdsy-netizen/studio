@@ -139,6 +139,10 @@
           "type": "string",
           "description": "Unique identifier for the public calculation entity."
         },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the original User owner."
+        },
         "calculationId": {
           "type": "string",
           "description": "Reference to the original Calculation."
@@ -193,6 +197,7 @@
       },
       "required": [
         "id",
+        "userId",
         "calculationId",
         "productName",
         "totalHPP",
@@ -509,5 +514,3 @@
     "reasoning": "The Firestore structure is updated to support the AI Consultant feature by adding a new collection to store the chat history for each user."
   }
 }
-
-    
