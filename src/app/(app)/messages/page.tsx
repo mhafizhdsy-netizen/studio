@@ -95,7 +95,7 @@ export default function AnonymousChatPage() {
         if (!user) return;
         setIsFinding(true);
         setNotFound(false);
-
+    
         try {
             // Find a pending session from another user
             const { data: availableSession, error: findError } = await supabase
@@ -105,11 +105,9 @@ export default function AnonymousChatPage() {
                 .not('participantIds', 'cs', `{${user.id}}`) // Exclude my own pending sessions
                 .limit(1)
                 .single();
-            
-            if (findError && findError.code !== 'PGRST116') throw findError;
-
+    
+            // If a session is found, join it.
             if (availableSession) {
-                // Join existing session
                 const { data: updatedSession, error: updateError } = await supabase
                     .from('chat_sessions')
                     .update({
@@ -119,16 +117,20 @@ export default function AnonymousChatPage() {
                     .eq('id', availableSession.id)
                     .select()
                     .single();
-
-                if (updateError) throw updateError;
+    
+                if (updateError) throw updateError; // Rethrow if update fails
                 setSession(updatedSession);
             } else {
+                // This case handles both "no rows" and any other error during find.
+                // It correctly triggers the UI to show the 'wait or retry' options.
                 setNotFound(true);
             }
         } catch (error) {
-            console.error("Error finding chat:", error);
+            // The catch block now ensures any failure in the `try` block leads to the "not found" screen.
+            setNotFound(true);
+        } finally {
+            setIsFinding(false);
         }
-        setIsFinding(false);
     };
     
     const handleCreateAndWait = async () => {
@@ -265,5 +267,7 @@ export default function AnonymousChatPage() {
         </div>
     );
 }
+
+    
 
     
