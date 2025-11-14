@@ -3,4 +3,5 @@
 import './flows/profit-analysis-flow';
 import './flows/consultant-flow';
 import './flows/product-description-flow';
+import './flows/image-moderation-flow';
 

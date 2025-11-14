@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { sanitizeFileName } from "@/lib/utils";
+import { moderateImage } from "@/ai/flows/image-moderation-flow";
 
 const profileFormSchema = z
   .object({
@@ -85,6 +86,15 @@ const profileFormSchema = z
 
 type ProfileFormData = z.infer<typeof profileFormSchema>;
 
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
 export function ProfileForm() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
@@ -132,9 +142,27 @@ export function ProfileForm() {
     const file = e.target.files[0];
     const localUrl = URL.createObjectURL(file);
     setPhotoURL(localUrl); // Show preview immediately
-
     setIsUploading(true);
     setUploadProgress(0);
+
+    // Moderate image before upload
+    const imageDataUri = await fileToDataUri(file);
+    const moderationResult = await moderateImage({ imageDataUri });
+
+    if (!moderationResult.isSafe) {
+        toast({
+            title: "Gambar Tidak Sesuai",
+            description: moderationResult.reason || "Gambar yang Anda pilih melanggar pedoman komunitas kami.",
+            variant: "destructive",
+        });
+        setPhotoURL(user?.photoURL); // Revert to old photo
+        setIsUploading(false);
+        setUploadProgress(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""; // Reset file input
+        }
+        return;
+    }
 
     const cleanFileName = sanitizeFileName(file.name);
     const filePath = `public/profile-images/${user.uid}/${cleanFileName}`;

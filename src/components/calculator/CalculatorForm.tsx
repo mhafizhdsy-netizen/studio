@@ -26,7 +26,7 @@ import { Progress } from "../ui/progress";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { ProductDescriptionGenerator } from "./ProductDescriptionGenerator";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-
+import { moderateImage } from "@/ai/flows/image-moderation-flow";
 
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
@@ -70,6 +70,15 @@ const motivationalToasts = [
     { title: "Cuan is Coming! 💸", description: "Angkanya udah pas, bisnis auto-pilot!" },
     { title: "Jenius! 🧠", description: "Strategi hargamu udah di level pro! Lanjutkan!" },
 ];
+
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
 
 
 export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
@@ -149,10 +158,30 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     }
 
     const file = e.target.files[0];
+    
+    // Moderate image before upload
     const localUrl = URL.createObjectURL(file);
     setImageUrl(localUrl);
     setIsUploading(true);
     setUploadProgress(0);
+
+    const imageDataUri = await fileToDataUri(file);
+    const moderationResult = await moderateImage({ imageDataUri });
+
+    if (!moderationResult.isSafe) {
+        toast({
+            title: "Gambar Tidak Sesuai",
+            description: moderationResult.reason || "Gambar yang Anda pilih melanggar pedoman komunitas kami.",
+            variant: "destructive",
+        });
+        setImageUrl(existingCalculation?.productImageUrl || null);
+        setIsUploading(false);
+        setUploadProgress(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""; // Reset file input
+        }
+        return;
+    }
     
     const cleanFileName = sanitizeFileName(file.name);
     const filePath = `public/product-images/${user.uid}/${calcIdRef.current}/${cleanFileName}`;
@@ -244,6 +273,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
             userPhotoURL: existingCalculation?.userPhotoURL || user.photoURL || '',
             createdAt: existingCalculation?.createdAt || serverTimestamp(),
             updatedAt: serverTimestamp(),
+            userId: user.uid, // Explicitly add userId to public calc
         };
         delete publicData.isPublic;
 

@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { sanitizeFileName } from "@/lib/utils";
+import { moderateImage } from "@/ai/flows/image-moderation-flow";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nama minimal 2 karakter." }),
@@ -40,6 +41,15 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
       <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574l6.19,5.238C42.022,35.788,44,30.038,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
     </svg>
 );
+
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
 
 export function SignupForm() {
   const { toast } = useToast();
@@ -62,9 +72,26 @@ export function SignupForm() {
     },
   });
   
-  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+       
+      // Moderate image before setting it
+      const imageDataUri = await fileToDataUri(file);
+      const moderationResult = await moderateImage({ imageDataUri });
+
+      if (!moderationResult.isSafe) {
+          toast({
+              title: "Gambar Tidak Sesuai",
+              description: moderationResult.reason || "Gambar yang Anda pilih melanggar pedoman komunitas kami.",
+              variant: "destructive",
+          });
+          if (fileInputRef.current) {
+            fileInputRef.current.value = ""; // Reset file input
+          }
+          return;
+      }
+      
       setPhotoFile(file);
       setPhotoPreview(URL.createObjectURL(file));
     }

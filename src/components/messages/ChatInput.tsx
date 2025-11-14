@@ -12,6 +12,8 @@ import { Send, Paperclip, Loader2, Calculator } from "lucide-react";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { ShareCalculationDialog } from "./ShareCalculationDialog";
 import type { Calculation } from "../dashboard/CalculationHistory";
+import { moderateImage } from "@/ai/flows/image-moderation-flow";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   text: z.string(),
@@ -22,8 +24,18 @@ interface ChatInputProps {
   disabled?: boolean;
 }
 
+const fileToDataUri = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
 export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
   const { user } = useUser();
+  const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [isShareCalcOpen, setIsShareCalcOpen] = useState(false);
 
@@ -46,6 +58,24 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
 
     setIsUploading(true);
     const file = e.target.files[0];
+    
+    // Moderate image before upload
+    const imageDataUri = await fileToDataUri(file);
+    const moderationResult = await moderateImage({ imageDataUri });
+
+    if (!moderationResult.isSafe) {
+        toast({
+            title: "Gambar Tidak Sesuai",
+            description: moderationResult.reason || "Gambar yang Anda kirim melanggar pedoman komunitas.",
+            variant: "destructive",
+        });
+        setIsUploading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        return;
+    }
+
     const fileExtension = file.name.split('.').pop();
     const randomFileName = `${Math.random().toString(36).substring(2)}.${fileExtension}`;
     const filePath = `public/chat-files/anonymous_chat/${user.uid}/${Date.now()}-${randomFileName}`;
@@ -55,8 +85,16 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
         onSendMessage(undefined, downloadUrl);
     } catch (error) {
         console.error("File upload failed", error);
+        toast({
+            title: "Gagal Mengunggah",
+            description: "Gagal mengunggah gambar. Coba lagi nanti.",
+            variant: "destructive",
+        });
     } finally {
         setIsUploading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
     }
   };
   
@@ -99,5 +137,3 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
     </>
   );
 }
-
-    
