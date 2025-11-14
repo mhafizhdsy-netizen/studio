@@ -1,121 +1,76 @@
-/**
- * @fileoverview Firestore Security Rules for HitunginAja application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for private data (user profiles, calculations).
- * It allows public read access to shared calculations and community comments.
- * It manages access to anonymous chat sessions based on participation.
- * Write access is generally restricted to authenticated owners of the data.
- */
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
 
-    /**
-     * @description Controls access to user profiles.
-     * @path /users/{userId}
-     */
-    match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { Loader2, ServerCrash } from "lucide-react";
+import { useAuth } from "@/supabase/auth-provider";
+import { supabase } from "@/lib/supabase";
+import { CalculatorForm } from "@/components/calculator/CalculatorForm";
+import type { Calculation } from "@/components/dashboard/CalculationHistory";
+
+export default function EditCalculatorPage() {
+  const params = useParams();
+  const id = params.id as string;
+  const { user } = useAuth();
+  const [calculation, setCalculation] = useState<Calculation | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCalculation = async () => {
+      if (!user || !id) return;
       
-      /**
-       * @description Controls access to AI consultant chat history.
-       * @path /users/{userId}/ai_consultant_history/{messageId}
-       */
-      match /ai_consultant_history/{messageId} {
-        allow read, write: if isOwner(userId);
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { data, error } = await supabase
+          .from("calculations")
+          .select("*")
+          .eq("id", id)
+          .eq("userId", user.id)
+          .single();
+
+        if (error) {
+          throw new Error(error.message);
+        }
+        setCalculation(data);
+      } catch (e: any) {
+        console.error("Error fetching calculation for edit:", e);
+        setError(e.message || "Gagal memuat data.");
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+    fetchCalculation();
+  }, [id, user]);
 
-    /**
-     * @description Controls access to calculation history for each user.
-     * @path /users/{userId}/calculations/{calcId}
-     */
-    match /users/{userId}/calculations/{calcId} {
-      // Only the owner of the user document can manage their own calculations.
-      allow read, list, create, update, delete: if isOwner(userId);
-    }
-    
-    /**
-     * @description Controls access to user expenses.
-     * @path /users/{userId}/expenses/{expenseId}
-     */
-    match /users/{userId}/expenses/{expenseId} {
-      allow read, list, create, update, delete: if isOwner(userId);
-    }
-    
-    /**
-     * @description Controls access to user reports.
-     * @path /users/{userId}/reports/{reportId}
-     */
-    match /users/{userId}/reports/{reportId} {
-       allow read, list, create, update, delete: if isOwner(userId);
-    }
-
-    /**
-     * @description Controls access to publicly shared calculations.
-     * @path /public_calculations/{calcId}
-     */
-    match /public_calculations/{calcId} {
-      allow get, list: if true;
-      // CREATE: Allow if the user is the owner of the data they are creating.
-      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
-      // UPDATE: Admins can feature content. Owners can update their own content.
-      allow update: if isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
-      // DELETE: Can be deleted by the owner or an admin.
-      allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
-      
-      /**
-       * @description Controls access to comments on public calculations.
-       * @path /public_calculations/{calcId}/comments/{commentId}
-       */
-      match /comments/{commentId} {
-        allow read, list: if true;
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update: if false; 
-        allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
-      }
-    }
-    
-    /**
-     * @description Controls access to anonymous chat sessions.
-     * @path /chat_sessions/{sessionId}
-     */
-    match /chat_sessions/{sessionId} {
-      allow list: if isSignedIn();
-      allow get: if isParticipant(sessionId);
-      allow create: if isSignedIn() && request.resource.data.participantIds.hasOnly([request.auth.uid]) && request.resource.data.status == 'pending';
-      allow update: if isParticipant(sessionId);
-
-      /**
-       * @description Controls access to messages within a chat session.
-       * @path /chat_sessions/{sessionId}/messages/{messageId}
-       */
-      match /messages/{messageId} {
-        allow read, list, create: if isParticipant(sessionId);
-        allow update, delete: if false; // Messages are immutable
-      }
-    }
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      // Check for admin status on the user's document in Firestore.
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-
-    function isParticipant(sessionId) {
-      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_sessions/$(sessionId)).data.participantIds;
-    }
-  }
+  return (
+    <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+      <div className="flex items-center">
+        <h1 className="text-lg font-semibold md:text-2xl font-headline">
+          Edit Perhitungan HPP
+        </h1>
+      </div>
+      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm p-4 lg:p-6">
+        {isLoading ? (
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center text-center w-full h-full">
+            <ServerCrash className="h-12 w-12 text-destructive mb-4" />
+            <p className="font-semibold text-lg">Oops, ada masalah!</p>
+            <p className="text-muted-foreground">
+              Gagal memuat data perhitungan. Mungkin Anda tidak punya akses atau
+              data tidak ada.
+            </p>
+          </div>
+        ) : calculation ? (
+          <CalculatorForm existingCalculation={calculation} />
+        ) : (
+          <p>Perhitungan tidak ditemukan.</p>
+        )}
+      </div>
+    </main>
+  );
 }
