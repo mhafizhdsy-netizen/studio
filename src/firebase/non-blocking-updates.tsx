@@ -9,8 +9,8 @@ import {
   DocumentReference,
   SetOptions,
 } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import {FirestorePermissionError} from '@/firebase/errors';
+import { errorEmitter } from '@/lib/error-emitter';
+import {FirestorePermissionError} from '@/lib/errors';
 
 /**
  * Initiates a setDoc operation for a document reference.
@@ -87,3 +87,5 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
       )
     });
 }
+
+    

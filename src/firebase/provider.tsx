@@ -161,7 +161,13 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
   const memoized = useMemo(factory, deps);
   
   if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
+  if (!('__memo' in (memoized as any))) {
+      Object.defineProperty(memoized, '__memo', {
+        value: true,
+        writable: false,
+        enumerable: false,
+      });
+  }
   
   return memoized;
 }
@@ -175,3 +181,5 @@ export const useUser = (): UserHookResult => { // Renamed from useAuthUser
   const { user, isUserLoading, userError } = useFirebase(); // Leverages the main hook
   return { user, isUserLoading, userError };
 };
+
+    

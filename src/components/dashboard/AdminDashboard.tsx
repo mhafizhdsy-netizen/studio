@@ -3,7 +3,8 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { FirestorePermissionError, errorEmitter } from '@/lib/errors';
 import {
   collection,
   doc,
@@ -690,3 +691,5 @@ export function AdminDashboard() {
     </Card>
   );
 }
+
+    
