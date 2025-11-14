@@ -5,11 +5,12 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/supabase/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Loader2, MessageSquare, Send, UsersRound, Search } from "lucide-react";
+import { Loader2, MessageSquare, Send, UsersRound, Search, X } from "lucide-react";
 import { ChatInput } from "@/components/messages/ChatInput";
 import { ChatView, type Message } from "@/components/messages/ChatView";
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface ChatSession {
     id: string;
@@ -24,6 +25,7 @@ export default function AnonymousChatPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isFinding, setIsFinding] = useState(false);
     const [notFound, setNotFound] = useState(false);
+    const [replyTo, setReplyTo] = useState<Message | null>(null);
 
     // Subscribe to session and message changes
     useEffect(() => {
@@ -155,11 +157,24 @@ export default function AnonymousChatPage() {
 
     const handleSendMessage = async (text?: string, imageUrl?: string, calculation?: Calculation) => {
         if (!user || !session) return;
+        
+        let content: any = { text, imageUrl, calculation };
+        
+        if (replyTo) {
+            content.replyTo = {
+                messageId: replyTo.id,
+                text: replyTo.content.text || (replyTo.content.imageUrl ? 'Gambar' : 'Perhitungan'),
+                senderId: replyTo.senderId,
+            };
+        }
+
         await supabase.from('chat_messages').insert({
             senderId: user.id,
             sessionId: session.id,
-            content: { text, imageUrl, calculation }
+            content: content
         });
+
+        setReplyTo(null); // Clear reply state after sending
     };
 
     const handleEndChat = async () => {
@@ -168,6 +183,7 @@ export default function AnonymousChatPage() {
         setSession(null);
         setMessages([]);
         setNotFound(false);
+        setReplyTo(null);
     };
     
     if (isLoading) {
@@ -175,6 +191,7 @@ export default function AnonymousChatPage() {
     }
 
     if (session) {
+        const otherParticipantName = session.participantIds.length > 1 ? `Teman Ngobrol` : '...';
         return (
             <div className="flex flex-col h-full">
                 <header className="p-4 border-b flex items-center justify-between">
@@ -187,9 +204,29 @@ export default function AnonymousChatPage() {
                     <Button variant="destructive" size="sm" onClick={handleEndChat}>Akhiri Obrolan</Button>
                 </header>
                 <div className="flex-1 p-4 overflow-y-auto">
-                    <ChatView messages={messages || []} currentUser={user} />
+                    <ChatView messages={messages || []} currentUser={user} onReply={setReplyTo} />
                 </div>
                 <footer className="p-4 border-t">
+                    {replyTo && (
+                        <Card className="mb-2 p-2 relative bg-muted/50">
+                            <CardContent className="p-1 text-sm">
+                                <p className="font-semibold text-xs text-primary">
+                                    Membalas {replyTo.senderId === user?.id ? 'diri sendiri' : otherParticipantName}
+                                </p>
+                                <p className="text-muted-foreground truncate">
+                                    {replyTo.content.text || (replyTo.content.imageUrl ? 'Gambar' : 'Perhitungan')}
+                                </p>
+                            </CardContent>
+                             <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-1 right-1 h-6 w-6"
+                                onClick={() => setReplyTo(null)}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </Card>
+                    )}
                     <ChatInput onSendMessage={handleSendMessage} disabled={session.status === 'pending'} />
                 </footer>
             </div>
@@ -228,3 +265,5 @@ export default function AnonymousChatPage() {
         </div>
     );
 }
+
+    
