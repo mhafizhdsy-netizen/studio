@@ -43,7 +43,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '../ui/dropdown-menu';
 import {
@@ -576,23 +575,27 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
     
         setIsSendingReply(true);
 
-        const notifications = [{
+        const notification = {
             userId: selectedReport.reporter.id,
             type: 'report_reply' as const,
             title: 'Tanggapan Laporan Anda',
             content: replyMessage,
             referenceId: selectedReport.id,
-        }];
+        };
 
-        const { error: rpcError } = await supabase.rpc('send_broadcast_notifications', {
-           notifications_data: notifications,
+        const response = await fetch('/api/send-admin-notification', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify([notification]),
         });
-
-        if (rpcError) {
-            console.error("Error sending reply via RPC:", rpcError);
+        
+        if (!response.ok) {
+            const result = await response.json().catch(() => ({error: 'Gagal memparsing respons server.'}));
             toast({
                 title: "Gagal Mengirim Balasan",
-                description: rpcError.message || "Terjadi kesalahan. Silakan coba lagi.",
+                description: result.error || "Terjadi kesalahan. Silakan coba lagi.",
                 variant: "destructive",
             });
         } else {
@@ -908,3 +911,4 @@ export function AdminDashboard() {
   );
 }
 
+    
