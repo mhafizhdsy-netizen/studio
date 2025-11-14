@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { FirestorePermissionError, errorEmitter } from '@/firebase/errors';
+import { FirestorePermissionError, errorEmitter } from '@/lib/errors';
 import {
   collection,
   doc,
@@ -493,9 +493,9 @@ function AnalyticsManager() {
     // This query is now just the base query. We'll add comment counts manually.
     const publicCalcsQuery = useMemoFirebase(
       () => (firestore ? query(collection(firestore, 'public_calculations'), orderBy('createdAt', 'desc')) : null),
-      [firestore]
+      [firestore, refreshKey]
     );
-    const { data: publicCalcs, isLoading: publicCalcsLoading } = useCollection<PublicCalculation>(publicCalcsQuery, refreshKey);
+    const { data: publicCalcs, isLoading: publicCalcsLoading } = useCollection<PublicCalculation>(publicCalcsQuery);
 
 
     useEffect(() => {
