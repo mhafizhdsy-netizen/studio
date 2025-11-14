@@ -26,6 +26,9 @@ import {
   PinOff,
   Trash2,
   AlertTriangle,
+  Send,
+  Construction,
+  Rocket,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
@@ -53,9 +56,21 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter
+} from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
+import { Textarea } from '../ui/textarea';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
+import { useQuery } from '@tanstack/react-query';
 
 // Interfaces
 interface UserProfile {
@@ -98,6 +113,16 @@ interface Report {
         id: string;
         name: string;
     };
+}
+
+interface SiteStatus {
+    id: number;
+    isMaintenanceMode: boolean;
+    maintenanceTitle: string | null;
+    maintenanceMessage: string | null;
+    isUpdateMode: boolean;
+    updateTitle: string | null;
+    updateMessage: string | null;
 }
 
 
@@ -168,23 +193,10 @@ function AdminStats({ users, calculations }: { users: UserProfile[] | null, calc
     );
 }
 
-function UserManager() {
+function UserManager({ users, isLoading, onRefresh }: { users: UserProfile[] | null, isLoading: boolean, onRefresh: () => void }) {
   const { toast } = useToast();
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [action, setAction] = useState<'suspend' | 'ban' | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-
-  const fetchUsers = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase.from('users').select('*').order('createdAt', { ascending: false });
-      if (data) setUsers(data as any);
-      setIsLoading(false);
-  }
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const handleToggleAdmin = async (user: UserProfile) => {
     const newIsAdmin = !user.user_metadata.isAdmin;
@@ -198,7 +210,7 @@ function UserManager() {
       toast({ title: 'Gagal', description: 'Gagal memperbarui status admin.', variant: 'destructive' });
     } else {
       toast({ title: 'Sukses!', description: `Status admin pengguna telah diperbarui.` });
-      fetchUsers();
+      onRefresh();
     }
   };
 
@@ -211,7 +223,7 @@ function UserManager() {
       toast({ title: 'Gagal', description: 'Gagal memperbarui status penangguhan.', variant: 'destructive' });
     } else {
       toast({ title: 'Sukses!', description: `Status penangguhan pengguna telah diperbarui.` });
-      fetchUsers();
+      onRefresh();
     }
     closeDialog();
   };
@@ -223,7 +235,7 @@ function UserManager() {
       toast({ title: 'Gagal', description: 'Gagal memblokir pengguna secara permanen.', variant: 'destructive' });
     } else {
       toast({ title: 'Sukses!', description: `Pengguna telah diblokir permanen.` });
-      fetchUsers();
+      onRefresh();
     }
     closeDialog();
   };
@@ -503,9 +515,12 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
   );
 }
 
-function ReportsManager() {
+function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isReplying, setIsReplying] = useState(false);
+    const [replyingReport, setReplyingReport] = useState<Report | null>(null);
+    const [replyContent, setReplyContent] = useState('');
     const { toast } = useToast();
 
     const fetchReports = async () => {
@@ -531,7 +546,7 @@ function ReportsManager() {
 
     useEffect(() => {
         fetchReports();
-    }, []);
+    }, [onRefresh]);
 
     const updateReportStatus = async (reportId: string, status: 'resolved' | 'dismissed') => {
         const { error } = await supabase
@@ -546,6 +561,29 @@ function ReportsManager() {
             fetchReports();
         }
     };
+    
+    const handleSendReply = async () => {
+        if (!replyingReport || !replyContent) return;
+        setIsReplying(true);
+        
+        const { error } = await supabase.from('notifications').insert({
+            userId: replyingReport.reporter.id,
+            type: 'report_reply',
+            title: `Balasan untuk Laporan Anda: "${replyingReport.calculation.productName}"`,
+            content: replyContent,
+            referenceId: replyingReport.id,
+        });
+
+        if (error) {
+            toast({ title: 'Gagal mengirim balasan', variant: 'destructive' });
+        } else {
+            toast({ title: 'Balasan berhasil dikirim.' });
+            await updateReportStatus(replyingReport.id, 'resolved');
+            setReplyingReport(null);
+            setReplyContent('');
+        }
+        setIsReplying(false);
+    }
 
     const getStatusBadge = (status: Report['status']) => {
         switch (status) {
@@ -556,6 +594,7 @@ function ReportsManager() {
     }
 
     return (
+      <>
         <Card>
             <CardHeader>
                 <CardTitle>Laporan Konten</CardTitle>
@@ -570,6 +609,7 @@ function ReportsManager() {
                             <TableRow>
                                 <TableHead>Produk Dilaporkan</TableHead>
                                 <TableHead>Kategori</TableHead>
+                                <TableHead>Alasan</TableHead>
                                 <TableHead>Pelapor</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Aksi</TableHead>
@@ -583,6 +623,7 @@ function ReportsManager() {
                                         <div className="text-xs text-muted-foreground">oleh {report.reported.name}</div>
                                     </TableCell>
                                     <TableCell><Badge variant="destructive">{report.category}</Badge></TableCell>
+                                    <TableCell className="max-w-xs truncate">{report.reason}</TableCell>
                                     <TableCell>{report.reporter.name}</TableCell>
                                     <TableCell>{getStatusBadge(report.status)}</TableCell>
                                     <TableCell className="text-right">
@@ -591,10 +632,10 @@ function ReportsManager() {
                                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => updateReportStatus(report.id, 'resolved')}>
-                                                    <ShieldCheck className="mr-2 h-4 w-4" /> Tandai Selesai
+                                                <DropdownMenuItem onClick={() => setReplyingReport(report)} disabled={report.status !== 'pending'}>
+                                                    <Send className="mr-2 h-4 w-4" /> Balas & Selesaikan
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => updateReportStatus(report.id, 'dismissed')}>
+                                                <DropdownMenuItem onClick={() => updateReportStatus(report.id, 'dismissed')} disabled={report.status !== 'pending'}>
                                                     <ShieldX className="mr-2 h-4 w-4" /> Tolak Laporan
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
@@ -607,26 +648,164 @@ function ReportsManager() {
                 )}
             </CardContent>
         </Card>
-    );
-}
-
-function AnalyticsManager({ users, calculations }: { users: UserProfile[] | null, calculations: PublicCalculation[] | null }) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Analitik Aplikasi</CardTitle>
-                <CardDescription>Ringkasan aktivitas dan pertumbuhan platform.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                 <AdminStats users={users} calculations={calculations} />
-                 <div className="text-center text-muted-foreground py-8 mt-4">
-                    <p>Halaman analitik yang lebih detail sedang dalam pengembangan.</p>
+        <Dialog open={!!replyingReport} onOpenChange={(open) => !open && setReplyingReport(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Balas Laporan</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div>
+                        <Label>Pesan untuk {replyingReport?.reporter.name}</Label>
+                        <Textarea 
+                            value={replyContent}
+                            onChange={(e) => setReplyContent(e.target.value)}
+                            placeholder="Contoh: Terima kasih atas laporan Anda. Konten telah kami tinjau dan hapus."
+                        />
+                    </div>
                 </div>
-            </CardContent>
-        </Card>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => setReplyingReport(null)}>Batal</Button>
+                    <Button onClick={handleSendReply} disabled={isReplying}>
+                        {isReplying && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Kirim Balasan
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     );
 }
 
+function SiteStatusManager() {
+    const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
+    const { data: status, isLoading: isStatusLoading, refetch } = useQuery<SiteStatus>({
+        queryKey: ['siteStatus'],
+        queryFn: async () => {
+            const { data, error } = await supabase.from('site_status').select('*').eq('id', 1).single();
+            if (error) throw error;
+            return data;
+        }
+    });
+
+    const [maintenance, setMaintenance] = useState({ title: '', message: '' });
+    const [update, setUpdate] = useState({ title: '', message: '' });
+    const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
+    const [isUpdateMode, setIsUpdateMode] = useState(false);
+    const [broadcast, setBroadcast] = useState({ title: '', message: '' });
+
+    useEffect(() => {
+        if (status) {
+            setMaintenance({ title: status.maintenanceTitle || '', message: status.maintenanceMessage || '' });
+            setUpdate({ title: status.updateTitle || '', message: status.updateMessage || '' });
+            setIsMaintenanceMode(status.isMaintenanceMode);
+            setIsUpdateMode(status.isUpdateMode);
+        }
+    }, [status]);
+    
+    const handleSaveStatus = async () => {
+        setIsLoading(true);
+        const { error } = await supabase.from('site_status').update({
+            isMaintenanceMode,
+            maintenanceTitle: maintenance.title,
+            maintenanceMessage: maintenance.message,
+            isUpdateMode,
+            updateTitle: update.title,
+            updateMessage: update.message,
+            updatedAt: new Date().toISOString()
+        }).eq('id', 1);
+
+        if (error) {
+            toast({ title: 'Gagal menyimpan status', variant: 'destructive' });
+        } else {
+            toast({ title: 'Status situs berhasil diperbarui' });
+            refetch();
+        }
+        setIsLoading(false);
+    };
+
+    const handleSendBroadcast = async () => {
+        if (!broadcast.title || !broadcast.message) {
+            toast({ title: 'Judul dan pesan siaran tidak boleh kosong', variant: 'destructive' });
+            return;
+        }
+        setIsLoading(true);
+        const { data: users } = await supabase.from('users').select('id');
+        if (users) {
+            const notifications = users.map(user => ({
+                userId: user.id,
+                type: 'general',
+                title: broadcast.title,
+                content: broadcast.message,
+            }));
+            const { error } = await supabase.from('notifications').insert(notifications);
+             if (error) {
+                toast({ title: 'Gagal mengirim siaran', variant: 'destructive' });
+            } else {
+                toast({ title: 'Pesan siaran berhasil dikirim ke semua pengguna' });
+                setBroadcast({ title: '', message: '' });
+            }
+        }
+        setIsLoading(false);
+    };
+
+    if (isStatusLoading) {
+        return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>
+    }
+
+    return (
+        <div className="grid lg:grid-cols-2 gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className='flex items-center gap-2'><Construction/>Mode Perbaikan</CardTitle>
+                    <CardDescription>Alihkan semua pengguna ke halaman perbaikan jika diaktifkan.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <Switch id="maintenance-mode" checked={isMaintenanceMode} onCheckedChange={setIsMaintenanceMode} />
+                        <Label htmlFor="maintenance-mode">Aktifkan Mode Perbaikan</Label>
+                    </div>
+                     <Input value={maintenance.title} onChange={e => setMaintenance(p => ({ ...p, title: e.target.value }))} placeholder="Judul Halaman Perbaikan"/>
+                     <Textarea value={maintenance.message} onChange={e => setMaintenance(p => ({ ...p, message: e.target.value }))} placeholder="Pesan yang akan ditampilkan..."/>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle className='flex items-center gap-2'><Rocket/>Mode Pembaruan</CardTitle>
+                    <CardDescription>Alihkan semua pengguna ke halaman pengumuman pembaruan.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                        <Switch id="update-mode" checked={isUpdateMode} onCheckedChange={setIsUpdateMode} />
+                        <Label htmlFor="update-mode">Aktifkan Mode Pembaruan</Label>
+                    </div>
+                     <Input value={update.title} onChange={e => setUpdate(p => ({ ...p, title: e.target.value }))} placeholder="Judul Halaman Pembaruan"/>
+                     <Textarea value={update.message} onChange={e => setUpdate(p => ({ ...p, message: e.target.value }))} placeholder="Jelaskan fitur baru atau pembaruan..."/>
+                </CardContent>
+            </Card>
+             <div className="lg:col-span-2">
+                <Button onClick={handleSaveStatus} className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    Simpan Status Situs
+                </Button>
+            </div>
+            <Card className="lg:col-span-2">
+                <CardHeader>
+                    <CardTitle>Kirim Siaran ke Semua Pengguna</CardTitle>
+                    <CardDescription>Kirim pesan yang akan muncul di Kotak Masuk semua pengguna.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <Input value={broadcast.title} onChange={e => setBroadcast(p => ({ ...p, title: e.target.value }))} placeholder="Judul Pesan Siaran"/>
+                     <Textarea value={broadcast.message} onChange={e => setBroadcast(p => ({ ...p, message: e.target.value }))} placeholder="Isi pesan siaran..."/>
+                     <Button onClick={handleSendBroadcast} disabled={isLoading}>
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Kirim Siaran
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    )
+}
 
 export function AdminDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -643,7 +822,6 @@ export function AdminDashboard() {
         ]);
         
         if (usersRes.data) setUsers(usersRes.data as any);
-
         if (calcsRes.data) setCalculations(calcsRes.data as any);
         
         setIsLoading(false);
@@ -651,6 +829,7 @@ export function AdminDashboard() {
     fetchAllData();
   }, [refreshKey]);
 
+  const handleRefresh = () => setRefreshKey(k => k + 1);
 
   return (
     <Card className="mb-6 border-accent/50 bg-accent/10">
@@ -665,30 +844,32 @@ export function AdminDashboard() {
       </CardHeader>
       <CardContent className="space-y-6">
         <Tabs defaultValue="analytics">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="analytics">Analitik</TabsTrigger>
             <TabsTrigger value="users">Pengguna</TabsTrigger>
             <TabsTrigger value="content">Konten</TabsTrigger>
-            <TabsTrigger value="reports">
-                <div className='flex items-center gap-2'>
-                    <AlertTriangle className='h-4 w-4'/> Laporan
-                </div>
-            </TabsTrigger>
+            <TabsTrigger value="reports">Laporan</TabsTrigger>
+            <TabsTrigger value="site">Status Situs</TabsTrigger>
           </TabsList>
           <TabsContent value="analytics" className="mt-4">
-            <AnalyticsManager users={users} calculations={calculations} />
+            <AdminStats users={users} calculations={calculations} />
           </TabsContent>
           <TabsContent value="users" className="mt-4">
-            <UserManager />
+            <UserManager users={users} isLoading={isLoading} onRefresh={handleRefresh} />
           </TabsContent>
           <TabsContent value="content" className="mt-4">
-            <ContentManager calculations={calculations} isLoading={isLoading} onRefresh={() => setRefreshKey(k => k + 1)}/>
+            <ContentManager calculations={calculations} isLoading={isLoading} onRefresh={handleRefresh}/>
           </TabsContent>
            <TabsContent value="reports" className="mt-4">
-            <ReportsManager />
+            <ReportsManager onRefresh={handleRefresh} />
+          </TabsContent>
+          <TabsContent value="site" className="mt-4">
+            <SiteStatusManager />
           </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
   );
 }
+
+    

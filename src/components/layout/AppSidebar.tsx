@@ -26,6 +26,7 @@ import {
   Landmark,
   Wand2,
   Shield,
+  Mail,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/supabase/auth-provider';
@@ -65,6 +66,22 @@ export function AppSidebar() {
     checkAdmin();
   }, [user]);
 
+  const { data: unreadCount } = useQuery({
+    queryKey: ['unreadNotifications', user?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('userId', user!.id)
+        .eq('isRead', false);
+      if (error) return 0;
+      return count;
+    },
+    enabled: !!user,
+    refetchInterval: 60000, // Refetch every 60 seconds
+  });
+
+
   const handleSignOut = async () => {
     await signOut();
     router.push('/');
@@ -102,6 +119,22 @@ export function AppSidebar() {
               <Link href="/dashboard">
                 <LayoutDashboard />
                 Dashboard
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/inbox')}
+            >
+              <Link href="/inbox" className='relative'>
+                <Mail />
+                Kotak Masuk
+                {unreadCount && unreadCount > 0 && (
+                   <span className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                    {unreadCount}
+                   </span>
+                )}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -271,3 +304,5 @@ export function AppSidebar() {
     </>
   );
 }
+
+    

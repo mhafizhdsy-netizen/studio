@@ -288,6 +288,40 @@
         },
         "required": ["id", "calculationId", "reporterUserId", "reportedUserId", "category", "status", "createdAt"]
     },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a message or notification sent to a user from an admin.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string", "description": "FK to the users table. If NULL, it's a global notification for all users." },
+        "type": { "type": "string", "enum": ["report_reply", "update", "maintenance", "general"] },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "isRead": { "type": "boolean", "default": false },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "referenceId": { "type": "string", "description": "Can store relevant IDs, e.g., the report ID for a reply." }
+      },
+      "required": ["id", "type", "title", "content", "createdAt"]
+    },
+    "SiteStatus": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SiteStatus",
+      "type": "object",
+      "description": "A singleton entity to control site-wide status like maintenance mode.",
+      "properties": {
+        "id": { "type": "integer", "const": 1 },
+        "isMaintenanceMode": { "type": "boolean" },
+        "maintenanceTitle": { "type": "string" },
+        "maintenanceMessage": { "type": "string" },
+        "isUpdateMode": { "type": "boolean" },
+        "updateTitle": { "type": "string" },
+        "updateMessage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id"]
+    },
     "ChatSession": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChatSession",
@@ -467,6 +501,18 @@
         }
       },
       {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": { "$ref": "#/backend/entities/Notification" },
+          "description": "Stores notifications for a specific user. Only the user can read/update their own notifications.",
+          "params": [
+            { "name": "userId", "description": "The Firebase Auth UID of the user." },
+            { "name": "notificationId", "description": "The unique ID of the notification." }
+          ]
+        }
+      },
+      {
         "path": "/public_calculations/{calcId}",
         "definition": {
           "entityName": "PublicCalculation",
@@ -510,6 +556,17 @@
           "description": "Stores user-submitted content reports. Only admins can read. Authenticated users can create.",
           "params": [
             { "name": "reportId", "description": "The unique ID of the report." }
+          ]
+        }
+      },
+      {
+        "path": "/site_status/{statusId}",
+        "definition": {
+          "entityName": "SiteStatus",
+          "schema": { "$ref": "#/backend/entities/SiteStatus" },
+          "description": "A singleton collection to manage global site state. Everyone can read, only admins can write.",
+          "params": [
+            { "name": "statusId", "description": "The singleton ID, always 1." }
           ]
         }
       },
@@ -562,3 +619,5 @@
     "reasoning": "The Firestore structure is updated to support the AI Consultant feature by adding a new collection to store the chat history for each user."
   }
 }
+
+    
