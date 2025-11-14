@@ -730,22 +730,33 @@ function SiteStatusManager() {
             return;
         }
         setIsLoading(true);
-        const { data: users } = await supabase.from('users').select('id');
-        if (users) {
-            const notifications = users.map(user => ({
-                userId: user.id,
-                type: 'general',
-                title: broadcast.title,
-                content: broadcast.message,
-            }));
+        const { data: users, error: usersError } = await supabase.from('users').select('id');
+        
+        if (usersError || !users) {
+            toast({ title: 'Gagal mengambil data pengguna', variant: 'destructive' });
+            setIsLoading(false);
+            return;
+        }
+
+        const notifications = users.map(user => ({
+            userId: user.id,
+            type: 'general' as const,
+            title: broadcast.title,
+            content: broadcast.message,
+        }));
+
+        if (notifications.length > 0) {
             const { error } = await supabase.from('notifications').insert(notifications);
-             if (error) {
-                toast({ title: 'Gagal mengirim siaran', variant: 'destructive' });
+            if (error) {
+                toast({ title: 'Gagal mengirim siaran', description: error.message, variant: 'destructive' });
             } else {
                 toast({ title: 'Pesan siaran berhasil dikirim ke semua pengguna' });
                 setBroadcast({ title: '', message: '' });
             }
+        } else {
+            toast({ title: 'Tidak ada pengguna untuk dikirimi pesan.'});
         }
+        
         setIsLoading(false);
     };
 
@@ -871,5 +882,3 @@ export function AdminDashboard() {
     </Card>
   );
 }
-
-    
