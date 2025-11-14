@@ -1,12 +1,11 @@
-
 "use client";
 
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useFirestore, addDocumentNonBlocking } from "@/firebase";
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { useUser } from "@/firebase";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -45,38 +44,46 @@ interface ExpenseFormProps {
 export function ExpenseForm({ onFormSubmit }: ExpenseFormProps) {
   const { toast } = useToast();
   const { user } = useUser();
-  const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
       name: "",
-      amount: 0,
+      amount: "" as any,
       date: new Date(),
     },
   });
 
   async function onSubmit(values: ExpenseFormData) {
-    if (!user || !firestore) return;
+    if (!user || !supabase) return;
 
     setIsLoading(true);
     const expenseData = {
       ...values,
       userId: user.uid,
-      createdAt: serverTimestamp(),
+      date: values.date.toISOString(), // Convert date to ISO string for Supabase
     };
 
-    const expensesColRef = collection(firestore, 'users', user.uid, 'expenses');
-    await addDocumentNonBlocking(expensesColRef, expenseData);
+    const { error } = await supabase.from('expenses').insert(expenseData);
     
-    toast({
-      title: "Sukses!",
-      description: "Pengeluaran berhasil dicatat.",
-    });
-    form.reset();
-    form.setValue('date', new Date());
-    onFormSubmit(); // Callback to trigger list refresh
+    if (error) {
+        console.error("Error creating expense:", error);
+        toast({
+          title: "Gagal!",
+          description: "Gagal mencatat pengeluaran. Coba lagi.",
+          variant: "destructive"
+        });
+    } else {
+        toast({
+          title: "Sukses!",
+          description: "Pengeluaran berhasil dicatat.",
+        });
+        form.reset();
+        form.setValue('date', new Date());
+        onFormSubmit(); // Callback to trigger list refresh
+    }
+    
     setIsLoading(false);
   }
 
@@ -128,7 +135,7 @@ export function ExpenseForm({ onFormSubmit }: ExpenseFormProps) {
                             </FormControl>
                             <SelectContent>
                                 <SelectItem value="Sewa Tempat">Sewa Tempat</SelectItem>
-                                <SelectItem value="Listrik">Listrik & Air</SelectItem>
+                                <SelectItem value="Listrik & Air">Listrik & Air</SelectItem>
                                 <SelectItem value="Gaji Karyawan">Gaji Karyawan</SelectItem>
                                 <SelectItem value="Biaya Pengemasan">Biaya Pengemasan</SelectItem>
                                 <SelectItem value="Pemasaran">Pemasaran</SelectItem>

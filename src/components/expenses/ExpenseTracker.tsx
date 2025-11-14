@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -6,12 +5,9 @@ import { ExpenseForm } from "./ExpenseForm";
 import { ExpenseList } from "./ExpenseList";
 
 export function ExpenseTracker() {
-    // This key is used to force a re-render of the ExpenseList when a new expense is added.
     const [refreshKey, setRefreshKey] = useState(0);
 
     const handleFormSubmit = () => {
-        // This is no longer strictly necessary if ExpenseList uses useCollection correctly,
-        // but can be kept as a backup for immediate re-renders if needed.
         setRefreshKey(prev => prev + 1);
     }
 
@@ -21,8 +17,7 @@ export function ExpenseTracker() {
             <ExpenseForm onFormSubmit={handleFormSubmit} />
         </div>
         <div className="md:col-span-2">
-            {/* The refreshKey prop is removed as useCollection handles real-time updates */}
-            <ExpenseList />
+            <ExpenseList refreshKey={refreshKey} />
         </div>
     </div>
   );

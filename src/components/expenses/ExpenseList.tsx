@@ -1,9 +1,8 @@
-
 "use client";
 
-import { useState } from "react";
-import { useUser, useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, query, orderBy, doc, Timestamp, where } from 'firebase/firestore';
+import { useState, useEffect } from "react";
+import { useUser } from "@/firebase";
+import { supabase } from "@/lib/supabase";
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { formatCurrency } from "@/lib/utils";
@@ -41,33 +40,58 @@ export interface Expense {
     name: string;
     amount: number;
     category: string;
-    date: Timestamp;
+    date: string; // From Supabase, it will be an ISO string
 }
 
-export function ExpenseList() {
+interface ExpenseListProps {
+    refreshKey: number;
+}
+
+export function ExpenseList({ refreshKey }: ExpenseListProps) {
   const { user } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // The useCollection hook is now real-time, so no refreshKey is needed.
-  const expensesQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(collection(firestore, 'users', user.uid, 'expenses'), orderBy('date', 'desc'));
-  }, [user, firestore]);
+  useEffect(() => {
+    const fetchExpenses = async () => {
+        if (!user || !supabase) return;
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('expenses')
+            .select('*')
+            .eq('userId', user.uid)
+            .order('date', { ascending: false });
 
-  const { data: expenses, isLoading, error } = useCollection<Expense>(expensesQuery);
+        if (error) {
+            console.error("Error fetching expenses", error);
+            setError(error);
+        } else {
+            setExpenses(data);
+        }
+        setIsLoading(false);
+    };
+    fetchExpenses();
+  }, [user, refreshKey]);
+
 
   const handleDelete = async () => {
-    if (!user || !firestore || !deleteId) return;
+    if (!user || !supabase || !deleteId) return;
 
     setIsDeleting(true);
-    const docRef = doc(firestore, 'users', user.uid, 'expenses', deleteId);
-    await deleteDocumentNonBlocking(docRef);
+    const { error } = await supabase.from('expenses').delete().eq('id', deleteId);
 
-    toast({ title: "Berhasil", description: "Data pengeluaran telah dihapus." });
+    if (error) {
+        toast({ title: "Gagal", description: "Gagal menghapus pengeluaran.", variant: "destructive" });
+    } else {
+        toast({ title: "Berhasil", description: "Data pengeluaran telah dihapus." });
+        setExpenses(prev => prev.filter(exp => exp.id !== deleteId));
+    }
+    
     setDeleteId(null);
     setIsDeleting(false);
   };
@@ -106,7 +130,7 @@ export function ExpenseList() {
           <TableBody>
             {expenses.map((expense) => (
               <TableRow key={expense.id}>
-                <TableCell>{format(expense.date.toDate(), 'd MMM yyyy', { locale: id })}</TableCell>
+                <TableCell>{format(new Date(expense.date), 'd MMM yyyy', { locale: id })}</TableCell>
                 <TableCell className="font-medium">{expense.name}</TableCell>
                 <TableCell>
                     <Badge variant="secondary" className="whitespace-nowrap">{expense.category}</Badge>
