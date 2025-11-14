@@ -53,7 +53,6 @@ export function PublicCalculationDetailDialog({
     userPhotoURL,
     productQuantity,
     productionTips,
-    purchaseLink,
   } = calculation;
 
   const safeMaterials = materials || [];
@@ -98,15 +97,6 @@ export function PublicCalculationDetailDialog({
                 </div>
             )}
             
-            {purchaseLink && (
-              <Button asChild className="w-full font-bold">
-                <Link href={purchaseLink} target="_blank" rel="noopener noreferrer">
-                  <ShoppingCart className="mr-2 h-4 w-4"/>
-                  Beli Sekarang
-                </Link>
-              </Button>
-            )}
-
             <div className="h-64">
               <CostPieChart data={pieChartData} />
             </div>
@@ -136,7 +126,7 @@ export function PublicCalculationDetailDialog({
                     <ul className="space-y-3">
                         {safeMaterials.map((material, index) => (
                             <li key={index} className="p-3 border rounded-md bg-muted/30">
-                                <div className="flex justify-between items-start">
+                                <div className="flex justify-between items-start gap-2">
                                     <div className="flex-1">
                                         <span className="font-semibold">{material.name}</span>
                                         <span className="text-xs text-muted-foreground ml-2">{material.qty} {material.unit}</span>
@@ -144,6 +134,14 @@ export function PublicCalculationDetailDialog({
                                     <span className="text-sm font-mono">{formatCurrency(material.cost * material.qty)}</span>
                                 </div>
                                 {material.description && <p className="text-xs text-muted-foreground mt-1">{material.description}</p>}
+                                {material.purchaseLink && (
+                                    <Button asChild size="sm" className="mt-2">
+                                        <Link href={material.purchaseLink} target="_blank" rel="noopener noreferrer">
+                                            <ShoppingCart className="mr-2 h-4 w-4"/>
+                                            Beli Bahan
+                                        </Link>
+                                    </Button>
+                                )}
                             </li>
                         ))}
                     </ul>
@@ -173,5 +171,3 @@ export function PublicCalculationDetailDialog({
     </Dialog>
   );
 }
-
-    

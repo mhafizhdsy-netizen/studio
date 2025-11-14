@@ -34,6 +34,7 @@ const materialSchema = z.object({
   qty: z.coerce.number().min(1, "Jumlah minimal 1"),
   unit: z.string().optional(),
   description: z.string().optional(),
+  purchaseLink: z.string().url("URL tidak valid").optional().or(z.literal('')),
 });
 
 const formSchema = z.object({
@@ -47,7 +48,6 @@ const formSchema = z.object({
   margin: z.coerce.number().min(0, "Margin harus positif").max(1000, "Margin terlalu besar"),
   sharePublicly: z.boolean().optional(),
   productionTips: z.string().optional(),
-  purchaseLink: z.string().url("URL tidak valid").optional().or(z.literal('')),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -93,7 +93,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     defaultValues: {
       productName: "",
       productImageUrl: "",
-      materials: [{ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false }],
+      materials: [{ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false, purchaseLink: "" }],
       laborCost: 0,
       overhead: 0,
       packaging: 0,
@@ -101,7 +101,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       margin: 30,
       sharePublicly: false,
       productionTips: "",
-      purchaseLink: "",
     },
   });
 
@@ -121,12 +120,13 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         unit: m.unit || "",
         description: m.description || "",
         isTotalCost: m.isTotalCost || false,
+        purchaseLink: m.purchaseLink || "",
       }));
 
       form.reset({
         productName: existingCalculation.productName,
         productImageUrl: existingCalculation.productImageUrl || "",
-        materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false }],
+        materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false, purchaseLink: "" }],
         laborCost: Number(existingCalculation.laborCost),
         overhead: Number(existingCalculation.overhead),
         packaging: Number(existingCalculation.packaging),
@@ -134,7 +134,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         sharePublicly: existingCalculation.isPublic || false,
         productQuantity: existingCalculation.productQuantity || 1,
         productionTips: existingCalculation.productionTips || "",
-        purchaseLink: existingCalculation.purchaseLink || "",
       });
       setImageUrl(existingCalculation.productImageUrl || null);
       calculate(form.getValues());
@@ -211,7 +210,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const calculationData: Omit<Calculation, 'id' | 'createdAt' | 'updatedAt'> = {
         productName: data.productName,
         productImageUrl: data.productImageUrl || "",
-        materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty), unit: m.unit || "", description: m.description || "", isTotalCost: m.isTotalCost || false })),
+        materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty), unit: m.unit || "", description: m.description || "", isTotalCost: m.isTotalCost || false, purchaseLink: m.purchaseLink || "" })),
         laborCost: Number(data.laborCost),
         overhead: Number(data.overhead),
         packaging: Number(data.packaging),
@@ -222,7 +221,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         userId: user.uid,
         productQuantity: data.productQuantity,
         productionTips: data.productionTips || "",
-        purchaseLink: data.purchaseLink || "",
     };
 
     // Main calculation document
@@ -363,14 +361,28 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                         />
                       </div>
                       {watchSharePublicly && (
-                        <div className="mt-2">
-                          <Label>Deskripsi Bahan (Opsional)</Label>
-                          <Textarea placeholder="cth: Kain katun combed 30s dari supplier Bandung..." {...form.register(`materials.${index}.description`)} />
+                        <div className="mt-4 space-y-4">
+                          <div>
+                            <Label>Deskripsi Bahan (Opsional)</Label>
+                            <Textarea placeholder="cth: Kain katun combed 30s dari supplier Bandung..." {...form.register(`materials.${index}.description`)} />
+                          </div>
+                          <div>
+                            <Label>Tautan Beli Bahan (Opsional)</Label>
+                            <div className="relative">
+                                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                                <Input
+                                placeholder="https://tokopedia.com/..."
+                                className="pl-9"
+                                {...form.register(`materials.${index}.purchaseLink`)}
+                                />
+                            </div>
+                            {form.formState.errors.materials?.[index]?.purchaseLink && <p className="text-sm text-destructive mt-1">{form.formState.errors.materials?.[index]?.purchaseLink?.message}</p>}
+                          </div>
                         </div>
                       )}
                   </div>
               ))}
-              <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false })}>
+              <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false, purchaseLink: "" })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Tambah Bahan
               </Button>
               {form.formState.errors.materials && <p className="text-sm text-destructive mt-1">{form.formState.errors.materials.message}</p>}
@@ -479,8 +491,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               <Label htmlFor="share-publicly" className="flex items-center gap-2">Bagikan ke Komunitas <Share2 className="h-4 w-4"/></Label>
                           </div>
                            {watchSharePublicly && (
-                            <div className="space-y-4">
-                              <div>
+                            <div>
                                 <Label htmlFor="productionTips">Tips Produksi (Opsional)</Label>
                                 <Textarea
                                   id="productionTips"
@@ -490,23 +501,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                                 <p className="text-xs text-muted-foreground mt-1">
                                   Bagikan tips, resep, atau cara produksimu agar bisa jadi inspirasi user lain.
                                 </p>
-                              </div>
-                               <div>
-                                <Label htmlFor="purchaseLink">Tautan Toko/Produk (Opsional)</Label>
-                                <div className="relative">
-                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                                    <Input
-                                    id="purchaseLink"
-                                    placeholder="https://tokopedia.com/toko-kamu/produk"
-                                    className="pl-9"
-                                    {...form.register("purchaseLink")}
-                                    />
-                                </div>
-                                {form.formState.errors.purchaseLink && <p className="text-sm text-destructive mt-1">{form.formState.errors.purchaseLink.message}</p>}
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Arahkan pengguna lain untuk membeli produkmu.
-                                </p>
-                              </div>
                             </div>
                           )}
                           <Button type="submit" className="w-full font-bold" disabled={isSubmitting || isUploading}>
@@ -555,5 +549,3 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
-
-    

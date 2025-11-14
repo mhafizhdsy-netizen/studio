@@ -75,7 +75,8 @@
               "qty": { "type": "number" },
               "unit": { "type": "string" },
               "description": { "type": "string" },
-              "isTotalCost": { "type": "boolean" }
+              "isTotalCost": { "type": "boolean" },
+              "purchaseLink": { "type": "string", "format": "uri" }
             },
              "required": ["name", "cost", "qty"]
           }
@@ -108,11 +109,6 @@
           "type": "string",
           "description": "Timestamp indicating when the calculation was performed.",
           "format": "date-time"
-        },
-        "purchaseLink": {
-          "type": "string",
-          "format": "uri",
-          "description": "A URL where the product can be purchased."
         }
       },
       "required": [
@@ -165,11 +161,6 @@
           "description": "Timestamp indicating when the calculation was performed.",
           "format": "date-time"
         },
-        "purchaseLink": {
-          "type": "string",
-          "format": "uri",
-          "description": "A URL where the product can be purchased."
-        },
          "materials": {
           "type": "array",
           "description": "A list of materials associated with the product.",
@@ -181,7 +172,8 @@
               "qty": { "type": "number" },
               "unit": { "type": "string" },
               "description": { "type": "string" },
-              "isTotalCost": { "type": "boolean" }
+              "isTotalCost": { "type": "boolean" },
+              "purchaseLink": { "type": "string", "format": "uri" }
             },
             "required": ["name", "cost", "qty"]
           }
@@ -505,5 +497,3 @@
     "reasoning": "The Firestore structure is updated to support the AI Consultant feature by adding a new collection to store the chat history for each user."
   }
 }
-
-    

@@ -24,7 +24,7 @@ export interface Calculation {
   id: string;
   productName: string;
   productImageUrl?: string;
-  materials: { name: string; cost: number; qty: number, unit?: string, description?: string, isTotalCost?: boolean }[];
+  materials: { name: string; cost: number; qty: number, unit?: string, description?: string, isTotalCost?: boolean, purchaseLink?: string }[];
   laborCost: number;
   overhead: number;
   packaging: number;
@@ -37,7 +37,6 @@ export interface Calculation {
   isPublic?: boolean;
   productQuantity: number;
   productionTips?: string;
-  purchaseLink?: string;
 }
 
 export function CalculationHistory() {
@@ -148,5 +147,3 @@ export function CalculationHistory() {
     </>
   );
 }
-
-    
