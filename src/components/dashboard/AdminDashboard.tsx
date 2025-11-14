@@ -450,6 +450,12 @@ function AnalyticsManager() {
     const usersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
+    const publicCalcsQuery = useMemoFirebase(
+      () => (firestore ? collection(firestore, 'public_calculations') : null),
+      [firestore]
+    );
+    const { data: publicCalcs, isLoading: publicCalcsLoading } = useCollection<PublicCalculation>(publicCalcsQuery);
+
     useEffect(() => {
         if (!users) return;
         const now = new Date();
@@ -464,51 +470,43 @@ function AnalyticsManager() {
 
 
     useEffect(() => {
-        if (!firestore || !users) return;
+        if (!firestore || !publicCalcs || !users) return;
         
         const fetchAnalytics = async () => {
             setIsLoading(true);
             try {
-                // Most Active Users (by calculation count)
-                const allCalcsPromises = users.map(user => {
-                    const userCalcsRef = collection(firestore, 'users', user.id, 'calculations');
-                    return getDocs(userCalcsRef).catch(error => {
-                         // Throw a detailed permission error
-                         const contextualError = new FirestorePermissionError({
-                            path: `users/${user.id}/calculations`,
-                            operation: 'list',
-                        });
-                        errorEmitter.emit('permission-error', contextualError);
-                        throw contextualError; // Propagate error to stop Promise.all
-                    });
+                // Most Active Users (by public calculation count)
+                const userCalcCounts: Record<string, number> = {};
+                publicCalcs.forEach(calc => {
+                  userCalcCounts[calc.userId] = (userCalcCounts[calc.userId] || 0) + 1;
                 });
-                const allCalcsSnapshots = await Promise.all(allCalcsPromises);
                 
-                const userCalcCounts = users.map((user, index) => ({
-                    id: user.id,
-                    name: user.name,
-                    photoURL: user.photoURL || '',
-                    count: allCalcsSnapshots[index].size
-                }));
+                const userMap = new Map(users.map(u => [u.id, {name: u.name, photoURL: u.photoURL || ''}]));
 
-                const mostActiveUsers = userCalcCounts.sort((a, b) => b.count - a.count).slice(0, 5);
-                
+                const mostActiveUsers = Object.entries(userCalcCounts)
+                    .map(([userId, count]) => ({
+                        id: userId,
+                        name: userMap.get(userId)?.name || 'Pengguna Dihapus',
+                        photoURL: userMap.get(userId)?.photoURL || '',
+                        count: count
+                    }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 5);
+
                 // Most Commented Calculations
-                const publicCalcsRef = collection(firestore, 'public_calculations');
-                const publicCalcsSnapshot = await getDocs(publicCalcsRef);
-                const commentedCalcsPromises = publicCalcsSnapshot.docs.map(async (calcDoc) => {
-                    const commentsRef = collection(firestore, 'public_calculations', calcDoc.id, 'comments');
+                const commentedCalcsPromises = publicCalcs.map(async (calc) => {
+                    const commentsRef = collection(firestore, 'public_calculations', calc.id, 'comments');
                     const commentsSnapshot = await getDocs(commentsRef).catch(error => {
                         const contextualError = new FirestorePermissionError({
-                            path: `public_calculations/${calcDoc.id}/comments`,
+                            path: `public_calculations/${calc.id}/comments`,
                             operation: 'list',
                         });
                         errorEmitter.emit('permission-error', contextualError);
                         throw contextualError;
                     });
                     return {
-                        id: calcDoc.id,
-                        name: calcDoc.data().productName,
+                        id: calc.id,
+                        name: calc.productName,
                         count: commentsSnapshot.size,
                     };
                 });
@@ -528,9 +526,9 @@ function AnalyticsManager() {
 
         fetchAnalytics();
 
-    }, [firestore, users]);
+    }, [firestore, publicCalcs, users]);
 
-    const finalLoading = isLoading || usersLoading;
+    const finalLoading = isLoading || usersLoading || publicCalcsLoading;
 
     return (
         <div className="space-y-6">
@@ -550,13 +548,13 @@ function AnalyticsManager() {
                 <CardContent className="grid lg:grid-cols-2 gap-8">
                      <div>
                         <h3 className="font-semibold mb-2">Pengguna Paling Aktif</h3>
-                        <p className="text-sm text-muted-foreground mb-4">Berdasarkan jumlah perhitungan yang dibuat.</p>
+                        <p className="text-sm text-muted-foreground mb-4">Berdasarkan jumlah perhitungan yang dibagikan ke publik.</p>
                         {finalLoading ? <Loader2 className="animate-spin" /> : (
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Pengguna</TableHead>
-                                        <TableHead className="text-right">Perhitungan</TableHead>
+                                        <TableHead className="text-right">Kontribusi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
