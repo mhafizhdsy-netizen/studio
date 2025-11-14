@@ -30,6 +30,7 @@ import { ProductDescriptionGenerator } from "./ProductDescriptionGenerator";
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
   cost: z.coerce.number().min(0, "Biaya harus positif"),
+  isTotalCost: z.boolean().optional(),
   qty: z.coerce.number().min(1, "Jumlah minimal 1"),
   unit: z.string().optional(),
   description: z.string().optional(),
@@ -92,7 +93,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     defaultValues: {
       productName: "",
       productImageUrl: "",
-      materials: [{ name: "", cost: 0, qty: 1, unit: "", description: "" }],
+      materials: [{ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false }],
       laborCost: 0,
       overhead: 0,
       packaging: 0,
@@ -119,12 +120,13 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         qty: Number(m.qty),
         unit: m.unit || "",
         description: m.description || "",
+        isTotalCost: m.isTotalCost || false,
       }));
 
       form.reset({
         productName: existingCalculation.productName,
         productImageUrl: existingCalculation.productImageUrl || "",
-        materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1, unit: "", description: "" }],
+        materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false }],
         laborCost: Number(existingCalculation.laborCost),
         overhead: Number(existingCalculation.overhead),
         packaging: Number(existingCalculation.packaging),
@@ -173,7 +175,11 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   };
   
   const calculate = (data: FormData) => {
-    const totalMaterialCost = data.materials.reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
+    const totalMaterialCost = data.materials.reduce((acc, mat) => {
+        const materialCost = mat.isTotalCost ? mat.cost / mat.qty : mat.cost * mat.qty;
+        return acc + (isNaN(materialCost) ? 0 : materialCost);
+    }, 0);
+
     const laborCostPerProduct = data.productQuantity > 0 ? data.laborCost / data.productQuantity : 0;
     const overheadPerProduct = data.productQuantity > 0 ? data.overhead / data.productQuantity : 0;
     
@@ -205,7 +211,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const calculationData: Omit<Calculation, 'id' | 'createdAt' | 'updatedAt'> = {
         productName: data.productName,
         productImageUrl: data.productImageUrl || "",
-        materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty), unit: m.unit || "", description: m.description || "" })),
+        materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty), unit: m.unit || "", description: m.description || "", isTotalCost: m.isTotalCost || false })),
         laborCost: Number(data.laborCost),
         overhead: Number(data.overhead),
         packaging: Number(data.packaging),
@@ -320,15 +326,17 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                             <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
                         <div className="flex-grow">
                             <Label>Nama Bahan</Label>
                             <Input placeholder="cth: Kain Katun" {...form.register(`materials.${index}.name`)} />
                         </div>
                         <div className="w-full sm:w-32">
-                            <Label>Biaya Satuan</Label>
+                            <Label>Biaya</Label>
                             <Input type="number" placeholder="Rp" {...form.register(`materials.${index}.cost`)} />
                         </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-[auto_auto_1fr] gap-x-4 gap-y-2 items-center mt-2">
                         <div className="w-full sm:w-20">
                             <Label>Jumlah</Label>
                             <Input type="number" {...form.register(`materials.${index}.qty`)} />
@@ -337,6 +345,22 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                             <Label>Satuan</Label>
                             <Input placeholder="pcs, kg" {...form.register(`materials.${index}.unit`)} />
                         </div>
+                         <Controller
+                            control={form.control}
+                            name={`materials.${index}.isTotalCost`}
+                            render={({ field }) => (
+                                <div className="flex items-center space-x-2 justify-self-start sm:justify-self-end pt-5">
+                                    <Switch
+                                        id={`isTotalCost-${index}`}
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                    <Label htmlFor={`isTotalCost-${index}`} className="text-xs">
+                                        Ini harga total
+                                    </Label>
+                                </div>
+                            )}
+                        />
                       </div>
                       {watchSharePublicly && (
                         <div className="mt-2">
@@ -346,7 +370,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                       )}
                   </div>
               ))}
-              <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1, unit: "", description: "" })}>
+              <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Tambah Bahan
               </Button>
               {form.formState.errors.materials && <p className="text-sm text-destructive mt-1">{form.formState.errors.materials.message}</p>}
