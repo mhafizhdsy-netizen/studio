@@ -33,6 +33,10 @@
         "onboardingCompleted": {
             "type": "boolean",
             "description": "Flag to check if user has completed the onboarding flow."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Flag to check if the user has admin privileges."
         }
       },
       "required": [

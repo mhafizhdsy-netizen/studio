@@ -5,25 +5,30 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { CalculationHistory } from "@/components/dashboard/CalculationHistory";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MonthlyExpenseSummary } from "@/components/expenses/MonthlyExpenseSummary";
 import { DashboardAnalytics } from "@/components/dashboard/DashboardAnalytics";
 import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
+import { doc } from "firebase/firestore";
+
+interface UserProfile {
+    isAdmin?: boolean;
+}
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    if (user) {
-      user.getIdTokenResult().then((idTokenResult) => {
-        setIsAdmin(!!idTokenResult.claims.isAdmin);
-      });
-    }
-  }, [user]);
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+  const isAdmin = userProfile?.isAdmin === true;
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
