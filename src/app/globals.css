@@ -67,7 +67,7 @@
   .infinity-loader-path {
     stroke-dasharray: 315;
     stroke-dashoffset: 315;
-    animation: draw-infinity 2s linear infinite;
+    animation: draw-infinity 3s linear infinite;
   }
 
   @keyframes draw-infinity {

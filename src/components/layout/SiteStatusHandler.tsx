@@ -46,7 +46,7 @@ export function SiteStatus({ children }: { children: React.ReactNode }) {
     // This prevents a flash of the dashboard content before redirection happens.
     if ((isStatusLoading || isAuthLoading) && !user?.user_metadata.isAdmin) {
          return (
-            <div className="flex h-screen items-center justify-center bg-background">
+            <div className="flex h-screen w-full items-center justify-center bg-background">
                 <InfinityLoader />
             </div>
         );
@@ -56,7 +56,7 @@ export function SiteStatus({ children }: { children: React.ReactNode }) {
     // We render a loader to prevent showing the dashboard layout.
     if (!user?.user_metadata.isAdmin && (status?.isMaintenanceMode || status?.isUpdateMode)) {
         return (
-            <div className="flex h-screen items-center justify-center bg-background">
+            <div className="flex h-screen w-full items-center justify-center bg-background">
                 <InfinityLoader />
             </div>
         );

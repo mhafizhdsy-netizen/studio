@@ -71,6 +71,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { useQuery } from '@tanstack/react-query';
+import { InfinityLoader } from '../ui/infinity-loader';
 
 // Interfaces
 interface UserProfile {
@@ -280,7 +281,7 @@ function UserManager({ users, isLoading, onRefresh }: { users: UserProfile[] | n
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <InfinityLoader />
           </div>
         ) : (
           <Table>
@@ -434,7 +435,7 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <InfinityLoader />
           </div>
         ) : (
           <Table>
@@ -602,7 +603,7 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
             </CardHeader>
             <CardContent>
                 {isLoading ? (
-                    <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>
+                    <div className="flex justify-center p-8"><InfinityLoader /></div>
                 ) : (
                     <Table>
                         <TableHeader>
@@ -761,7 +762,7 @@ function SiteStatusManager() {
     };
 
     if (isStatusLoading) {
-        return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>
+        return <div className="flex justify-center p-8"><InfinityLoader /></div>
     }
 
     return (

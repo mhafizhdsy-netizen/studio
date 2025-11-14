@@ -3,12 +3,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Construction, Rocket } from "lucide-react";
+import { Construction, Rocket } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/supabase/auth-provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { InfinityLoader } from "@/components/ui/infinity-loader";
 
 const fetchSiteStatus = async () => {
     const { data, error } = await supabase
@@ -57,7 +58,7 @@ export default function MaintenancePage() {
                 <CardHeader>
                     {isLoading ? (
                         <div className="flex justify-center p-8">
-                             <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                             <InfinityLoader />
                         </div>
                     ) : (
                         <Icon className="mx-auto h-12 w-12 text-primary" />
