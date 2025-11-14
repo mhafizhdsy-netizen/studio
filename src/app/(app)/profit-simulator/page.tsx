@@ -235,36 +235,38 @@ function TargetProfitCalculator() {
 export default function ProfitSimulatorPage() {
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-      <div className="flex items-center gap-2">
-        <Wand2 className="h-6 w-6"/>
-        <h1 className="text-lg font-semibold md:text-2xl font-headline">
-          Simulator Keuntungan
-        </h1>
-      </div>
-      <p className="text-muted-foreground">Buat keputusan bisnis yang lebih cerdas dengan menganalisis berbagai skenario.</p>
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="flex items-center gap-2">
+          <Wand2 className="h-6 w-6"/>
+          <h1 className="text-lg font-semibold md:text-2xl font-headline">
+            Simulator Keuntungan
+          </h1>
+        </div>
+        <p className="text-muted-foreground mt-2">Buat keputusan bisnis yang lebih cerdas dengan menganalisis berbagai skenario.</p>
 
-      <Tabs defaultValue="price-sim" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-lg mx-auto">
-          <TabsTrigger value="price-sim">
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Simulasi Harga & Biaya
-          </TabsTrigger>
-          <TabsTrigger value="target-profit">
-            <Target className="mr-2 h-4 w-4" />
-            Kalkulator Target Profit
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="price-sim">
-          <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 lg:p-6 mt-4">
-            <PriceSimulator />
-          </div>
-        </TabsContent>
-        <TabsContent value="target-profit">
-          <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 lg:p-6 mt-4">
-            <TargetProfitCalculator />
-          </div>
-        </TabsContent>
-      </Tabs>
+        <Tabs defaultValue="price-sim" className="w-full mt-4">
+          <TabsList className="grid w-full grid-cols-2 max-w-lg mx-auto">
+            <TabsTrigger value="price-sim">
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Simulasi Harga & Biaya
+            </TabsTrigger>
+            <TabsTrigger value="target-profit">
+              <Target className="mr-2 h-4 w-4" />
+              Kalkulator Target Profit
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="price-sim">
+            <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 lg:p-6 mt-4">
+              <PriceSimulator />
+            </div>
+          </TabsContent>
+          <TabsContent value="target-profit">
+            <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 lg:p-6 mt-4">
+              <TargetProfitCalculator />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </main>
   );
 }

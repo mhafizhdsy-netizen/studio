@@ -240,34 +240,36 @@ function PreVatPriceCalculator() {
 export default function IdealPriceCalculatorPage() {
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-      <div className="flex items-center">
-        <h1 className="text-lg font-semibold md:text-2xl font-headline">
-          Kalkulator Harga Jual
-        </h1>
-      </div>
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="flex items-center">
+          <h1 className="text-lg font-semibold md:text-2xl font-headline">
+            Kalkulator Harga Jual
+          </h1>
+        </div>
 
-      <Tabs defaultValue="ideal-price" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-lg mx-auto">
-          <TabsTrigger value="ideal-price">
-            <DollarSign className="mr-2 h-4 w-4" />
-            Harga Jual Ideal
-          </TabsTrigger>
-          <TabsTrigger value="pre-vat">
-            <Percent className="mr-2 h-4 w-4" />
-            Harga Dasar (Sebelum PPN)
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="ideal-price">
-          <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 lg:p-6 mt-4">
-            <IdealPriceCalculator />
-          </div>
-        </TabsContent>
-        <TabsContent value="pre-vat">
-          <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 lg:p-6 mt-4">
-            <PreVatPriceCalculator />
-          </div>
-        </TabsContent>
-      </Tabs>
+        <Tabs defaultValue="ideal-price" className="w-full mt-4">
+          <TabsList className="grid w-full grid-cols-2 max-w-lg mx-auto">
+            <TabsTrigger value="ideal-price">
+              <DollarSign className="mr-2 h-4 w-4" />
+              Harga Jual Ideal
+            </TabsTrigger>
+            <TabsTrigger value="pre-vat">
+              <Percent className="mr-2 h-4 w-4" />
+              Harga Dasar (Sebelum PPN)
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="ideal-price">
+            <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 lg:p-6 mt-4">
+              <IdealPriceCalculator />
+            </div>
+          </TabsContent>
+          <TabsContent value="pre-vat">
+            <div className="flex flex-1 rounded-lg border border-dashed shadow-sm p-4 lg:p-6 mt-4">
+              <PreVatPriceCalculator />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </main>
   );
 }

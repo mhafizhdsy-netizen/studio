@@ -81,137 +81,139 @@ export default function AdsCalculatorPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-      <div className="flex items-center gap-2">
-        <Megaphone className="h-6 w-6" />
-        <h1 className="text-lg font-semibold md:text-2xl font-headline">
-          Kalkulator Analisis Iklan
-        </h1>
-      </div>
-      <p className="text-muted-foreground">
-        Analisis efektivitas kampanye iklan Anda untuk memaksimalkan keuntungan.
-      </p>
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="flex items-center gap-2">
+          <Megaphone className="h-6 w-6" />
+          <h1 className="text-lg font-semibold md:text-2xl font-headline">
+            Kalkulator Analisis Iklan
+          </h1>
+        </div>
+        <p className="text-muted-foreground">
+          Analisis efektivitas kampanye iklan Anda untuk memaksimalkan keuntungan.
+        </p>
 
-      <div className="grid lg:grid-cols-2 gap-8 items-start">
-        <Card className="border-dashed">
-          <CardHeader>
-            <CardTitle>Data Kampanye Iklan</CardTitle>
-            <CardDescription>
-              Masukkan detail untuk setiap kampanye iklan yang ingin Anda analisis.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(calculateResults)}
-                className="space-y-6"
-              >
-                <div className="space-y-4">
-                  {fields.map((field, index) => (
-                    <Card key={field.id} className="p-4 bg-muted/30">
-                        <div className="flex justify-between items-center mb-2">
-                             <Label>Kampanye #{index + 1}</Label>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => remove(index)}
-                                disabled={fields.length <= 1}
-                                className="h-7 w-7"
-                            >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                        </div>
-                      <div className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name={`campaigns.${index}.name`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <Input placeholder="Nama Kampanye" {...field} />
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="grid sm:grid-cols-2 gap-4">
-                           <FormField
-                            control={form.control}
-                            name={`campaigns.${index}.platform`}
-                            render={({ field }) => (
-                                <FormItem>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Platform" />
-                                    </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="Instagram">Instagram Ads</SelectItem>
-                                        <SelectItem value="TikTok">TikTok Ads</SelectItem>
-                                        <SelectItem value="Google">Google Ads</SelectItem>
-                                        <SelectItem value="Facebook">Facebook Ads</SelectItem>
-                                        <SelectItem value="Shopee">Shopee Ads</SelectItem>
-                                        <SelectItem value="Lainnya">Lainnya</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                            <FormField
-                            control={form.control}
-                            name={`campaigns.${index}.cost`}
-                            render={({ field }) => (
-                                <FormItem>
-                                <Input type="number" placeholder="Biaya Iklan (Rp)" {...field} />
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                        </div>
-                         <div className="grid sm:grid-cols-2 gap-4">
-                             <FormField
-                            control={form.control}
-                            name={`campaigns.${index}.sales`}
-                            render={({ field }) => (
-                                <FormItem>
-                                <Input type="number" placeholder="Jumlah Penjualan" {...field} />
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                            <FormField
-                            control={form.control}
-                            name={`campaigns.${index}.avgPrice`}
-                            render={({ field }) => (
-                                <FormItem>
-                                <Input type="number" placeholder="Harga Jual Rata-rata" {...field} />
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
-                         </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => append({ name: "", platform: "Instagram", cost: "" as any, sales: "" as any, avgPrice: "" as any })}
+        <div className="grid lg:grid-cols-2 gap-8 items-start mt-6">
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle>Data Kampanye Iklan</CardTitle>
+              <CardDescription>
+                Masukkan detail untuk setiap kampanye iklan yang ingin Anda analisis.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(calculateResults)}
+                  className="space-y-6"
                 >
-                  <PlusCircle className="mr-2 h-4 w-4" /> Tambah Kampanye
-                </Button>
+                  <div className="space-y-4">
+                    {fields.map((field, index) => (
+                      <Card key={field.id} className="p-4 bg-muted/30">
+                          <div className="flex justify-between items-center mb-2">
+                              <Label>Kampanye #{index + 1}</Label>
+                              <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => remove(index)}
+                                  disabled={fields.length <= 1}
+                                  className="h-7 w-7"
+                              >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                          </div>
+                        <div className="space-y-4">
+                          <FormField
+                            control={form.control}
+                            name={`campaigns.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <Input placeholder="Nama Kampanye" {...field} />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name={`campaigns.${index}.platform`}
+                              render={({ field }) => (
+                                  <FormItem>
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                      <FormControl>
+                                      <SelectTrigger>
+                                          <SelectValue placeholder="Platform" />
+                                      </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                          <SelectItem value="Instagram">Instagram Ads</SelectItem>
+                                          <SelectItem value="TikTok">TikTok Ads</SelectItem>
+                                          <SelectItem value="Google">Google Ads</SelectItem>
+                                          <SelectItem value="Facebook">Facebook Ads</SelectItem>
+                                          <SelectItem value="Shopee">Shopee Ads</SelectItem>
+                                          <SelectItem value="Lainnya">Lainnya</SelectItem>
+                                      </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                  </FormItem>
+                              )}
+                              />
+                              <FormField
+                              control={form.control}
+                              name={`campaigns.${index}.cost`}
+                              render={({ field }) => (
+                                  <FormItem>
+                                  <Input type="number" placeholder="Biaya Iklan (Rp)" {...field} />
+                                  <FormMessage />
+                                  </FormItem>
+                              )}
+                              />
+                          </div>
+                          <div className="grid sm:grid-cols-2 gap-4">
+                              <FormField
+                              control={form.control}
+                              name={`campaigns.${index}.sales`}
+                              render={({ field }) => (
+                                  <FormItem>
+                                  <Input type="number" placeholder="Jumlah Penjualan" {...field} />
+                                  <FormMessage />
+                                  </FormItem>
+                              )}
+                              />
+                              <FormField
+                              control={form.control}
+                              name={`campaigns.${index}.avgPrice`}
+                              render={({ field }) => (
+                                  <FormItem>
+                                  <Input type="number" placeholder="Harga Jual Rata-rata" {...field} />
+                                  <FormMessage />
+                                  </FormItem>
+                              )}
+                              />
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => append({ name: "", platform: "Instagram", cost: "" as any, sales: "" as any, avgPrice: "" as any })}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" /> Tambah Kampanye
+                  </Button>
 
-                <Button type="submit" className="w-full font-bold text-lg py-6">
-                  Analisis Sekarang
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-        
-        {results && <AdsAnalysisResult results={results} />}
+                  <Button type="submit" className="w-full font-bold text-lg py-6">
+                    Analisis Sekarang
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+          
+          {results && <AdsAnalysisResult results={results} />}
 
+        </div>
       </div>
     </main>
   );
