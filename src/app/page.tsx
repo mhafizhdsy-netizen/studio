@@ -1,4 +1,6 @@
 
+'use client';
+
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -6,10 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, Bot, Calculator, CheckCircle, DollarSign, Landmark, Megaphone, Share2, Sparkles } from "lucide-react";
 import { placeholderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/ui/logo";
+import { useAuth } from "@/supabase/auth-provider";
 
 const heroImage = placeholderImages.find(p => p.id === "hero");
 
 export default function LandingPage() {
+  const { user } = useAuth();
+
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background animate-page-fade-in">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
@@ -25,12 +30,20 @@ export default function LandingPage() {
             <Link href="#faq" className="text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
         </nav>
         <div className="flex items-center gap-4">
-          <Button variant="outline" asChild>
-            <Link href="/login">Masuk</Link>
-          </Button>
-          <Button asChild className="font-bold">
-            <Link href="/signup">Mulai Gratis</Link>
-          </Button>
+          {user ? (
+             <Button asChild className="font-bold">
+                <Link href="/dashboard">Masuk ke Dashboard</Link>
+             </Button>
+          ) : (
+            <>
+              <Button variant="outline" asChild>
+                <Link href="/login">Masuk</Link>
+              </Button>
+              <Button asChild className="font-bold">
+                <Link href="/signup">Mulai Gratis</Link>
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
