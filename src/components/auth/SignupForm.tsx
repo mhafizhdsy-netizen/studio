@@ -115,8 +115,8 @@ export function SignupForm() {
     return (
         <Card className="w-full bg-background/50 backdrop-blur-sm border-white/10 text-center">
             <CardHeader>
-                 <div className="mx-auto h-12 w-12 rounded-full bg-accent/20 flex items-center justify-center mb-4">
-                    <MailCheck className="h-6 w-6 text-accent" />
+                 <div className="mx-auto h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center mb-4">
+                    <MailCheck className="h-6 w-6 text-primary" />
                  </div>
                 <AlertTitle className="font-bold text-lg text-foreground">Satu Langkah Lagi, Sultan!</AlertTitle>
             </CardHeader>
@@ -127,7 +127,7 @@ export function SignupForm() {
                     Cek inbox (atau folder spam), lalu klik link itu buat aktivasi akunmu sebelum login.
                 </AlertDescription>
                  <div className="mt-6">
-                    <Button asChild variant="accent">
+                    <Button asChild>
                         <Link href="/login">Kembali ke Halaman Login</Link>
                     </Button>
                 </div>
@@ -199,7 +199,7 @@ export function SignupForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" variant="accent" className="w-full font-bold" disabled={isLoading}>
+          <Button type="submit" className="w-full font-bold" disabled={isLoading}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <UserPlus className="mr-2 h-4 w-4" />
             Buat Akun
@@ -208,7 +208,7 @@ export function SignupForm() {
       </Form>
       <div className="text-center text-sm text-muted-foreground">
         Udah punya akun?{" "}
-        <Link href="/login" className="font-semibold text-accent hover:underline">
+        <Link href="/login" className="font-semibold text-primary hover:underline">
           Masuk di sini
         </Link>
       </div>

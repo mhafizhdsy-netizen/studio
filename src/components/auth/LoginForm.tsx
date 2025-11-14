@@ -189,7 +189,7 @@ export function LoginForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" variant="accent" className="w-full font-bold" disabled={isLoading}>
+          <Button type="submit" className="w-full font-bold" disabled={isLoading}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             <LogIn className="mr-2 h-4 w-4"/>
             Masuk
@@ -199,7 +199,7 @@ export function LoginForm() {
 
       <div className="text-center text-sm text-muted-foreground">
         Belum punya akun?{" "}
-        <Link href="/signup" className="font-semibold text-accent hover:underline">
+        <Link href="/signup" className="font-semibold text-primary hover:underline">
           Daftar di sini
         </Link>
       </div>
@@ -207,4 +207,3 @@ export function LoginForm() {
     </Card>
   );
 }
-
