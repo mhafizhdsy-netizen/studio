@@ -37,10 +37,10 @@ service cloud.firestore {
      * @path /users/{userId}/calculations/{calcId}
      */
     match /users/{userId}/calculations/{calcId} {
-      allow get: if isOwner(userId) || isAdmin(); // Allow admin to read for editing
-      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isOwner(userId) || isAdmin(); // Allow admin to list all for analytics
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) || isAdmin(); // Allow admin to update
+      allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) && resource != null;
     }
     
