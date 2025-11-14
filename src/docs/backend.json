@@ -534,3 +534,5 @@
     "reasoning": "The Firestore structure is updated to support the AI Consultant feature by adding a new collection to store the chat history for each user."
   }
 }
+
+    

@@ -26,6 +26,8 @@ import {
   TrendingUp,
   BarChart,
   ShieldCheck,
+  ShieldAlert,
+  ShieldX,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
@@ -43,6 +45,16 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '../ui/dropdown-menu';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
@@ -114,8 +126,6 @@ function AdminStats({ calculationsWithComments }: { calculationsWithComments: Pu
   useEffect(() => {
     const fetchUsers = async () => {
       setUsersLoading(true);
-      // Note: Supabase admin functions to list users would be called from a secure server environment,
-      // not directly from the client. Here we fetch from our public `users` table as a proxy.
       const { data, error } = await supabase.from('users').select('*');
       if (data) setUsers(data as any);
       if (error) console.error("Error fetching users for stats", error);
@@ -156,11 +166,11 @@ function UserManager() {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [action, setAction] = useState<'suspend' | 'ban' | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
   const fetchUsers = async () => {
       setIsLoading(true);
-      // In a real app, this should call a server-side function to list all users.
-      // For this prototype, we'll fetch from the `users` table.
       const { data, error } = await supabase.from('users').select('*').order('createdAt', { ascending: false });
       if (data) setUsers(data as any);
       if(error) console.error("Error fetching users:", error);
@@ -172,20 +182,71 @@ function UserManager() {
   }, []);
 
   const handleToggleAdmin = async (user: UserProfile) => {
-    // This action requires admin privileges on the server.
-    // We are simulating it by updating the `users` table.
-    // In production, use an edge function.
     const newIsAdmin = !user.user_metadata.isAdmin;
     const { error } = await supabase.from('users').update({ isAdmin: newIsAdmin }).eq('id', user.id);
      if (error) {
       toast({ title: 'Gagal', description: 'Gagal memperbarui status admin.', variant: 'destructive' });
     } else {
       toast({ title: 'Sukses!', description: `Status admin pengguna telah diperbarui.` });
-      fetchUsers(); // Refresh the list
+      fetchUsers();
     }
   };
 
+  const handleToggleSuspend = async (user: UserProfile) => {
+    const newIsSuspended = !user.user_metadata.isSuspended;
+    const { error } = await supabase.from('users').update({ isSuspended: newIsSuspended }).eq('id', user.id);
+    if (error) {
+      toast({ title: 'Gagal', description: 'Gagal memperbarui status penangguhan.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Sukses!', description: `Status penangguhan pengguna telah diperbarui.` });
+      fetchUsers();
+    }
+    closeDialog();
+  };
+
+  const handleBanUser = async (user: UserProfile) => {
+    // This is a destructive action. In a real app, this should be a soft delete
+    // or trigger a more complex cleanup via server-side functions.
+    const { error } = await supabase.from('users').delete().eq('id', user.id);
+    if (error) {
+      toast({ title: 'Gagal', description: 'Gagal memblokir pengguna secara permanen.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Sukses!', description: `Pengguna telah diblokir permanen.` });
+      fetchUsers();
+    }
+    closeDialog();
+  };
+
+  const openDialog = (user: UserProfile, type: 'suspend' | 'ban') => {
+    setSelectedUser(user);
+    setAction(type);
+  };
+  
+  const closeDialog = () => {
+    setSelectedUser(null);
+    setAction(null);
+  }
+
+  const dialogContent = useMemo(() => {
+    if (!action || !selectedUser) return { title: '', description: '', onConfirm: () => {} };
+    if (action === 'suspend') {
+      const isSuspending = !selectedUser.user_metadata.isSuspended;
+      return {
+        title: `${isSuspending ? 'Tangguhkan' : 'Aktifkan Kembali'} Pengguna Ini?`,
+        description: `Akun ${selectedUser.user_metadata.name} akan ${isSuspending ? 'dinonaktifkan sementara' : 'diaktifkan kembali'}.`,
+        onConfirm: () => handleToggleSuspend(selectedUser),
+      }
+    }
+    return {
+      title: 'Blokir Permanen Pengguna Ini?',
+      description: `Tindakan ini tidak dapat diurungkan. Akun ${selectedUser.user_metadata.name} dan datanya akan dihapus.`,
+      onConfirm: () => handleBanUser(selectedUser),
+    }
+  }, [action, selectedUser]);
+
+
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Manajemen Pengguna</CardTitle>
@@ -204,14 +265,13 @@ function UserManager() {
               <TableRow>
                 <TableHead>Pengguna</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Bergabung</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users?.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user.id} className={user.user_metadata.isSuspended ? 'bg-destructive/10' : ''}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
@@ -227,16 +287,11 @@ function UserManager() {
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    {user.created_at
-                      ? format(new Date(user.created_at), 'd MMM yyyy')
-                      : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {user.user_metadata.isSuspended && (
-                      <span className="text-xs font-semibold text-destructive">
-                        Ditangguhkan
-                      </span>
+                   <TableCell>
+                    {user.user_metadata.isSuspended ? (
+                      <Badge variant="destructive">Ditangguhkan</Badge>
+                    ) : (
+                      <Badge variant="secondary">Aktif</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
@@ -255,8 +310,22 @@ function UserManager() {
                             ? 'Hapus Status Admin'
                             : 'Jadikan Admin'}
                         </DropdownMenuItem>
-                        
-                        {/* Deletion and Suspension should be done via server-side functions for security */}
+                        <DropdownMenuSeparator/>
+                        <DropdownMenuItem
+                          onClick={() => openDialog(user, 'suspend')}
+                        >
+                          <ShieldAlert className="mr-2 h-4 w-4" />
+                          {user.user_metadata.isSuspended
+                            ? 'Aktifkan Kembali'
+                            : 'Tangguhkan Akun'}
+                        </DropdownMenuItem>
+                         <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => openDialog(user, 'ban')}
+                          >
+                          <ShieldX className="mr-2 h-4 w-4" />
+                          Blokir Permanen
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -267,6 +336,21 @@ function UserManager() {
         )}
       </CardContent>
     </Card>
+    <AlertDialog open={!!action} onOpenChange={(open) => !open && closeDialog()}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>{dialogContent.title}</AlertDialogTitle>
+            <AlertDialogDescription>{dialogContent.description}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={dialogContent.onConfirm} className={action === 'ban' ? "bg-destructive hover:bg-destructive/90" : ""}>
+                Ya, Lanjutkan
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
 
@@ -475,3 +559,5 @@ export function AdminDashboard() {
     </Card>
   );
 }
+
+    

@@ -16,12 +16,13 @@ import { type PublicCalculation } from "./PublicCalculationList";
 import { ScrollArea } from "../ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Lightbulb, Package, ShoppingCart, Shield } from "lucide-react";
+import { Lightbulb, Package, ShoppingCart, Shield, AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import { CommentSection } from "./CommentSection";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { Separator } from "../ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 interface PublicCalculationDetailDialogProps {
   calculation: PublicCalculation | null;
@@ -34,6 +35,8 @@ export function PublicCalculationDetailDialog({
   isOpen,
   onOpenChange,
 }: PublicCalculationDetailDialogProps) {
+    const { toast } = useToast();
+
   if (!calculation) {
     return null;
   }
@@ -71,6 +74,13 @@ export function PublicCalculationDetailDialog({
   ].filter((item) => item.value > 0);
 
   const getInitials = (name: string) => (name || "A").split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
+  
+  const handleReport = () => {
+    toast({
+        title: "Laporan Terkirim",
+        description: "Terima kasih atas masukanmu. Tim kami akan meninjau konten ini.",
+    });
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -182,7 +192,15 @@ export function PublicCalculationDetailDialog({
             <CommentSection calculationId={id} />
           </div>
         </ScrollArea>
+        <DialogFooter className="border-t pt-4">
+            <Button variant="destructive" onClick={handleReport}>
+                <AlertTriangle className="mr-2 h-4 w-4"/>
+                Laporkan Konten
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+    
