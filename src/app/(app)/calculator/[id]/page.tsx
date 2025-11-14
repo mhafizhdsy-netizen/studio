@@ -15,6 +15,7 @@ export default function EditCalculatorPageForUser() {
   
   const calcDocRef = useMemoFirebase(() => {
     if (!firestore || !user || !id) return null;
+    // This is the safe path for a user editing their own calculation.
     return doc(firestore, 'users', user.uid, 'calculations', id);
   }, [firestore, user, id]);
 
