@@ -591,7 +591,7 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify([notificationData]), // Send as an array
+                body: JSON.stringify([notificationData]),
             });
     
             const result = await response.json();
@@ -921,11 +921,3 @@ export function AdminDashboard() {
     </Card>
   );
 }
-
-    
-
-    
-
-
-
-
