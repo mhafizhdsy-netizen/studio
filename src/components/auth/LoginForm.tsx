@@ -77,6 +77,7 @@ export function LoginForm() {
         description: "Selamat datang kembali! Yuk lanjutin cuan.",
       });
       router.push("/dashboard");
+      router.refresh(); // Force a refresh to ensure layout recognizes the user
     }
     setIsLoadingEmail(false);
   }
