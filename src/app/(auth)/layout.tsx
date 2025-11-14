@@ -17,19 +17,19 @@ export default function AuthLayout({
   const heroImage = placeholderImages.find(p => p.id === "hero");
 
   return (
-    <div className="w-full min-h-screen lg:grid lg:grid-cols-2 animate-page-fade-in">
-      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto grid w-[350px] gap-6">
-            <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+    <div className="w-full min-h-screen grid grid-cols-1 lg:grid-cols-3 animate-page-fade-in">
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 lg:col-span-1">
+        <div className="mx-auto grid w-full max-w-sm gap-6">
+            <div className="flex flex-col items-center lg:items-start text-center lg:text-left gap-3 mb-4">
                 <Link href="/" className="flex items-center gap-2">
                     <Logo />
                     <h1 className="text-2xl font-bold font-headline">HitunginAja</h1>
                 </Link>
+                {children}
             </div>
-            {children}
         </div>
       </div>
-      <div className="hidden bg-muted lg:block relative">
+      <div className="hidden lg:block lg:col-span-2 relative">
         {heroImage && (
             <Image
                 src={heroImage.imageUrl}
@@ -39,14 +39,14 @@ export default function AuthLayout({
                 data-ai-hint={heroImage.imageHint}
             />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/60 via-background/20 to-transparent"></div>
-         <div className="absolute bottom-10 left-10 right-10">
+        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-background/10 to-transparent"></div>
+         <div className="absolute bottom-10 left-10 right-10 max-w-xl">
             <div className="bg-black/50 backdrop-blur-md p-6 rounded-xl border border-white/10">
-                 <blockquote className="text-white text-lg font-medium">
-                    "Stop pusing mikirin HPP. Fokus bikin profit. Aplikasi ini benar-benar mengubah cara saya mengelola bisnis."
+                 <blockquote className="text-white text-xl font-medium leading-relaxed">
+                    "Aplikasi ini bukan cuma kalkulator, tapi partner strategis. Menentukan harga jadi lebih percaya diri, dan profitabilitas saya meningkat drastis."
                 </blockquote>
                 <footer className="text-white/70 mt-4 text-sm">
-                    - Pengusaha Muda Sukses
+                    - Sarah, Pemilik Brand Fashion Lokal
                 </footer>
             </div>
         </div>

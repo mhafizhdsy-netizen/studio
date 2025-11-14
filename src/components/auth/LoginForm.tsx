@@ -17,7 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MailWarning, MailCheck } from "lucide-react";
+import { Loader2, MailWarning } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
@@ -125,10 +125,10 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="grid gap-2 text-center">
+      <div className="grid gap-2 text-center lg:text-left">
         <h1 className="text-3xl font-bold font-headline">Selamat Datang Kembali</h1>
         <p className="text-balance text-muted-foreground">
-          Masukkan email dan password untuk melanjutkan.
+          Masukkan detail akunmu untuk melanjutkan.
         </p>
       </div>
 
@@ -145,21 +145,6 @@ export function LoginForm() {
           </Button>
         </Alert>
       )}
-
-       <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
-            {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
-            Masuk dengan Google
-        </Button>
-       <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Atau masuk dengan email
-            </span>
-          </div>
-        </div>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
@@ -203,6 +188,20 @@ export function LoginForm() {
           </Button>
         </form>
       </Form>
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Atau
+            </span>
+          </div>
+        </div>
+        <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
+            {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
+            Masuk dengan Google
+        </Button>
       <div className="mt-4 text-center text-sm text-muted-foreground">
         Belum punya akun?{" "}
         <Link href="/signup" className="underline text-primary font-semibold hover:text-primary/80">

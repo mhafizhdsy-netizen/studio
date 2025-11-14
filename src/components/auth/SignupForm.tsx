@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera, MailCheck } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { sanitizeFileName } from "@/lib/utils";
@@ -179,26 +178,28 @@ export function SignupForm() {
 
   if (showVerificationMessage) {
     return (
-        <Alert>
-            <MailCheck className="h-4 w-4" />
-            <AlertTitle className="font-bold text-lg">Satu Langkah Lagi!</AlertTitle>
-            <AlertDescription className="mt-2">
-                Akunmu berhasil dibuat. Kami telah mengirimkan link verifikasi ke <strong>{form.getValues('email')}</strong>.
-                <br/><br/>
-                Silakan cek inbox (dan folder spam), lalu klik link tersebut untuk mengaktifkan akunmu sebelum login.
-            </AlertDescription>
+        <div className="space-y-6 text-center lg:text-left">
+            <Alert className="text-left">
+                <MailCheck className="h-4 w-4" />
+                <AlertTitle className="font-bold text-lg">Satu Langkah Lagi!</AlertTitle>
+                <AlertDescription className="mt-2">
+                    Akunmu berhasil dibuat. Kami telah mengirimkan link verifikasi ke <strong>{form.getValues('email')}</strong>.
+                    <br/><br/>
+                    Silakan cek inbox (dan folder spam), lalu klik link tersebut untuk mengaktifkan akunmu sebelum login.
+                </AlertDescription>
+            </Alert>
              <div className="mt-6 text-center">
                 <Button asChild>
                     <Link href="/login">Kembali ke Halaman Login</Link>
                 </Button>
             </div>
-        </Alert>
+        </div>
     );
   }
 
   return (
     <>
-      <div className="grid gap-2 text-center">
+      <div className="grid gap-2 text-center lg:text-left">
         <h1 className="text-3xl font-bold font-headline">Buat Akun Gratis</h1>
         <p className="text-balance text-muted-foreground">
             Mulai perjalanan bisnismu dengan menghitung profit secara akurat.
@@ -207,22 +208,25 @@ export function SignupForm() {
 
        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-4">
                 <div 
                     className="relative p-1 rounded-full border-2 border-dashed border-muted-foreground/50 cursor-pointer hover:border-primary transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                 >
-                    <Avatar className="h-24 w-24">
+                    <Avatar className="h-16 w-16">
                         <AvatarImage src={photoPreview ?? undefined} />
-                        <AvatarFallback className="text-3xl bg-muted">
+                        <AvatarFallback className="text-2xl bg-muted">
                             {(form.getValues('name') || 'U').charAt(0).toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
-                    <div className="absolute bottom-1 right-1 bg-background border rounded-full p-1.5 flex items-center justify-center">
+                    <div className="absolute bottom-0 right-0 bg-background border rounded-full p-1 flex items-center justify-center">
                         <Camera className="h-4 w-4 text-muted-foreground" />
                     </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Unggah foto profil (opsional)</p>
+                <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium">Foto Profil</p>
+                    <p className="text-xs text-muted-foreground">Opsional, tapi bikin profilmu lebih keren!</p>
+                </div>
                 <Input
                     type="file"
                     ref={fileInputRef}
