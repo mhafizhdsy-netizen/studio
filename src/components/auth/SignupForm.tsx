@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef, ChangeEvent } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,11 +17,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera, MailCheck } from "lucide-react";
-import { supabase, uploadFileToSupabase } from "@/lib/supabase";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { sanitizeFileName } from "@/lib/utils";
-import { moderateImage } from "@/ai/flows/image-moderation-flow";
+import { Loader2, MailCheck } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const formSchema = z.object({
@@ -39,25 +36,12 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
     </svg>
 );
 
-const fileToDataUri = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-};
-
 export function SignupForm() {
   const { toast } = useToast();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,39 +50,9 @@ export function SignupForm() {
       password: "",
     },
   });
-  
-  const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-       
-      const imageDataUri = await fileToDataUri(file);
-      const moderationResult = await moderateImage({ imageDataUri });
-
-      if (!moderationResult.isSafe) {
-          toast({
-              title: "Gambar Tidak Sesuai",
-              description: moderationResult.reason || "Gambar yang Anda pilih melanggar pedoman komunitas kami.",
-              variant: "destructive",
-          });
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-          return;
-      }
-      
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
-    }
-  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoadingEmail(true);
-    let photoURL = '';
-
-    if (photoFile) {
-        // We will upload the photo after user is created to get the user ID for the path.
-        // For now, we'll just hold onto the file.
-    }
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: values.email,
@@ -106,7 +60,7 @@ export function SignupForm() {
       options: {
         data: {
           name: values.name,
-          photoURL: '', // Initially empty, will be updated if photo is uploaded
+          photoURL: '', 
         }
       }
     });
@@ -129,26 +83,6 @@ export function SignupForm() {
         });
         setIsLoadingEmail(false);
         return;
-    }
-
-    const user = signUpData.user;
-
-    if (photoFile) {
-        const cleanFileName = sanitizeFileName(photoFile.name);
-        const filePath = `public/profile-images/${user.id}/${cleanFileName}`;
-        
-        try {
-            photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath);
-            
-            // Update user metadata with the final photoURL
-            await supabase.auth.updateUser({
-              data: { ...user.user_metadata, photoURL }
-            });
-
-        } catch (uploadError) {
-           // This is not critical, the profile can be updated later.
-           console.warn("Photo upload failed after signup:", uploadError);
-        }
     }
     
     setShowVerificationMessage(true);
@@ -178,8 +112,8 @@ export function SignupForm() {
 
   if (showVerificationMessage) {
     return (
-        <div className="space-y-6 text-center lg:text-left">
-            <Alert className="text-left">
+        <div className="space-y-6 text-left">
+            <Alert>
                 <MailCheck className="h-4 w-4" />
                 <AlertTitle className="font-bold text-lg">Satu Langkah Lagi!</AlertTitle>
                 <AlertDescription className="mt-2">
@@ -189,7 +123,7 @@ export function SignupForm() {
                 </AlertDescription>
             </Alert>
              <div className="mt-6 text-center">
-                <Button asChild>
+                <Button asChild variant="accent">
                     <Link href="/login">Kembali ke Halaman Login</Link>
                 </Button>
             </div>
@@ -198,52 +132,29 @@ export function SignupForm() {
   }
 
   return (
-    <>
-      <div className="grid gap-2 text-center lg:text-left">
-        <h1 className="text-3xl font-bold font-headline">Buat Akun Gratis</h1>
-        <p className="text-balance text-muted-foreground">
-            Mulai perjalanan bisnismu dengan menghitung profit secara akurat.
-        </p>
-      </div>
+    <div className="w-full space-y-8">
+        <div className="grid gap-2 text-left">
+            <h1 className="text-3xl font-bold font-headline">Sign up</h1>
+        </div>
+
+        <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Sign up with one of following options.</p>
+            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+                {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
+                Continue with Google
+            </Button>
+        </div>
 
        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-            <div className="flex items-center gap-4">
-                <div 
-                    className="relative p-1 rounded-full border-2 border-dashed border-muted-foreground/50 cursor-pointer hover:border-primary transition-colors"
-                    onClick={() => fileInputRef.current?.click()}
-                >
-                    <Avatar className="h-16 w-16">
-                        <AvatarImage src={photoPreview ?? undefined} />
-                        <AvatarFallback className="text-2xl bg-muted">
-                            {(form.getValues('name') || 'U').charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute bottom-0 right-0 bg-background border rounded-full p-1 flex items-center justify-center">
-                        <Camera className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                </div>
-                <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium">Foto Profil</p>
-                    <p className="text-xs text-muted-foreground">Opsional, tapi bikin profilmu lebih keren!</p>
-                </div>
-                <Input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                    accept="image/png, image/jpeg, image/webp"
-                />
-            </div>
-
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nama Lengkap</FormLabel>
+                <FormLabel>Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nama Kamu" {...field} disabled={isLoading} />
+                  <Input placeholder="Enter your name" {...field} disabled={isLoading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -269,38 +180,24 @@ export function SignupForm() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="•••••••• (minimal 6 karakter)" {...field} disabled={isLoading} />
+                  <Input type="password" placeholder="Pick a strong password" {...field} disabled={isLoading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full font-bold mt-2" disabled={isLoading}>
+          <Button type="submit" variant="accent" className="w-full font-bold mt-4 py-6 text-lg" disabled={isLoading}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Buat Akun
+            Create Account
           </Button>
-           <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                    Atau
-                    </span>
-                </div>
-            </div>
-           <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
-                {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
-                Daftar dengan Google
-            </Button>
         </form>
       </Form>
       <div className="mt-4 text-center text-sm text-muted-foreground">
-        Sudah punya akun?{" "}
-        <Link href="/login" className="underline text-primary font-semibold hover:text-primary/80">
-          Masuk di sini
+        Already have an account?{" "}
+        <Link href="/login" className="font-semibold text-primary hover:underline">
+          Log in
         </Link>
       </div>
-    </>
+    </div>
   );
 }

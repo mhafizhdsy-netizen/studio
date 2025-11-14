@@ -124,12 +124,17 @@ export function LoginForm() {
   };
 
   return (
-    <>
-      <div className="grid gap-2 text-center lg:text-left">
-        <h1 className="text-3xl font-bold font-headline">Selamat Datang Kembali</h1>
-        <p className="text-balance text-muted-foreground">
-          Masukkan detail akunmu untuk melanjutkan.
-        </p>
+    <div className="w-full space-y-8">
+      <div className="grid gap-2 text-left">
+        <h1 className="text-3xl font-bold font-headline">Log in</h1>
+      </div>
+       
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">Log in with one of the following options.</p>
+        <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
+            {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
+            Continue with Google
+        </Button>
       </div>
 
       {showVerificationAlert && (
@@ -166,48 +171,27 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center">
-                    <FormLabel>Password</FormLabel>
-                    <Link
-                        href="#"
-                        className="ml-auto inline-block text-xs text-primary hover:underline"
-                    >
-                        Lupa password?
-                    </Link>
-                </div>
+                <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input type="password" placeholder="Enter your password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full font-bold mt-2" disabled={isLoadingEmail || isLoadingGoogle}>
+          <Button type="submit" variant="accent" className="w-full font-bold mt-4 py-6 text-lg" disabled={isLoadingEmail || isLoadingGoogle}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Masuk
+            Log in
           </Button>
         </form>
       </Form>
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Atau
-            </span>
-          </div>
-        </div>
-        <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
-            {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
-            Masuk dengan Google
-        </Button>
-      <div className="mt-4 text-center text-sm text-muted-foreground">
-        Belum punya akun?{" "}
-        <Link href="/signup" className="underline text-primary font-semibold hover:text-primary/80">
-          Buat Akun Gratis
+
+      <div className="text-center text-sm text-muted-foreground">
+        Don't have an account?{" "}
+        <Link href="/signup" className="font-semibold text-primary hover:underline">
+          Sign up
         </Link>
       </div>
-    </>
+    </div>
   );
 }
