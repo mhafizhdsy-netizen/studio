@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
@@ -15,9 +16,12 @@ import { type PublicCalculation } from "./PublicCalculationList";
 import { ScrollArea } from "../ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Lightbulb, Package } from "lucide-react";
+import { Lightbulb, Package, ShoppingCart } from "lucide-react";
 import Image from "next/image";
 import { CommentSection } from "./CommentSection";
+import { Button } from "../ui/button";
+import Link from "next/link";
+import { Separator } from "../ui/separator";
 
 interface PublicCalculationDetailDialogProps {
   calculation: PublicCalculation | null;
@@ -49,10 +53,11 @@ export function PublicCalculationDetailDialog({
     userPhotoURL,
     productQuantity,
     productionTips,
+    purchaseLink,
   } = calculation;
 
   const safeMaterials = materials || [];
-  const totalMaterialCost = safeMaterials.reduce((acc, mat) => acc + mat.cost * mat.qty, 0);
+  const totalMaterialCost = safeMaterials.reduce((acc, mat) => acc + (mat.cost || 0) * (mat.qty || 0), 0);
   const laborCostPerProduct = productQuantity > 0 ? laborCost / productQuantity : 0;
   const overheadPerProduct = productQuantity > 0 ? overhead / productQuantity : 0;
   const packagingPerProduct = packaging || 0;
@@ -92,31 +97,22 @@ export function PublicCalculationDetailDialog({
                     <Package className="h-12 w-12 text-muted-foreground" />
                 </div>
             )}
+            
+            {purchaseLink && (
+              <Button asChild className="w-full font-bold">
+                <Link href={purchaseLink} target="_blank" rel="noopener noreferrer">
+                  <ShoppingCart className="mr-2 h-4 w-4"/>
+                  Beli Sekarang
+                </Link>
+              </Button>
+            )}
+
             <div className="h-64">
               <CostPieChart data={pieChartData} />
             </div>
 
             <div className="space-y-4">
               <h3 className="font-semibold font-headline">Rincian Biaya per Produk</h3>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground">Bahan Baku</span>
-                <span className="font-semibold">{formatCurrency(totalMaterialCost)}</span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground">Tenaga Kerja</span>
-                <span className="font-semibold">{formatCurrency(laborCostPerProduct)}</span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground">Overhead</span>
-                <span className="font-semibold">{formatCurrency(overheadPerProduct)}</span>
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground">Kemasan</span>
-                <span className="font-semibold">{formatCurrency(packagingPerProduct)}</span>
-              </div>
-            </div>
-
-            <div className="space-y-4">
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="text-muted-foreground">Total HPP</span>
                 <span className="font-bold text-xl">{formatCurrency(totalHPP)}</span>
@@ -130,6 +126,27 @@ export function PublicCalculationDetailDialog({
               <div className="flex justify-center">
                  <Badge>Margin Profit: {margin}%</Badge>
               </div>
+            </div>
+
+            <Separator/>
+            
+            <div className="space-y-4">
+              <h3 className="font-semibold font-headline">Rincian Bahan Baku</h3>
+                {safeMaterials.length > 0 ? (
+                    <ul className="space-y-3">
+                        {safeMaterials.map((material, index) => (
+                            <li key={index} className="p-3 border rounded-md bg-muted/30">
+                                <div className="flex justify-between items-center">
+                                    <span className="font-semibold">{material.name}</span>
+                                    <span className="text-sm font-mono">{formatCurrency(material.cost * material.qty)}</span>
+                                </div>
+                                {material.description && <p className="text-xs text-muted-foreground mt-1">{material.description}</p>}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-sm text-muted-foreground">Tidak ada rincian bahan baku.</p>
+                )}
             </div>
 
             {productionTips && (
@@ -153,3 +170,5 @@ export function PublicCalculationDetailDialog({
     </Dialog>
   );
 }
+
+    

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera } from "lucide-react";
+import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera, Link as LinkIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { formatCurrency, sanitizeFileName } from "@/lib/utils";
@@ -30,6 +30,7 @@ const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
   cost: z.coerce.number().min(0, "Biaya harus positif"),
   qty: z.coerce.number().min(1, "Jumlah minimal 1"),
+  description: z.string().optional(),
 });
 
 const formSchema = z.object({
@@ -43,6 +44,7 @@ const formSchema = z.object({
   margin: z.coerce.number().min(0, "Margin harus positif").max(1000, "Margin terlalu besar"),
   sharePublicly: z.boolean().optional(),
   productionTips: z.string().optional(),
+  purchaseLink: z.string().url("URL tidak valid").optional().or(z.literal('')),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -88,7 +90,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     defaultValues: {
       productName: "",
       productImageUrl: "",
-      materials: [{ name: "", cost: 0, qty: 1 }],
+      materials: [{ name: "", cost: 0, qty: 1, description: "" }],
       laborCost: 0,
       overhead: 0,
       packaging: 0,
@@ -96,6 +98,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       margin: 30,
       sharePublicly: false,
       productionTips: "",
+      purchaseLink: "",
     },
   });
 
@@ -111,13 +114,14 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       const materials = (existingCalculation.materials || []).map(m => ({
         ...m,
         cost: Number(m.cost),
-        qty: Number(m.qty)
+        qty: Number(m.qty),
+        description: m.description || "",
       }));
 
       form.reset({
         productName: existingCalculation.productName,
         productImageUrl: existingCalculation.productImageUrl || "",
-        materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1 }],
+        materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1, description: "" }],
         laborCost: Number(existingCalculation.laborCost),
         overhead: Number(existingCalculation.overhead),
         packaging: Number(existingCalculation.packaging),
@@ -125,6 +129,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         sharePublicly: existingCalculation.isPublic || false,
         productQuantity: existingCalculation.productQuantity || 1,
         productionTips: existingCalculation.productionTips || "",
+        purchaseLink: existingCalculation.purchaseLink || "",
       });
       setImageUrl(existingCalculation.productImageUrl || null);
       calculate(form.getValues());
@@ -197,7 +202,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const calculationData: Omit<Calculation, 'id' | 'createdAt' | 'updatedAt'> = {
         productName: data.productName,
         productImageUrl: data.productImageUrl || "",
-        materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty) })),
+        materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty), description: m.description || "" })),
         laborCost: Number(data.laborCost),
         overhead: Number(data.overhead),
         packaging: Number(data.packaging),
@@ -208,6 +213,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         userId: user.uid,
         productQuantity: data.productQuantity,
         productionTips: data.productionTips || "",
+        purchaseLink: data.purchaseLink || "",
     };
 
     // Main calculation document
@@ -226,15 +232,15 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const publicCalcRef = doc(firestore, 'public_calculations', publicCalcId);
 
     if (data.sharePublicly) {
-        const publicData = {
+        const publicData: any = {
             ...calculationData,
             userName: user.displayName || 'Anonymous',
             userPhotoURL: user.photoURL || '',
             createdAt: existingCalculation?.createdAt || serverTimestamp(),
             updatedAt: serverTimestamp(),
         };
-        delete (publicData as any).userId; 
-        delete (publicData as any).isPublic;
+        delete publicData.userId; 
+        delete publicData.isPublic;
 
         setDocumentNonBlocking(publicCalcRef, publicData, { merge: true });
     } else if (existingCalculation?.isPublic) {
@@ -305,25 +311,35 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
               </CardHeader>
               <CardContent className="space-y-4">
               {fields.map((field, index) => (
-                  <div key={field.id} className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end p-3 rounded-md border">
-                      <div className="flex-grow">
-                          <Label>Nama Bahan</Label>
-                          <Input placeholder="cth: Kain Katun" {...form.register(`materials.${index}.name`)} />
+                  <div key={field.id} className="grid grid-cols-1 gap-2 p-3 rounded-md border">
+                      <div className="flex justify-end">
+                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1} className="h-7 w-7">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
-                      <div className="w-full sm:w-32">
-                          <Label>Biaya Satuan</Label>
-                          <Input type="number" placeholder="Rp" {...form.register(`materials.${index}.cost`)} />
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+                        <div className="flex-grow">
+                            <Label>Nama Bahan</Label>
+                            <Input placeholder="cth: Kain Katun" {...form.register(`materials.${index}.name`)} />
+                        </div>
+                        <div className="w-full sm:w-32">
+                            <Label>Biaya Satuan</Label>
+                            <Input type="number" placeholder="Rp" {...form.register(`materials.${index}.cost`)} />
+                        </div>
+                        <div className="w-full sm:w-20">
+                            <Label>Jumlah</Label>
+                            <Input type="number" {...form.register(`materials.${index}.qty`)} />
+                        </div>
                       </div>
-                      <div className="w-full sm:w-20">
-                          <Label>Jumlah</Label>
-                          <Input type="number" {...form.register(`materials.${index}.qty`)} />
-                      </div>
-                      <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {watchSharePublicly && (
+                        <div className="mt-2">
+                          <Label>Deskripsi Bahan (Opsional)</Label>
+                          <Textarea placeholder="cth: Kain katun combed 30s dari supplier Bandung..." {...form.register(`materials.${index}.description`)} />
+                        </div>
+                      )}
                   </div>
               ))}
-              <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1 })}>
+              <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1, description: "" })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Tambah Bahan
               </Button>
               {form.formState.errors.materials && <p className="text-sm text-destructive mt-1">{form.formState.errors.materials.message}</p>}
@@ -432,16 +448,34 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               <Label htmlFor="share-publicly" className="flex items-center gap-2">Bagikan ke Komunitas <Share2 className="h-4 w-4"/></Label>
                           </div>
                            {watchSharePublicly && (
-                            <div>
-                              <Label htmlFor="productionTips">Tips Produksi (Opsional)</Label>
-                              <Textarea
-                                id="productionTips"
-                                placeholder="Contoh: Gunakan perbandingan 1 teh celup untuk 4-5 gelas es teh..."
-                                {...form.register("productionTips")}
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Bagikan tips, resep, atau cara produksimu agar bisa jadi inspirasi user lain.
-                              </p>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="productionTips">Tips Produksi (Opsional)</Label>
+                                <Textarea
+                                  id="productionTips"
+                                  placeholder="Contoh: Gunakan perbandingan 1 teh celup untuk 4-5 gelas es teh..."
+                                  {...form.register("productionTips")}
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Bagikan tips, resep, atau cara produksimu agar bisa jadi inspirasi user lain.
+                                </p>
+                              </div>
+                               <div>
+                                <Label htmlFor="purchaseLink">Tautan Toko/Produk (Opsional)</Label>
+                                <div className="relative">
+                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                                    <Input
+                                    id="purchaseLink"
+                                    placeholder="https://tokopedia.com/toko-kamu/produk"
+                                    className="pl-9"
+                                    {...form.register("purchaseLink")}
+                                    />
+                                </div>
+                                {form.formState.errors.purchaseLink && <p className="text-sm text-destructive mt-1">{form.formState.errors.purchaseLink.message}</p>}
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Arahkan pengguna lain untuk membeli produkmu.
+                                </p>
+                              </div>
                             </div>
                           )}
                           <Button type="submit" className="w-full font-bold" disabled={isSubmitting || isUploading}>
@@ -490,3 +524,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
+
+    

@@ -66,9 +66,16 @@
         },
         "materials": {
           "type": "array",
-          "description": "A list of material costs associated with the product.",
+          "description": "A list of materials associated with the product.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "cost": { "type": "number" },
+              "qty": { "type": "number" },
+              "description": { "type": "string" }
+            },
+             "required": ["name", "cost", "qty"]
           }
         },
         "laborCost": {
@@ -99,6 +106,11 @@
           "type": "string",
           "description": "Timestamp indicating when the calculation was performed.",
           "format": "date-time"
+        },
+        "purchaseLink": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL where the product can be purchased."
         }
       },
       "required": [
@@ -150,6 +162,25 @@
           "type": "string",
           "description": "Timestamp indicating when the calculation was performed.",
           "format": "date-time"
+        },
+        "purchaseLink": {
+          "type": "string",
+          "format": "uri",
+          "description": "A URL where the product can be purchased."
+        },
+         "materials": {
+          "type": "array",
+          "description": "A list of materials associated with the product.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "cost": { "type": "number" },
+              "qty": { "type": "number" },
+              "description": { "type": "string" }
+            },
+            "required": ["name", "cost", "qty"]
+          }
         }
       },
       "required": [
@@ -470,3 +501,5 @@
     "reasoning": "The Firestore structure is updated to support the AI Consultant feature by adding a new collection to store the chat history for each user."
   }
 }
+
+    
