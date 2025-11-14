@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useState, useMemo } from "react";
+import { useFirestore, useCollection, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { Loader2, ServerCrash, Users, Package, Pin } from "lucide-react";
 import {
     Card,
@@ -20,11 +20,16 @@ import type { Calculation } from "../dashboard/CalculationHistory";
 import { PublicCalculationDetailDialog } from "./PublicCalculationDetailDialog";
 import Image from "next/image";
 
+interface UserProfile {
+    isAdmin?: boolean;
+}
+
 // PublicCalculation now includes the full breakdown
 export interface PublicCalculation extends Calculation {
     userName: string;
     userPhotoURL?: string;
     isFeatured?: boolean;
+    userIsAdmin?: boolean; // Added to pass admin status to dialog
 }
 
 export function PublicCalculationList() {
@@ -33,7 +38,6 @@ export function PublicCalculationList() {
 
     const publicCalculationsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        // This query just fetches all. We will sort on the client-side.
         return query(collection(firestore, 'public_calculations'), orderBy('updatedAt', 'desc'));
     }, [firestore]);
 
@@ -61,7 +65,6 @@ export function PublicCalculationList() {
   const sortedCalculations = calculations?.sort((a, b) => {
     if (a.isFeatured && !b.isFeatured) return -1;
     if (!a.isFeatured && b.isFeatured) return 1;
-    // For items with same featured status, sort by date (already done by query)
     return 0;
   });
 
@@ -83,7 +86,7 @@ export function PublicCalculationList() {
     <>
         <div className="w-full grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {sortedCalculations && sortedCalculations.map((calc) => (
-                <PublicCalculationCard key={calc.id} calculation={calc} onSelect={() => setSelectedCalc(calc)} />
+                <PublicCalculationCard key={calc.id} calculation={calc} onSelect={setSelectedCalc} />
             ))}
         </div>
         <PublicCalculationDetailDialog 
@@ -95,13 +98,25 @@ export function PublicCalculationList() {
   );
 }
 
-function PublicCalculationCard({ calculation, onSelect }: { calculation: PublicCalculation, onSelect: () => void }) {
+function PublicCalculationCard({ calculation, onSelect }: { calculation: PublicCalculation, onSelect: (calc: PublicCalculation) => void }) {
     const getInitials = (name: string) => (name || 'A').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const firestore = useFirestore();
+
+    const userDocRef = useMemoFirebase(() => {
+        if (!firestore || !calculation.userId) return null;
+        return doc(firestore, 'users', calculation.userId);
+    }, [firestore, calculation.userId]);
+    
+    const { data: userProfile } = useDoc<UserProfile>(userDocRef);
+
+    const handleSelect = () => {
+        onSelect({ ...calculation, userIsAdmin: userProfile?.isAdmin });
+    };
     
     return (
         <Card 
             className="flex flex-col h-full bg-card/50 dark:bg-card/20 hover:border-primary transition-all duration-200 cursor-pointer overflow-hidden group"
-            onClick={onSelect}
+            onClick={handleSelect}
         >
              <div className="relative aspect-video w-full bg-muted overflow-hidden">
                 {calculation.productImageUrl ? (
@@ -147,5 +162,3 @@ function PublicCalculationCard({ calculation, onSelect }: { calculation: PublicC
         </Card>
     )
 }
-
-    

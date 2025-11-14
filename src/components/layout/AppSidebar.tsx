@@ -25,21 +25,43 @@ import {
   Bot,
   Landmark,
   Wand2,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
 import { Logo } from '../ui/logo';
+import { Badge } from '../ui/badge';
+
+interface UserProfile {
+    isAdmin?: boolean;
+}
+
+const AdminBadge = () => (
+    <Badge variant="accent" className="ml-2 text-xs">
+        <Shield className="h-3 w-3 mr-1"/>
+        Admin
+    </Badge>
+)
 
 export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const handleSignOut = async () => {
     if(auth) {
@@ -204,7 +226,10 @@ export function AppSidebar() {
                             </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col overflow-hidden text-left">
-                            <p className="font-semibold truncate">{user?.displayName}</p>
+                            <p className="font-semibold truncate flex items-center">
+                                {user?.displayName}
+                                {userProfile?.isAdmin && <AdminBadge/>}
+                            </p>
                             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                         </div>
                     </div>

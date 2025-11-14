@@ -16,7 +16,7 @@ import { type PublicCalculation } from "./PublicCalculationList";
 import { ScrollArea } from "../ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Lightbulb, Package, ShoppingCart } from "lucide-react";
+import { Lightbulb, Package, ShoppingCart, Shield } from "lucide-react";
 import Image from "next/image";
 import { CommentSection } from "./CommentSection";
 import { Button } from "../ui/button";
@@ -53,6 +53,7 @@ export function PublicCalculationDetailDialog({
     userPhotoURL,
     productQuantity,
     productionTips,
+    userIsAdmin,
   } = calculation;
 
   const safeMaterials = materials || [];
@@ -82,7 +83,14 @@ export function PublicCalculationDetailDialog({
                   {getInitials(userName)}
                 </AvatarFallback>
               </Avatar>
-              <DialogDescription>Oleh {userName || "Anonim"}</DialogDescription>
+              <DialogDescription className="flex items-center gap-2">
+                Oleh {userName || "Anonim"}
+                {userIsAdmin && (
+                    <Badge variant="accent" className="text-xs px-1.5 py-0">
+                        <Shield className="h-3 w-3 mr-1"/>Admin
+                    </Badge>
+                )}
+              </DialogDescription>
             </div>
           </DialogHeader>
         <ScrollArea className="max-h-[70vh] pr-4">

@@ -5,17 +5,21 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection, query, orderBy, Timestamp, serverTimestamp } from "firebase/firestore";
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, useDoc } from "@/firebase";
+import { collection, query, orderBy, Timestamp, serverTimestamp, doc } from "firebase/firestore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Loader2, Send, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Send, MessageSquare, ChevronDown, ChevronUp, Shield } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "../ui/badge";
 
+interface UserProfile {
+    isAdmin?: boolean;
+}
 
 export interface Comment {
   id: string;
@@ -118,6 +122,14 @@ function CommentForm({ calculationId, parentId, onAfterSubmit, autofocus }: { ca
 function CommentItem({ comment, calculationId }: { comment: Comment, calculationId: string }) {
     const [isReplying, setIsReplying] = useState(false);
     const [showReplies, setShowReplies] = useState(true);
+    const firestore = useFirestore();
+
+    const userDocRef = useMemoFirebase(() => {
+        if(!firestore || !comment.userId) return null;
+        return doc(firestore, 'users', comment.userId);
+    }, [firestore, comment.userId]);
+
+    const {data: userProfile} = useDoc<UserProfile>(userDocRef);
 
     return (
         <div className="flex gap-3">
@@ -128,7 +140,10 @@ function CommentItem({ comment, calculationId }: { comment: Comment, calculation
             <div className="flex-1">
                 <div className="bg-muted/50 p-3 rounded-lg">
                     <div className="flex justify-between items-center">
-                        <p className="font-semibold text-sm">{comment.userName}</p>
+                        <div className="flex items-center gap-2">
+                             <p className="font-semibold text-sm">{comment.userName}</p>
+                             {userProfile?.isAdmin && <Badge variant="accent" className="text-xs px-1.5 py-0"><Shield className="h-3 w-3 mr-1"/>Admin</Badge>}
+                        </div>
                         <p className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</p>
                     </div>
                     <p className="text-sm mt-1 whitespace-pre-wrap">{comment.text}</p>
@@ -170,6 +185,7 @@ function CommentItem({ comment, calculationId }: { comment: Comment, calculation
 
 export function CommentSection({ calculationId }: CommentSectionProps) {
   const { user } = useUser();
+  const firestore = useFirestore();
   
   const commentsQuery = useMemoFirebase(() => {
     if (!firestore || !calculationId) return null;
