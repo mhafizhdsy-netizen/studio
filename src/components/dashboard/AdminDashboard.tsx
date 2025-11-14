@@ -199,7 +199,7 @@ function UserManager({ users, isLoading, onRefresh }: { users: UserProfile[] | n
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
   const handleToggleAdmin = async (user: UserProfile) => {
-    const newIsAdmin = !user.user_metadata.isAdmin;
+    const newIsAdmin = !user.user_metadata?.isAdmin;
     
     const { error } = await supabase.auth.admin.updateUserById(
         user.id,
@@ -215,7 +215,7 @@ function UserManager({ users, isLoading, onRefresh }: { users: UserProfile[] | n
   };
 
   const handleToggleSuspend = async (user: UserProfile) => {
-    const newIsSuspended = !user.user_metadata.isSuspended;
+    const newIsSuspended = !user.user_metadata?.isSuspended;
     const { error } = await supabase.auth.admin.updateUserById(user.id, {
         user_metadata: { ...user.user_metadata, isSuspended: newIsSuspended }
     });
@@ -253,16 +253,16 @@ function UserManager({ users, isLoading, onRefresh }: { users: UserProfile[] | n
   const dialogContent = useMemo(() => {
     if (!action || !selectedUser) return { title: '', description: '', onConfirm: () => {} };
     if (action === 'suspend') {
-      const isSuspending = !selectedUser.user_metadata.isSuspended;
+      const isSuspending = !selectedUser.user_metadata?.isSuspended;
       return {
         title: `${isSuspending ? 'Tangguhkan' : 'Aktifkan Kembali'} Pengguna Ini?`,
-        description: `Akun ${selectedUser.user_metadata.name} akan ${isSuspending ? 'dinonaktifkan sementara' : 'diaktifkan kembali'}.`,
+        description: `Akun ${selectedUser.user_metadata?.name} akan ${isSuspending ? 'dinonaktifkan sementara' : 'diaktifkan kembali'}.`,
         onConfirm: () => handleToggleSuspend(selectedUser),
       }
     }
     return {
       title: 'Blokir Permanen Pengguna Ini?',
-      description: `Tindakan ini tidak dapat diurungkan. Akun ${selectedUser.user_metadata.name} dan datanya akan dihapus.`,
+      description: `Tindakan ini tidak dapat diurungkan. Akun ${selectedUser.user_metadata?.name} dan datanya akan dihapus.`,
       onConfirm: () => handleBanUser(selectedUser),
     }
   }, [action, selectedUser]);
@@ -294,24 +294,24 @@ function UserManager({ users, isLoading, onRefresh }: { users: UserProfile[] | n
             </TableHeader>
             <TableBody>
               {users?.map((user) => (
-                <TableRow key={user.id} className={user.user_metadata.isSuspended ? 'bg-destructive/10' : ''}>
+                <TableRow key={user.id} className={user.user_metadata?.isSuspended ? 'bg-destructive/10' : ''}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.user_metadata.photoURL} />
+                        <AvatarImage src={user.user_metadata?.photoURL} />
                         <AvatarFallback>
-                          {getInitials(user.user_metadata.name)}
+                          {getInitials(user.user_metadata?.name)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{user.user_metadata.name}</span>
-                        {user.user_metadata.isAdmin && <Badge variant="accent"><Shield className="h-3 w-3 mr-1" />Admin</Badge>}
+                        <span className="font-medium">{user.user_metadata?.name || 'No Name'}</span>
+                        {user.user_metadata?.isAdmin && <Badge variant="accent"><Shield className="h-3 w-3 mr-1" />Admin</Badge>}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                    <TableCell>
-                    {user.user_metadata.isSuspended ? (
+                    {user.user_metadata?.isSuspended ? (
                       <Badge variant="destructive">Ditangguhkan</Badge>
                     ) : (
                       <Badge variant="secondary">Aktif</Badge>
@@ -329,7 +329,7 @@ function UserManager({ users, isLoading, onRefresh }: { users: UserProfile[] | n
                           onClick={() => handleToggleAdmin(user)}
                         >
                           <ShieldCheck className="mr-2 h-4 w-4" />
-                          {user.user_metadata.isAdmin
+                          {user.user_metadata?.isAdmin
                             ? 'Hapus Status Admin'
                             : 'Jadikan Admin'}
                         </DropdownMenuItem>
@@ -338,7 +338,7 @@ function UserManager({ users, isLoading, onRefresh }: { users: UserProfile[] | n
                           onClick={() => openDialog(user, 'suspend')}
                         >
                           <ShieldAlert className="mr-2 h-4 w-4" />
-                          {user.user_metadata.isSuspended
+                          {user.user_metadata?.isSuspended
                             ? 'Aktifkan Kembali'
                             : 'Tangguhkan Akun'}
                         </DropdownMenuItem>
@@ -619,12 +619,12 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
                             {reports.map(report => (
                                 <TableRow key={report.id}>
                                     <TableCell>
-                                        <div className="font-medium">{report.calculation.productName}</div>
-                                        <div className="text-xs text-muted-foreground">oleh {report.reported.name}</div>
+                                        <div className="font-medium">{report.calculation?.productName || 'Konten Dihapus'}</div>
+                                        <div className="text-xs text-muted-foreground">oleh {report.reported?.name || 'Pengguna Dihapus'}</div>
                                     </TableCell>
                                     <TableCell><Badge variant="destructive">{report.category}</Badge></TableCell>
                                     <TableCell className="max-w-xs truncate">{report.reason}</TableCell>
-                                    <TableCell>{report.reporter.name}</TableCell>
+                                    <TableCell>{report.reporter?.name || 'Pengguna Dihapus'}</TableCell>
                                     <TableCell>{getStatusBadge(report.status)}</TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
