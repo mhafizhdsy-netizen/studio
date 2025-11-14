@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera, Link as LinkIcon } from "lucide-react";
+import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera, Link as LinkIcon, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { formatCurrency, sanitizeFileName } from "@/lib/utils";
@@ -25,6 +25,7 @@ import Image from "next/image";
 import { Progress } from "../ui/progress";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { ProductDescriptionGenerator } from "./ProductDescriptionGenerator";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 
 const materialSchema = z.object({
@@ -490,17 +491,26 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                               />
                               <Label htmlFor="share-publicly" className="flex items-center gap-2">Bagikan ke Komunitas <Share2 className="h-4 w-4"/></Label>
                           </div>
-                           {watchSharePublicly && (
-                            <div>
-                                <Label htmlFor="productionTips">Tips Produksi (Opsional)</Label>
-                                <Textarea
-                                  id="productionTips"
-                                  placeholder="Contoh: Gunakan perbandingan 1 teh celup untuk 4-5 gelas es teh..."
-                                  {...form.register("productionTips")}
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Bagikan tips, resep, atau cara produksimu agar bisa jadi inspirasi user lain.
-                                </p>
+                          {watchSharePublicly && (
+                            <div className="space-y-4">
+                               <Alert>
+                                <Info className="h-4 w-4" />
+                                <AlertTitle className="font-semibold">Mantap!</AlertTitle>
+                                <AlertDescription>
+                                  Biar makin bermanfaat buat komunitas, yuk isi detail tambahan seperti deskripsi & link pembelian untuk setiap bahan baku.
+                                </AlertDescription>
+                              </Alert>
+                                <div>
+                                    <Label htmlFor="productionTips">Tips Produksi (Opsional)</Label>
+                                    <Textarea
+                                      id="productionTips"
+                                      placeholder="Contoh: Gunakan perbandingan 1 teh celup untuk 4-5 gelas es teh..."
+                                      {...form.register("productionTips")}
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Bagikan tips, resep, atau cara produksimu agar bisa jadi inspirasi user lain.
+                                    </p>
+                                </div>
                             </div>
                           )}
                           <Button type="submit" className="w-full font-bold" disabled={isSubmitting || isUploading}>
@@ -549,3 +559,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
+
+    
