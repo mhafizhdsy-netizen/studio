@@ -103,15 +103,20 @@ export function LoginForm() {
             description: "Selamat datang! Yuk mulai hitung HPP.",
         });
         router.push("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
+        if (error.code === 'auth/user-cancelled' || error.code === 'auth/popup-closed-by-user') {
+            // User cancelled the sign-in flow, do nothing.
+            return;
+        }
         console.error(error);
         toast({
             title: "Gagal Masuk dengan Google",
             description: "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
             variant: "destructive",
         });
+    } finally {
+        setIsLoadingGoogle(false);
     }
-    setIsLoadingGoogle(false);
   }
 
   return (
