@@ -29,7 +29,11 @@ export interface PublicCalculation extends Calculation {
 }
 
 const fetchPublicCalculations = async () => {
-    const { data, error } = await supabase.from('public_calculations').select('*').order('createdAt', { ascending: false });
+    const { data, error } = await supabase.from('public_calculations')
+        .select('*')
+        .order('isFeatured', { ascending: false }) // Featured first
+        .order('createdAt', { ascending: false });
+
     if (error) throw new Error(error.message);
     return data as PublicCalculation[];
 }

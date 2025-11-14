@@ -277,9 +277,24 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
     calcId: string,
     isFeatured?: boolean
   ) => {
-    // This is not a real field in the view, it's just for demo.
-    // In a real app, you'd have an `isFeatured` column on the `calculations` table.
-    toast({ title: 'Fungsi Belum Tersedia', description: 'Fitur "Jadikan Pilihan" belum diimplementasikan.' });
+    const { error } = await supabase
+      .from('calculations')
+      .update({ isFeatured: !isFeatured })
+      .eq('id', calcId);
+    
+    if (error) {
+      toast({
+        title: 'Gagal',
+        description: 'Gagal memperbarui status pilihan.',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Sukses!',
+        description: `Status pilihan telah diperbarui.`,
+      });
+      onRefresh();
+    }
   };
 
   const handleDeleteCalculation = async (calcId: string, userId: string) => {
@@ -397,11 +412,14 @@ function AnalyticsManager() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Analitik</CardTitle>
-                <CardDescription>Halaman analitik sedang dalam pengembangan.</CardDescription>
+                <CardTitle>Analitik Aplikasi</CardTitle>
+                <CardDescription>Ringkasan aktivitas dan pertumbuhan platform.</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-muted-foreground text-center py-8">Segera Hadir!</p>
+                 <AdminStats calculationsWithComments={null} />
+                 <div className="text-center text-muted-foreground py-8 mt-4">
+                    <p>Halaman analitik yang lebih detail sedang dalam pengembangan.</p>
+                </div>
             </CardContent>
         </Card>
     );
@@ -437,22 +455,21 @@ export function AdminDashboard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <AdminStats calculationsWithComments={calculations} />
-        <Tabs defaultValue="users">
+        <Tabs defaultValue="analytics">
           <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="analytics">Analitik</TabsTrigger>
             <TabsTrigger value="users">Manajemen Pengguna</TabsTrigger>
             <TabsTrigger value="content">Manajemen Konten</TabsTrigger>
-            <TabsTrigger value="analytics">Analitik</TabsTrigger>
           </TabsList>
+          <TabsContent value="analytics" className="mt-4">
+            <AnalyticsManager />
+          </TabsContent>
           <TabsContent value="users" className="mt-4">
             <UserManager />
           </TabsContent>
           <TabsContent value="content" className="mt-4">
             <ContentManager calculations={calculations} isLoading={isLoading} onRefresh={() => setRefreshKey(k => k + 1)}/>
           </TabsContent>
-           <TabsContent value="analytics" className="mt-4">
-                <AnalyticsManager />
-           </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
