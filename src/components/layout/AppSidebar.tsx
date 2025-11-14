@@ -226,10 +226,10 @@ export function AppSidebar() {
                             </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col overflow-hidden text-left">
-                            <p className="font-semibold truncate flex items-center">
+                            <div className="font-semibold truncate flex items-center">
                                 {user?.displayName}
                                 {userProfile?.isAdmin && <AdminBadge/>}
-                            </p>
+                            </div>
                             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                         </div>
                     </div>
