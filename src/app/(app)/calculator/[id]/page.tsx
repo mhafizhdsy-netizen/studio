@@ -1,170 +1,55 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useUser, useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, query, orderBy, doc, Timestamp, getDoc } from 'firebase/firestore';
-import { CalculationCard } from "./CalculationCard";
-import { Loader2, ServerCrash } from "lucide-react";
-import { Button } from "../ui/button";
-import Link from "next/link";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
-import type { PublicCalculation } from "../community/PublicCalculationList";
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { CalculatorForm } from '@/components/calculator/CalculatorForm';
+import { Loader2, ServerCrash } from 'lucide-react';
+import type { Calculation } from '@/components/dashboard/CalculationHistory';
+import { useParams } from 'next/navigation';
 
-export interface Calculation {
-  id: string;
-  productName: string;
-  productImageUrl?: string;
-  productDescription?: string;
-  materials: { name: string; cost: number; qty: number, unit?: string, description?: string, isTotalCost?: boolean, purchaseLink?: string }[];
-  laborCost: number;
-  overhead: number;
-  packaging: number;
-  totalHPP: number;
-  suggestedPrice: number;
-  margin: number;
-  createdAt: Timestamp;
-  updatedAt?: Timestamp;
-  userId: string;
-  isPublic?: boolean;
-  productQuantity: number;
-  productionTips?: string;
-  // Fields from PublicCalculation that might be merged in some contexts
-  userName?: string;
-  userPhotoURL?: string;
-}
-
-export function CalculationHistory() {
+export default function EditCalculatorPageForUser() {
+  const params = useParams();
+  const id = params.id as string;
   const { user } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
 
-  const calculationsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(collection(firestore, 'users', user.uid, 'calculations'), orderBy('createdAt', 'desc'));
-  }, [user, firestore]);
+  const calcDocRef = useMemoFirebase(() => {
+    if (!user || !firestore || !id) return null;
+    // This path is now guaranteed to be correct for the logged-in user
+    return doc(firestore, 'users', user.uid, 'calculations', id);
+  }, [user, firestore, id]);
 
-  const { data: calculations, isLoading, error } = useCollection<Calculation>(calculationsQuery);
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedCalcId, setSelectedCalcId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const openDeleteDialog = (id: string) => {
-    setSelectedCalcId(id);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!user || !selectedCalcId || !firestore) return;
-
-    setIsDeleting(true);
-    
-    const userCalcRef = doc(firestore, 'users', user.uid, 'calculations', selectedCalcId);
-    const publicCalcRef = doc(firestore, 'public_calculations', selectedCalcId);
-    
-    try {
-      // Check if the public document exists before attempting to delete
-      const publicDoc = await getDoc(publicCalcRef);
-
-      // Non-blocking deletion for user's private calculation
-      deleteDocumentNonBlocking(userCalcRef);
-      
-      // If it was public, delete it from the public collection too
-      if (publicDoc.exists()) {
-        deleteDocumentNonBlocking(publicCalcRef);
-      }
-      
-      toast({
-        title: "Berhasil Dihapus",
-        description: "Perhitunganmu sudah dihapus.",
-      });
-    } catch (e) {
-        console.error("Deletion failed:", e);
-        toast({
-            title: "Gagal Menghapus",
-            description: "Terjadi kesalahan saat menghapus perhitungan.",
-            variant: "destructive",
-        });
-    }
-
-
-    setIsDeleting(false);
-    setIsDeleteDialogOpen(false);
-    setSelectedCalcId(null);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center w-full h-full">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Lagi ngambil data kamu...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center w-full h-full">
-        <ServerCrash className="h-12 w-12 text-destructive mb-4" />
-        <p className="font-semibold text-lg">Oops, ada masalah!</p>
-        <p className="text-muted-foreground">Gagal memuat riwayat perhitungan. Coba lagi nanti ya.</p>
-      </div>
-    );
-  }
-
-  if (calculations && calculations.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center text-center w-full h-full">
-        <h3 className="text-2xl font-bold tracking-tight font-headline">
-          Kamu belum punya perhitungan.
-        </h3>
-        <p className="text-muted-foreground">
-          Yuk, mulai hitung HPP produk pertamamu!
-        </p>
-        <Button asChild className="mt-4 font-bold">
-          <Link href="/calculator">Mulai Menghitung</Link>
-        </Button>
-      </div>
-    );
-  }
+  const {
+    data: calculation,
+    isLoading: isDataLoading,
+    error,
+  } = useDoc<Calculation>(calcDocRef);
 
   return (
-    <>
-      <div className="w-full">
-        <h2 className="text-xl font-bold font-headline mb-4">Riwayat Perhitungan</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {calculations && calculations.map((calc) => (
-            <CalculationCard key={calc.id} calculation={calc} onDelete={openDeleteDialog} />
-          ))}
-        </div>
+    <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+      <div className="flex items-center">
+        <h1 className="text-lg font-semibold md:text-2xl font-headline">
+          Edit Perhitungan HPP
+        </h1>
       </div>
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Yakin mau hapus perhitungan ini?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Data yang sudah dihapus nggak bisa dikembalikan lagi lho. Ini juga akan menghapusnya dari halaman komunitas jika pernah dibagikan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Ya, Hapus
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm p-4 lg:p-6">
+        {isDataLoading ? (
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center text-center w-full h-full">
+            <ServerCrash className="h-12 w-12 text-destructive mb-4" />
+            <p className="font-semibold text-lg">Oops, ada masalah!</p>
+            <p className="text-muted-foreground">
+              Gagal memuat data perhitungan. Mungkin Anda tidak punya akses atau
+              data tidak ada.
+            </p>
+          </div>
+        ) : calculation ? (
+          <CalculatorForm existingCalculation={calculation} />
+        ) : (
+          <p>Perhitungan tidak ditemukan.</p>
+        )}
+      </div>
+    </main>
   );
 }

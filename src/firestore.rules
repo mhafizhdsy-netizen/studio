@@ -67,8 +67,8 @@ service cloud.firestore {
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
       // UPDATE: Allow if the user is an admin (for featuring), OR they are the owner of the *existing* document.
       allow update: if isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
-      // DELETE: Allow if the user is the owner of the existing resource, or an admin.
-      allow delete: if isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
+      // DELETE: Allow ONLY if the user is the owner of the existing resource. Admins cannot delete content directly, must do so via admin panel logic.
+      allow delete: if isSignedIn() && isOwner(resource.data.userId);
       
       /**
        * @description Controls access to comments on public calculations.

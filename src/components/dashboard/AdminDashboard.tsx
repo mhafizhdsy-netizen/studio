@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -330,7 +329,6 @@ function UserManager() {
 function ContentManager({ calculations, isLoading }: { calculations: PublicCalculation[] | null, isLoading: boolean }) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const router = useRouter();
 
   const handleToggleFeature = async (
     calcId: string,
@@ -350,7 +348,7 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
     } catch (e: any) {
         toast({
             title: 'Gagal',
-            description: 'Gagal memperbarui status pilihan. Cek aturan keamanan atau konsol error.',
+            description: 'Gagal memperbarui status pilihan.',
             variant: 'destructive',
         });
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -359,42 +357,6 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
             requestResourceData: dataToUpdate,
         }));
     }
-  };
-
-  const handleDeleteCalculation = async (calcId: string, userId: string) => {
-    if (!firestore) return;
-    // Correct paths to the documents
-    const publicCalcRef = doc(firestore, 'public_calculations', calcId);
-    const userCalcRef = doc(firestore, 'users', userId, 'calculations', calcId);
-
-    try {
-      await deleteDoc(publicCalcRef);
-      await deleteDoc(userCalcRef);
-      toast({
-        title: 'Dihapus!',
-        description: 'Perhitungan publik dan privat telah berhasil dihapus.',
-      });
-    } catch (e) {
-      toast({
-        title: 'Gagal',
-        description: 'Gagal menghapus perhitungan.',
-        variant: 'destructive',
-      });
-      console.error(e);
-       errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: publicCalcRef.path,
-            operation: 'delete',
-        }));
-         errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: userCalcRef.path,
-            operation: 'delete',
-        }));
-    }
-  };
-
-  const handleEdit = (calc: PublicCalculation) => {
-    const fullPath = `users/${calc.userId}/calculations/${calc.id}`;
-    router.push(`/calculator/edit?path=${encodeURIComponent(fullPath)}`);
   };
 
   return (
@@ -455,12 +417,6 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                           <DropdownMenuItem
-                            onClick={() => handleEdit(calc)}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
                             onClick={() =>
                               handleToggleFeature(calc.id, calc.isFeatured)
                             }
@@ -473,13 +429,6 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
                             {calc.isFeatured
                               ? 'Hapus dari Pilihan'
                               : 'Jadikan Pilihan'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteCalculation(calc.id, calc.userId)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Hapus
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -704,5 +653,3 @@ export function AdminDashboard() {
     </Card>
   );
 }
-
-    
