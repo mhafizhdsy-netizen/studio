@@ -156,7 +156,7 @@ export function SignupForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-2 text-center">
-            <h1 className="text-3xl font-bold">Buat Akun Gratis</h1>
+            <h1 className="text-3xl font-bold font-headline">Buat Akun Gratis</h1>
             <p className="text-balance text-muted-foreground">
                 Mulai perjalanan bisnismu dengan menghitung profit secara akurat.
             </p>
@@ -164,9 +164,9 @@ export function SignupForm() {
 
        <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-2">
                 <div 
-                    className="relative p-1 rounded-full border-2 border-dashed border-muted-foreground/50 cursor-pointer hover:border-primary transition-colors"
+                    className="relative rounded-full p-1 border-2 border-dashed border-muted-foreground/50 cursor-pointer hover:border-primary transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                 >
                     <Avatar className="h-24 w-24">
@@ -179,6 +179,7 @@ export function SignupForm() {
                         <Camera className="h-4 w-4 text-muted-foreground" />
                     </div>
                 </div>
+                <p className="text-xs text-muted-foreground">Unggah foto profil (opsional)</p>
                 <Input
                     type="file"
                     ref={fileInputRef}
@@ -208,7 +209,7 @@ export function SignupForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="contoh@email.com" {...field} disabled={isLoading} />
+                  <Input placeholder="email@contoh.com" {...field} disabled={isLoading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -231,20 +232,28 @@ export function SignupForm() {
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Buat Akun
           </Button>
+           <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                    Atau
+                    </span>
+                </div>
+            </div>
            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
                 {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
                 Daftar dengan Google
             </Button>
         </form>
       </Form>
-      <div className="text-center text-sm">
+      <div className="text-center text-sm text-muted-foreground">
         Sudah punya akun?{" "}
-        <Link href="/login" className="underline text-primary font-semibold">
+        <Link href="/login" className="underline text-primary font-semibold hover:text-primary/80">
           Masuk di sini
         </Link>
       </div>
     </div>
   );
 }
-
-    

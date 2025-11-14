@@ -22,7 +22,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Separator } from "../ui/separator";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid." }),
@@ -122,26 +121,22 @@ export function LoginForm() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-2 text-center">
-        <h1 className="text-3xl font-bold">Selamat Datang Kembali!</h1>
+        <h1 className="text-3xl font-bold font-headline">Selamat Datang Kembali</h1>
         <p className="text-balance text-muted-foreground">
-          Masukkan email dan password untuk mengakses dashboard.
+          Masuk untuk melanjutkan perjalanan bisnismu.
         </p>
       </div>
-
-       <div className="grid gap-4">
         <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
             {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
             Masuk dengan Google
         </Button>
-      </div>
-
        <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
-              Atau lanjutkan dengan
+              Atau masuk dengan email
             </span>
           </div>
         </div>
@@ -155,7 +150,7 @@ export function LoginForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="contoh@email.com" {...field} />
+                  <Input placeholder="email@contoh.com" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -188,14 +183,12 @@ export function LoginForm() {
           </Button>
         </form>
       </Form>
-      <div className="text-center text-sm">
+      <div className="text-center text-sm text-muted-foreground">
         Belum punya akun?{" "}
-        <Link href="/signup" className="underline text-primary font-semibold">
-          Daftar di sini
+        <Link href="/signup" className="underline text-primary font-semibold hover:text-primary/80">
+          Buat Akun Gratis
         </Link>
       </div>
     </div>
   );
 }
-
-    
