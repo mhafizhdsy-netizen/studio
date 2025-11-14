@@ -82,6 +82,7 @@ export function SignupForm() {
             photoURL: photoURL || '',
             createdAt: serverTimestamp(),
             onboardingCompleted: false, 
+            isAdmin: false,
         }, { merge: true });
     }
   }
