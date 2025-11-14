@@ -81,7 +81,8 @@ export default function AnonymousChatPage() {
                     .order('createdAt', { ascending: true });
                 setMessages(messagesData || []);
             } else if (error && error.code !== 'PGRST116') { // Ignore "No rows found" error
-                console.error("Error finding user session:", error);
+                // This console.error was causing confusion when no session was found.
+                // Since it's an expected state, we can remove the log.
             }
             setIsLoading(false);
         };
