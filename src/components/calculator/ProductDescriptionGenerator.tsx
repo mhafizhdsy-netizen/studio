@@ -8,18 +8,15 @@ import {
   Loader2,
   Copy,
   Check,
-  FileText,
   Instagram,
   Clapperboard,
   Store,
-  ChevronDown,
 } from 'lucide-react';
 import { generateDescription } from '@/ai/flows/product-description-flow';
 import type { ProductDescriptionOutput } from '@/ai/flows/product-description-schemas';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 
 interface ProductDescriptionGeneratorProps {
   productName: string;
@@ -34,7 +31,6 @@ export function ProductDescriptionGenerator({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ProductDescriptionOutput | null>(null);
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
   const handleGenerate = async () => {
@@ -49,7 +45,6 @@ export function ProductDescriptionGenerator({
     setIsLoading(true);
     setError(null);
     setResult(null);
-    setIsOpen(true); // Open the collapsible on generate
 
     try {
       const aiResult = await generateDescription({ productName });
@@ -75,15 +70,17 @@ export function ProductDescriptionGenerator({
   }
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <Button variant="outline" className="w-full" disabled={!productName}>
-          <Bot className="h-4 w-4 mr-2" />
-            Buat Deskripsi dengan AI
-          <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+    <div className="space-y-4">
+        <Button variant="outline" className="w-full" disabled={!productName || isLoading} onClick={handleGenerate}>
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Bot className="h-4 w-4 mr-2" />
+          )}
+          Buat Deskripsi Produk dengan AI
         </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-4 pt-4">
+      
+      <div className="space-y-4 pt-4">
         {isLoading && (
             <div className="flex items-center justify-center p-4">
                 <Loader2 className="h-6 w-6 animate-spin" />
@@ -120,8 +117,8 @@ export function ProductDescriptionGenerator({
             </Tabs>
           </div>
         )}
-      </CollapsibleContent>
-    </Collapsible>
+      </div>
+    </div>
   );
 }
 
