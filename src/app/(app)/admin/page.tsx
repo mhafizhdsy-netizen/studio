@@ -1,16 +1,23 @@
+
 "use client";
 
 import { useUser } from "@/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Loader2, Shield, Ban, Wrench } from "lucide-react";
+import { Loader2, Shield, Ban, Wrench, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [targetUid, setTargetUid] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -24,10 +31,49 @@ export default function AdminPage() {
         setIsAdmin(true);
       } else {
         setIsAdmin(false);
+        // Redirect non-admins away
         router.replace("/dashboard");
       }
     });
   }, [user, isUserLoading, router]);
+  
+  const handleMakeAdmin = async () => {
+    if (!targetUid) {
+        toast({
+            title: "UID Diperlukan",
+            description: "Silakan masukkan UID pengguna yang ingin dijadikan admin.",
+            variant: "destructive",
+        });
+        return;
+    }
+    setIsSubmitting(true);
+    
+    // =================================================================
+    // PENTING: Panggil Firebase Function Anda di sini
+    // =================================================================
+    // Contoh:
+    // const setAdminRole = httpsCallable(functions, 'setAdminRole');
+    // try {
+    //   await setAdminRole({ uid: targetUid });
+    //   toast({ title: "Sukses!", description: `Pengguna ${targetUid} telah menjadi admin.` });
+    //   setTargetUid("");
+    // } catch (error) {
+    //   console.error("Error setting admin role:", error);
+    //   toast({ title: "Gagal", description: "Tidak dapat mengatur hak akses admin.", variant: "destructive" });
+    // }
+    // =================================================================
+    
+    // Simulasi pemanggilan fungsi backend
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    console.log(`(Simulasi) Menjadikan UID: ${targetUid} sebagai admin.`);
+    toast({
+        title: "Fitur Backend Diperlukan",
+        description: "UI telah siap. Anda perlu membuat Firebase Function 'setAdminRole' untuk membuat fitur ini bekerja.",
+    });
+
+    setIsSubmitting(false);
+  };
 
   if (isAdmin === null) {
     return (
@@ -45,7 +91,28 @@ export default function AdminPage() {
           Admin Dashboard
         </h1>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><UserPlus /> Manajemen Admin</CardTitle>
+                <CardDescription>Berikan hak akses admin kepada pengguna lain.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div>
+                    <Label htmlFor="uid">User ID (UID)</Label>
+                    <Input 
+                        id="uid" 
+                        placeholder="Masukkan UID pengguna" 
+                        value={targetUid}
+                        onChange={(e) => setTargetUid(e.target.value)}
+                    />
+                </div>
+                <Button onClick={handleMakeAdmin} disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    Jadikan Admin
+                </Button>
+            </CardContent>
+        </Card>
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Ban /> Manajemen User</CardTitle>
