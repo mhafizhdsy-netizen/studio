@@ -60,6 +60,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 // Interfaces
 interface UserProfile {
@@ -352,6 +353,32 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
     }
   };
 
+  const handleDeleteCalculation = async (calcId: string, userId: string) => {
+    if (!firestore) return;
+    
+    const publicCalcRef = doc(firestore, 'public_calculations', calcId);
+    const userCalcRef = doc(firestore, 'users', userId, 'calculations', calcId);
+
+    try {
+      // Non-blocking deletions
+      deleteDocumentNonBlocking(publicCalcRef);
+      deleteDocumentNonBlocking(userCalcRef);
+
+      toast({
+        title: "Dihapus",
+        description: "Perhitungan telah dihapus dari publik dan data pengguna.",
+      });
+
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: "Gagal",
+        description: "Gagal menghapus perhitungan.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -422,6 +449,14 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
                             {calc.isFeatured
                               ? 'Hapus dari Pilihan'
                               : 'Jadikan Pilihan'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator/>
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteCalculation(calc.id, calc.userId)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Hapus Konten
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -646,5 +681,3 @@ export function AdminDashboard() {
     </Card>
   );
 }
-
-    

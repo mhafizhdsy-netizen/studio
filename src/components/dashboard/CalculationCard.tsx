@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
@@ -16,6 +17,7 @@ import { MoreVertical, Edit, Trash2, Package } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "../ui/badge";
 import Image from "next/image";
+import Link from "next/link";
 
 interface CalculationCardProps {
   calculation: Calculation;
@@ -25,11 +27,6 @@ interface CalculationCardProps {
 export function CalculationCard({ calculation, onDelete }: CalculationCardProps) {
   const router = useRouter();
   
-  const handleEdit = () => {
-    // Navigate to the dynamic route for user-owned edits
-    router.push(`/calculator/${calculation.id}`);
-  };
-
   const handleDelete = () => {
     onDelete(calculation.id);
   };
@@ -70,9 +67,11 @@ export function CalculationCard({ calculation, onDelete }: CalculationCardProps)
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleEdit}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    <span>Edit</span>
+                <DropdownMenuItem asChild>
+                    <Link href={`/calculator/${calculation.id}`}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        <span>Edit</span>
+                    </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
                     <Trash2 className="mr-2 h-4 w-4" />
