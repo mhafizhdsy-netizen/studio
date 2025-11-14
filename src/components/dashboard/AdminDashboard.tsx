@@ -583,19 +583,15 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
             referenceId: selectedReport.id,
         };
 
-        const response = await fetch('/api/send-admin-notification', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify([notification]),
+        const { error: rpcError } = await supabase.rpc('send_broadcast_notifications', {
+            notifications_data: [notification],
         });
         
-        if (!response.ok) {
-            const result = await response.json().catch(() => ({error: 'Gagal memparsing respons server.'}));
+        if (rpcError) {
+            console.error("Error sending reply via RPC:", rpcError);
             toast({
                 title: "Gagal Mengirim Balasan",
-                description: result.error || "Terjadi kesalahan. Silakan coba lagi.",
+                description: rpcError.message || "Terjadi kesalahan. Silakan coba lagi.",
                 variant: "destructive",
             });
         } else {
