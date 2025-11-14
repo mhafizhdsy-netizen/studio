@@ -271,6 +271,23 @@
         "createdAt"
       ]
     },
+    "Report": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Report",
+        "type": "object",
+        "description": "Represents a user-submitted report for a piece of content.",
+        "properties": {
+            "id": { "type": "string" },
+            "calculationId": { "type": "string", "description": "FK to the public_calculations table." },
+            "reporterUserId": { "type": "string", "description": "FK to the users table (who reported)." },
+            "reportedUserId": { "type": "string", "description": "FK to the users table (who was reported)." },
+            "category": { "type": "string", "enum": ["Konten Seksual", "Ujaran Kebencian", "Kekerasan", "Spam", "Pelanggaran Hak Cipta", "Lainnya"] },
+            "reason": { "type": "string", "description": "The detailed reason for the report." },
+            "status": { "type": "string", "enum": ["pending", "resolved", "dismissed"], "default": "pending" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "calculationId", "reporterUserId", "reportedUserId", "category", "status", "createdAt"]
+    },
     "ChatSession": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChatSession",
@@ -486,6 +503,17 @@
         }
       },
       {
+        "path": "/reports/{reportId}",
+        "definition": {
+          "entityName": "Report",
+          "schema": { "$ref": "#/backend/entities/Report" },
+          "description": "Stores user-submitted content reports. Only admins can read. Authenticated users can create.",
+          "params": [
+            { "name": "reportId", "description": "The unique ID of the report." }
+          ]
+        }
+      },
+      {
         "path": "/chat_sessions/{sessionId}",
         "definition": {
           "entityName": "ChatSession",
@@ -534,5 +562,3 @@
     "reasoning": "The Firestore structure is updated to support the AI Consultant feature by adding a new collection to store the chat history for each user."
   }
 }
-
-    

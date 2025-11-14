@@ -18,16 +18,14 @@ import {
   Users,
   FileText,
   MessageSquare,
-  Ban,
-  Trash2,
-  Pin,
-  PinOff,
-  MoreHorizontal,
-  TrendingUp,
-  BarChart,
   ShieldCheck,
   ShieldAlert,
   ShieldX,
+  MoreHorizontal,
+  Pin,
+  PinOff,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
@@ -58,8 +56,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
-import Link from 'next/link';
-import { User } from '@supabase/supabase-js';
 
 // Interfaces
 interface UserProfile {
@@ -83,6 +79,27 @@ interface PublicCalculation {
   userId: string;
   commentCount?: number;
 }
+
+interface Report {
+    id: string;
+    category: string;
+    reason: string;
+    status: 'pending' | 'resolved' | 'dismissed';
+    createdAt: string;
+    calculation: {
+        id: string;
+        productName: string;
+    };
+    reporter: {
+        id: string;
+        name: string;
+    };
+    reported: {
+        id: string;
+        name: string;
+    };
+}
+
 
 // Helper Functions
 const getInitials = (name: string) =>
@@ -375,7 +392,7 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
     }
   };
 
-  const handleDeleteCalculation = async (calcId: string, userId: string) => {
+  const handleDeleteCalculation = async (calcId: string) => {
     const { error } = await supabase.from('calculations').delete().eq('id', calcId);
 
     if (error) {
@@ -467,8 +484,8 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
                           </DropdownMenuItem>
                           <DropdownMenuSeparator/>
                           <DropdownMenuItem
-                            onClick={() => handleDeleteCalculation(calc.id, calc.userId)}
-                            className="text-destructive"
+                            onClick={() => handleDeleteCalculation(calc.id)}
+                            className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             Hapus Konten
@@ -484,6 +501,113 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
       </CardContent>
     </Card>
   );
+}
+
+function ReportsManager() {
+    const [reports, setReports] = useState<Report[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
+
+    const fetchReports = async () => {
+        setIsLoading(true);
+        const { data, error } = await supabase
+            .from('reports')
+            .select(`
+                id, category, reason, status, createdAt,
+                calculation:calculations (id, productName),
+                reporter:users!reports_reporterUserId_fkey (id, name),
+                reported:users!reports_reportedUserId_fkey (id, name)
+            `)
+            .order('createdAt', { ascending: false });
+
+        if (error) {
+            console.error("Error fetching reports", error);
+            toast({ title: 'Gagal memuat laporan', variant: 'destructive' });
+        } else {
+            setReports(data as any);
+        }
+        setIsLoading(false);
+    };
+
+    useEffect(() => {
+        fetchReports();
+    }, []);
+
+    const updateReportStatus = async (reportId: string, status: 'resolved' | 'dismissed') => {
+        const { error } = await supabase
+            .from('reports')
+            .update({ status })
+            .eq('id', reportId);
+        
+        if (error) {
+            toast({ title: 'Gagal memperbarui status', variant: 'destructive' });
+        } else {
+            toast({ title: 'Status laporan diperbarui' });
+            fetchReports();
+        }
+    };
+
+    const getStatusBadge = (status: Report['status']) => {
+        switch (status) {
+            case 'pending': return <Badge variant="secondary">Menunggu</Badge>;
+            case 'resolved': return <Badge variant="default">Selesai</Badge>;
+            case 'dismissed': return <Badge variant="outline">Ditolak</Badge>;
+        }
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Laporan Konten</CardTitle>
+                <CardDescription>Tinjau dan kelola laporan konten dari pengguna.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? (
+                    <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>
+                ) : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Produk Dilaporkan</TableHead>
+                                <TableHead>Kategori</TableHead>
+                                <TableHead>Pelapor</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Aksi</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {reports.map(report => (
+                                <TableRow key={report.id}>
+                                    <TableCell>
+                                        <div className="font-medium">{report.calculation.productName}</div>
+                                        <div className="text-xs text-muted-foreground">oleh {report.reported.name}</div>
+                                    </TableCell>
+                                    <TableCell><Badge variant="destructive">{report.category}</Badge></TableCell>
+                                    <TableCell>{report.reporter.name}</TableCell>
+                                    <TableCell>{getStatusBadge(report.status)}</TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuItem onClick={() => updateReportStatus(report.id, 'resolved')}>
+                                                    <ShieldCheck className="mr-2 h-4 w-4" /> Tandai Selesai
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => updateReportStatus(report.id, 'dismissed')}>
+                                                    <ShieldX className="mr-2 h-4 w-4" /> Tolak Laporan
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
+            </CardContent>
+        </Card>
+    );
 }
 
 function AnalyticsManager({ users, calculations }: { users: UserProfile[] | null, calculations: PublicCalculation[] | null }) {
@@ -519,10 +643,8 @@ export function AdminDashboard() {
         ]);
         
         if (usersRes.data) setUsers(usersRes.data as any);
-        if (usersRes.error) console.error("Error fetching users:", usersRes.error);
 
         if (calcsRes.data) setCalculations(calcsRes.data as any);
-        if (calcsRes.error) console.error("Error fetching public calculations:", calcsRes.error);
         
         setIsLoading(false);
     }
@@ -543,10 +665,15 @@ export function AdminDashboard() {
       </CardHeader>
       <CardContent className="space-y-6">
         <Tabs defaultValue="analytics">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="analytics">Analitik</TabsTrigger>
-            <TabsTrigger value="users">Manajemen Pengguna</TabsTrigger>
-            <TabsTrigger value="content">Manajemen Konten</TabsTrigger>
+            <TabsTrigger value="users">Pengguna</TabsTrigger>
+            <TabsTrigger value="content">Konten</TabsTrigger>
+            <TabsTrigger value="reports">
+                <div className='flex items-center gap-2'>
+                    <AlertTriangle className='h-4 w-4'/> Laporan
+                </div>
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="analytics" className="mt-4">
             <AnalyticsManager users={users} calculations={calculations} />
@@ -556,6 +683,9 @@ export function AdminDashboard() {
           </TabsContent>
           <TabsContent value="content" className="mt-4">
             <ContentManager calculations={calculations} isLoading={isLoading} onRefresh={() => setRefreshKey(k => k + 1)}/>
+          </TabsContent>
+           <TabsContent value="reports" className="mt-4">
+            <ReportsManager />
           </TabsContent>
         </Tabs>
       </CardContent>

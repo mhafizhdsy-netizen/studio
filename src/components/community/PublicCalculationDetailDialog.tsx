@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +22,9 @@ import { CommentSection } from "./CommentSection";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { Separator } from "../ui/separator";
-import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { ReportContentDialog } from "./ReportContentDialog";
+import { useAuth } from "@/supabase/auth-provider";
 
 interface PublicCalculationDetailDialogProps {
   calculation: PublicCalculation | null;
@@ -35,7 +37,8 @@ export function PublicCalculationDetailDialog({
   isOpen,
   onOpenChange,
 }: PublicCalculationDetailDialogProps) {
-    const { toast } = useToast();
+  const { user } = useAuth();
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 
   if (!calculation) {
     return null;
@@ -58,6 +61,7 @@ export function PublicCalculationDetailDialog({
     productQuantity,
     productionTips,
     userIsAdmin,
+    userId, // owner of the calculation
   } = calculation;
 
   const safeMaterials = materials || [];
@@ -82,14 +86,17 @@ export function PublicCalculationDetailDialog({
 
   const getInitials = (name: string) => (name || "A").split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
   
-  const handleReport = () => {
-    toast({
-        title: "Laporan Terkirim",
-        description: "Terima kasih atas masukanmu. Tim kami akan meninjau konten ini.",
-    });
+  const handleReportClick = () => {
+    if (!user) {
+        // Redirect to login or show a toast
+        window.location.href = '/login';
+        return;
+    }
+    setIsReportDialogOpen(true);
   }
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl w-[90vw] sm:w-full p-0">
           <ScrollArea className="max-h-[90vh]">
@@ -129,7 +136,7 @@ export function PublicCalculationDetailDialog({
                                   variant="destructive" 
                                   size="icon" 
                                   className="absolute top-2 right-2 h-8 w-8 rounded-full shadow-lg"
-                                  onClick={handleReport}
+                                  onClick={handleReportClick}
                               >
                                   <AlertTriangle className="h-4 w-4"/>
                               </Button>
@@ -224,5 +231,15 @@ export function PublicCalculationDetailDialog({
           </ScrollArea>
       </DialogContent>
     </Dialog>
+    {user && (
+         <ReportContentDialog
+            isOpen={isReportDialogOpen}
+            onOpenChange={setIsReportDialogOpen}
+            calculationId={id}
+            reportedUserId={userId}
+            reporterUserId={user.id}
+        />
+    )}
+    </>
   );
 }
