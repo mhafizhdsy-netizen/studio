@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from "react";
+import { useUser } from "@/firebase";
+import { supabase } from "@/lib/supabase";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks, subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,10 +26,10 @@ const calculateStats = (calculations: Calculation[] | null): AnalyticsData => {
     }
 
     const totalProducts = calculations.length;
-    const totalMargin = calculations.reduce((sum, calc) => sum + (calc.margin || 0), 0);
+    const totalMargin = calculations.reduce((sum, calc) => sum + (Number(calc.margin) || 0), 0);
     const averageMargin = totalProducts > 0 ? totalMargin / totalProducts : 0;
-    const totalRevenue = calculations.reduce((sum, calc) => sum + (calc.suggestedPrice || 0), 0);
-    const totalProductionCost = calculations.reduce((sum, calc) => sum + (calc.totalHPP || 0), 0);
+    const totalRevenue = calculations.reduce((sum, calc) => sum + (Number(calc.suggestedPrice) || 0), 0);
+    const totalProductionCost = calculations.reduce((sum, calc) => sum + (Number(calc.totalHPP) || 0), 0);
     const estimatedProfit = totalRevenue - totalProductionCost;
 
     return { totalProducts, averageMargin, totalRevenue, totalProductionCost, estimatedProfit };
@@ -39,8 +39,11 @@ type TimeRange = 'month' | 'week' | 'day';
 
 export function DashboardAnalytics() {
     const { user } = useUser();
-    const firestore = useFirestore();
     const [timeRange, setTimeRange] = useState<TimeRange>('month');
+
+    const [currentCalculations, setCurrentCalculations] = useState<Calculation[] | null>(null);
+    const [prevCalculations, setPrevCalculations] = useState<Calculation[] | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     const { currentRange, previousRange } = useMemo(() => {
         const now = new Date();
@@ -64,26 +67,38 @@ export function DashboardAnalytics() {
         }
     }, [timeRange]);
 
-    const currentQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return query(
-            collection(firestore, 'users', user.uid, 'calculations'),
-            where('createdAt', '>=', Timestamp.fromDate(currentRange.start)),
-            where('createdAt', '<=', Timestamp.fromDate(currentRange.end))
-        );
-    }, [user, firestore, currentRange]);
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!user || !supabase) return;
 
-    const previousQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return query(
-            collection(firestore, 'users', user.uid, 'calculations'),
-            where('createdAt', '>=', Timestamp.fromDate(previousRange.start)),
-            where('createdAt', '<=', Timestamp.fromDate(previousRange.end))
-        );
-    }, [user, firestore, previousRange]);
+            setIsLoading(true);
 
-    const { data: currentCalculations, isLoading: isLoadingCurrent } = useCollection<Calculation>(currentQuery);
-    const { data: prevCalculations, isLoading: isLoadingPrev } = useCollection<Calculation>(previousQuery);
+            // Fetch current period data
+            const { data: currentData } = await supabase
+                .from('calculations')
+                .select('*')
+                .eq('userId', user.uid)
+                .gte('createdAt', currentRange.start.toISOString())
+                .lte('createdAt', currentRange.end.toISOString());
+            
+            setCurrentCalculations(currentData || []);
+
+            // Fetch previous period data
+            const { data: prevData } = await supabase
+                .from('calculations')
+                .select('*')
+                .eq('userId', user.uid)
+                .gte('createdAt', previousRange.start.toISOString())
+                .lte('createdAt', previousRange.end.toISOString());
+            
+            setPrevCalculations(prevData || []);
+            
+            setIsLoading(false);
+        };
+        
+        fetchData();
+
+    }, [user, currentRange, previousRange]);
 
     const currentStats = useMemo(() => calculateStats(currentCalculations), [currentCalculations]);
     const prevStats = useMemo(() => calculateStats(prevCalculations), [prevCalculations]);
@@ -103,8 +118,6 @@ export function DashboardAnalytics() {
             case 'month': return 'dibanding bulan lalu';
         }
     }, [timeRange]);
-
-    const isLoading = isLoadingCurrent || isLoadingPrev;
 
     return (
         <div>

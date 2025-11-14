@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { useState, useEffect } from "react";
+import { useUser } from "@/firebase";
+import { supabase } from "@/lib/supabase";
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
@@ -15,28 +16,46 @@ interface Expense {
 
 export function MonthlyExpenseSummary() {
   const { user } = useUser();
-  const firestore = useFirestore();
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const expensesQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    const now = new Date();
-    const startDate = startOfMonth(now);
-    const endDate = endOfMonth(now);
-    
-    return query(
-      collection(firestore, 'users', user.uid, 'expenses'),
-      where('date', '>=', startDate),
-      where('date', '<=', endDate)
-    );
-  }, [user, firestore]);
+  useEffect(() => {
+    const fetchExpenses = async () => {
+        if (!user || !supabase) {
+            setIsLoading(false);
+            return;
+        };
 
-  const { data: expenses, isLoading } = useCollection<Expense>(expensesQuery);
+        setIsLoading(true);
+
+        const now = new Date();
+        const startDate = startOfMonth(now);
+        const endDate = endOfMonth(now);
+
+        const { data, error } = await supabase
+            .from('expenses')
+            .select('amount')
+            .eq('userId', user.uid)
+            .gte('date', startDate.toISOString())
+            .lte('date', endDate.toISOString());
+
+        if (error) {
+            console.error("Error fetching monthly expenses:", error);
+        } else {
+            const total = data?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
+            setTotalExpenses(total);
+        }
+        
+        setIsLoading(false);
+    }
+
+    fetchExpenses();
+
+  }, [user]);
 
   if (isLoading) {
     return <Skeleton className="h-28 w-full" />;
   }
-
-  const totalExpenses = expenses?.reduce((sum, expense) => sum + expense.amount, 0) || 0;
 
   return (
     <Card>
@@ -55,5 +74,3 @@ export function MonthlyExpenseSummary() {
     </Card>
   );
 }
-
-    
