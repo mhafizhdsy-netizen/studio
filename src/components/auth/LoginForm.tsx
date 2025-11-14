@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -61,7 +60,6 @@ export function LoginForm() {
         name: name, 
         email: email, 
         photoURL: photoURL || '',
-        // onboardingCompleted and isAdmin will default to false in Supabase
       }, { onConflict: 'id' });
     if (error) console.error("Error syncing user profile to Supabase:", error);
   };

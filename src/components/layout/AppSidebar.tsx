@@ -1,4 +1,3 @@
-
 "use client";
 
 import { usePathname } from 'next/navigation';
@@ -39,9 +38,9 @@ import { Logo } from '../ui/logo';
 import { Badge } from '../ui/badge';
 
 interface UserProfile {
-    id: string;
-    name: string;
-    isAdmin?: boolean;
+  id: string;
+  name: string;
+  isAdmin?: boolean;
 }
 
 const AdminBadge = () => (

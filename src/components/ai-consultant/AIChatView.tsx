@@ -1,9 +1,7 @@
-
 'use client';
 
 import { cn } from '@/lib/utils';
 import { User, Bot, AlertTriangle, Copy, Check } from 'lucide-react';
-import type { Timestamp } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ReactMarkdown from 'react-markdown';
 import { useUser } from '@/firebase';
@@ -16,7 +14,8 @@ export interface AIChatMessage {
   id: string;
   role: 'user' | 'model';
   content: string;
-  createdAt: Timestamp;
+  createdAt: string; // ISO string
+  userId: string;
   isError?: boolean;
 }
 

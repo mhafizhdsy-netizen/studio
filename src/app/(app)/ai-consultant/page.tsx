@@ -1,9 +1,8 @@
-
 'use client';
 
-import { useState } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { useUser } from '@/firebase';
+import { supabase } from '@/lib/supabase';
 import { Bot, Loader2 } from 'lucide-react';
 import { consultAI } from '@/ai/flows/consultant-flow';
 import type { AIChatMessage } from '@/components/ai-consultant/AIChatView';
@@ -12,66 +11,99 @@ import { AIChatInput } from '@/components/ai-consultant/AIChatInput';
 
 export default function AIConsultantPage() {
   const { user } = useUser();
-  const firestore = useFirestore();
   const [isResponding, setIsResponding] = useState(false);
+  const [history, setHistory] = useState<AIChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const historyQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'ai_consultant_history'),
-      orderBy('createdAt', 'asc')
-    );
-  }, [user, firestore]);
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!user || !supabase) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('ai_consultant_history')
+        .select('*')
+        .eq('userId', user.uid)
+        .order('createdAt', { ascending: true });
 
-  const { data: history, isLoading } = useCollection<AIChatMessage>(historyQuery);
-
-  const handleSendMessage = async (text: string) => {
-    if (!user || !firestore || !text.trim()) return;
-
-    const userMessage: Omit<AIChatMessage, 'id'> = {
-      role: 'user',
-      content: text,
-      createdAt: serverTimestamp(),
+      if (error) {
+        console.error('Error fetching AI chat history:', error);
+      } else {
+        setHistory(data as AIChatMessage[]);
+      }
+      setIsLoading(false);
     };
 
-    // Optimistically add user message to history
-    const historyCollectionRef = collection(firestore, 'users', user.uid, 'ai_consultant_history');
-    await addDocumentNonBlocking(historyCollectionRef, userMessage);
+    fetchHistory();
+  }, [user]);
+
+  const handleSendMessage = async (text: string) => {
+    if (!user || !supabase || !text.trim()) return;
+
+    const userMessage: Omit<AIChatMessage, 'id' | 'createdAt'> = {
+      role: 'user',
+      content: text,
+      userId: user.uid,
+    };
     
+    // Optimistically update UI
+    const tempUserMessage = { ...userMessage, id: 'temp-user', createdAt: new Date().toISOString() };
+    setHistory(prev => [...prev, tempUserMessage]);
     setIsResponding(true);
-    
+
     try {
-      // Prepare history for AI
-      const aiHistory = (history || []).map(h => ({
-        role: h.role,
+      // 1. Save user message to DB
+      const { error: userError } = await supabase.from('ai_consultant_history').insert(userMessage);
+      if (userError) throw userError;
+
+      // 2. Prepare history for AI by excluding the temp message and adding the new one
+      const aiHistory = history.map(h => ({
+        role: h.role as 'user' | 'model',
         content: [{ text: h.content }],
       }));
-
-      // Add current user message to history for AI context
       aiHistory.push({ role: 'user', content: [{ text }] });
       
+      // 3. Get AI response
       const aiResponse = await consultAI({
           prompt: text,
           history: aiHistory,
       });
 
-      const aiMessage: Omit<AIChatMessage, 'id'> = {
+      const aiMessage: Omit<AIChatMessage, 'id' | 'createdAt'> = {
         role: 'model',
         content: aiResponse,
-        createdAt: serverTimestamp(),
+        userId: user.uid,
       };
+
+      // 4. Save AI message to DB
+      const { data: newAiMessage, error: aiError } = await supabase
+        .from('ai_consultant_history')
+        .insert(aiMessage)
+        .select()
+        .single();
+      if (aiError) throw aiError;
       
-      await addDocumentNonBlocking(historyCollectionRef, aiMessage);
+      // 5. Update UI by replacing temp message with real data
+      setHistory(prev => [...prev.filter(m => m.id !== 'temp-user'), newAiMessage as AIChatMessage]);
 
     } catch (error) {
-      console.error('Error consulting AI:', error);
-      const errorMessage: Omit<AIChatMessage, 'id'> = {
+      console.error('Error in AI chat flow:', error);
+      const errorMessage: Omit<AIChatMessage, 'id' | 'createdAt'> = {
         role: 'model',
         content: "Waduh, koneksi ke AI lagi ada gangguan. Coba tanya lagi beberapa saat ya.",
-        createdAt: serverTimestamp(),
         isError: true,
+        userId: user.uid,
       };
-      await addDocumentNonBlocking(historyCollectionRef, errorMessage);
+      // Save error message to DB
+      const { data: newErrorMessage, error: dbError } = await supabase.from('ai_consultant_history').insert(errorMessage).select().single();
+       if (dbError) {
+         console.error("Could not save error message to DB", dbError);
+         setHistory(prev => prev.filter(m => m.id !== 'temp-user'));
+       } else if (newErrorMessage) {
+         setHistory(prev => [...prev.filter(m => m.id !== 'temp-user'), newErrorMessage as AIChatMessage]);
+       }
     } finally {
       setIsResponding(false);
     }
@@ -93,7 +125,7 @@ export default function AIConsultantPage() {
                     <Loader2 className="h-10 w-10 animate-spin text-primary"/>
                 </div>
             ) : (
-                <AIChatView history={history || []} isResponding={isResponding} />
+                <AIChatView history={history} isResponding={isResponding} />
             )}
         </div>
         <footer className="p-4 border-t">
