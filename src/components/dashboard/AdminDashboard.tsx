@@ -62,14 +62,16 @@ import Link from 'next/link';
 import { User } from '@supabase/supabase-js';
 
 // Interfaces
-interface UserProfile extends User {
-    // Supabase adds user_metadata, and we can define our custom fields here
+interface UserProfile {
+    id: string;
+    email: string;
     user_metadata: {
         name: string;
         photoURL?: string;
         isAdmin?: boolean;
         isSuspended?: boolean;
     };
+    createdAt: string;
 }
 
 interface PublicCalculation {
@@ -119,47 +121,34 @@ function StatCard({
   );
 }
 
-function AdminStats({ calculationsWithComments }: { calculationsWithComments: PublicCalculation[] | null }) {
-  const [users, setUsers] = useState<UserProfile[] | null>(null);
-  const [usersLoading, setUsersLoading] = useState(true);
+function AdminStats({ users, calculations }: { users: UserProfile[] | null, calculations: PublicCalculation[] | null }) {
+    
+    const isLoading = !users || !calculations;
+    
+    const totalComments = useMemo(() => {
+        if (!calculations) return 0;
+        return calculations.reduce((sum, calc) => sum + (calc.commentCount || 0), 0);
+    }, [calculations]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setUsersLoading(true);
-      const { data, error } = await supabase.from('users').select('*');
-      if (data) setUsers(data as any);
-      if (error) console.error("Error fetching users for stats", error);
-      setUsersLoading(false);
-    };
-    fetchUsers();
-  }, []);
-  
-  const isLoading = usersLoading || !calculationsWithComments;
-  
-  const totalComments = useMemo(() => {
-    if (!calculationsWithComments) return 0;
-    return calculationsWithComments.reduce((sum, calc) => sum + (calc.commentCount || 0), 0);
-  }, [calculationsWithComments]);
-
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <StatCard
-        title="Total Pengguna"
-        value={isLoading ? '...' : (users?.length ?? 0).toString()}
-        icon={Users}
-      />
-      <StatCard
-        title="Perhitungan Publik"
-        value={isLoading ? '...' : (calculationsWithComments?.length ?? 0).toString()}
-        icon={FileText}
-      />
-       <StatCard
-        title="Total Komentar"
-        value={isLoading ? "..." : totalComments.toString()}
-        icon={MessageSquare}
-      />
-    </div>
-  );
+    return (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <StatCard
+            title="Total Pengguna"
+            value={isLoading ? '...' : (users?.length ?? 0).toString()}
+            icon={Users}
+        />
+        <StatCard
+            title="Perhitungan Publik"
+            value={isLoading ? '...' : (calculations?.length ?? 0).toString()}
+            icon={FileText}
+        />
+        <StatCard
+            title="Total Komentar"
+            value={isLoading ? "..." : totalComments.toString()}
+            icon={MessageSquare}
+        />
+        </div>
+    );
 }
 
 function UserManager() {
@@ -173,7 +162,6 @@ function UserManager() {
       setIsLoading(true);
       const { data, error } = await supabase.from('users').select('*').order('createdAt', { ascending: false });
       if (data) setUsers(data as any);
-      // This console.error was causing the issue. It has been removed.
       setIsLoading(false);
   }
 
@@ -183,7 +171,12 @@ function UserManager() {
 
   const handleToggleAdmin = async (user: UserProfile) => {
     const newIsAdmin = !user.user_metadata.isAdmin;
-    const { error } = await supabase.from('users').update({ isAdmin: newIsAdmin }).eq('id', user.id);
+    
+    const { error } = await supabase.auth.admin.updateUserById(
+        user.id,
+        { user_metadata: { ...user.user_metadata, isAdmin: newIsAdmin } }
+    );
+    
      if (error) {
       toast({ title: 'Gagal', description: 'Gagal memperbarui status admin.', variant: 'destructive' });
     } else {
@@ -194,7 +187,9 @@ function UserManager() {
 
   const handleToggleSuspend = async (user: UserProfile) => {
     const newIsSuspended = !user.user_metadata.isSuspended;
-    const { error } = await supabase.from('users').update({ isSuspended: newIsSuspended }).eq('id', user.id);
+    const { error } = await supabase.auth.admin.updateUserById(user.id, {
+        user_metadata: { ...user.user_metadata, isSuspended: newIsSuspended }
+    });
     if (error) {
       toast({ title: 'Gagal', description: 'Gagal memperbarui status penangguhan.', variant: 'destructive' });
     } else {
@@ -205,9 +200,8 @@ function UserManager() {
   };
 
   const handleBanUser = async (user: UserProfile) => {
-    // This is a destructive action. In a real app, this should be a soft delete
-    // or trigger a more complex cleanup via server-side functions.
-    const { error } = await supabase.from('users').delete().eq('id', user.id);
+    // This is a destructive action.
+    const { error } = await supabase.auth.admin.deleteUser(user.id);
     if (error) {
       toast({ title: 'Gagal', description: 'Gagal memblokir pengguna secara permanen.', variant: 'destructive' });
     } else {
@@ -492,7 +486,7 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
   );
 }
 
-function AnalyticsManager() {
+function AnalyticsManager({ users, calculations }: { users: UserProfile[] | null, calculations: PublicCalculation[] | null }) {
     return (
         <Card>
             <CardHeader>
@@ -500,7 +494,7 @@ function AnalyticsManager() {
                 <CardDescription>Ringkasan aktivitas dan pertumbuhan platform.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <AdminStats calculationsWithComments={null} />
+                 <AdminStats users={users} calculations={calculations} />
                  <div className="text-center text-muted-foreground py-8 mt-4">
                     <p>Halaman analitik yang lebih detail sedang dalam pengembangan.</p>
                 </div>
@@ -512,18 +506,27 @@ function AnalyticsManager() {
 
 export function AdminDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [users, setUsers] = useState<UserProfile[] | null>(null);
   const [calculations, setCalculations] = useState<PublicCalculation[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPublicData = async () => {
+    const fetchAllData = async () => {
         setIsLoading(true);
-        const { data, error } = await supabase.from('public_calculations').select('*').order('createdAt', { ascending: false });
-        if (data) setCalculations(data as any);
-        if (error) console.error("Error fetching public calculations:", error);
+        const [usersRes, calcsRes] = await Promise.all([
+            supabase.from('users').select('*'),
+            supabase.from('public_calculations').select('*').order('createdAt', { ascending: false })
+        ]);
+        
+        if (usersRes.data) setUsers(usersRes.data as any);
+        if (usersRes.error) console.error("Error fetching users:", usersRes.error);
+
+        if (calcsRes.data) setCalculations(calcsRes.data as any);
+        if (calcsRes.error) console.error("Error fetching public calculations:", calcsRes.error);
+        
         setIsLoading(false);
     }
-    fetchPublicData();
+    fetchAllData();
   }, [refreshKey]);
 
 
@@ -546,7 +549,7 @@ export function AdminDashboard() {
             <TabsTrigger value="content">Manajemen Konten</TabsTrigger>
           </TabsList>
           <TabsContent value="analytics" className="mt-4">
-            <AnalyticsManager />
+            <AnalyticsManager users={users} calculations={calculations} />
           </TabsContent>
           <TabsContent value="users" className="mt-4">
             <UserManager />
@@ -559,5 +562,3 @@ export function AdminDashboard() {
     </Card>
   );
 }
-
-    
