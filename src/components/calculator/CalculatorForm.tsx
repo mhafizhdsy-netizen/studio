@@ -204,26 +204,42 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   };
   
   const calculate = (data: FormData) => {
-    const totalMaterialCost = data.materials.reduce((acc, mat) => {
-        const materialCost = mat.isTotalCost ? mat.cost / mat.qty : mat.cost;
-        return acc + (isNaN(materialCost) ? 0 : materialCost);
+    // 1. Calculate total material cost for the entire batch
+    const totalMaterialCostForBatch = data.materials.reduce((acc, mat) => {
+      const cost = mat.cost || 0;
+      const qty = mat.qty || 1;
+      // If 'isTotalCost' is true, the cost is already for the total qty of that material.
+      // Otherwise, it's cost per unit of material, so we multiply by qty.
+      const materialTotal = mat.isTotalCost ? cost : cost * qty;
+      return acc + (isNaN(materialTotal) ? 0 : materialTotal);
     }, 0);
-
-    const laborCostPerProduct = data.productQuantity > 0 ? data.laborCost / data.productQuantity : 0;
-    const overheadPerProduct = data.productQuantity > 0 ? data.overhead / data.productQuantity : 0;
-    
-    const totalHPP = totalMaterialCost + laborCostPerProduct + overheadPerProduct + data.packaging;
+  
+    // 2. Sum up all total costs for the batch
+    const totalBatchCost = totalMaterialCostForBatch + data.laborCost + data.overhead;
+  
+    // 3. Calculate per-product cost by dividing by quantity produced
+    const costPerProductBeforePackaging = data.productQuantity > 0 ? totalBatchCost / data.productQuantity : 0;
+  
+    // 4. Add per-product packaging cost to get final HPP
+    const totalHPP = costPerProductBeforePackaging + data.packaging;
+  
+    // 5. Calculate profit and suggested price based on the final HPP
     const profit = totalHPP * (data.margin / 100);
     const suggestedPrice = totalHPP + profit;
-
+  
+    // For Pie Chart (cost per product)
+    const materialCostPerProduct = data.productQuantity > 0 ? totalMaterialCostForBatch / data.productQuantity : 0;
+    const laborCostPerProduct = data.productQuantity > 0 ? data.laborCost / data.productQuantity : 0;
+    const overheadPerProduct = data.productQuantity > 0 ? data.overhead / data.productQuantity : 0;
+  
     const pieChartData = [
-      { name: "Bahan Baku", value: totalMaterialCost, fill: "hsl(var(--chart-1))" },
+      { name: "Bahan Baku", value: materialCostPerProduct, fill: "hsl(var(--chart-1))" },
       { name: "Tenaga Kerja", value: laborCostPerProduct, fill: "hsl(var(--chart-2))" },
       { name: "Overhead", value: overheadPerProduct, fill: "hsl(var(--chart-3))" },
       { name: "Kemasan", value: data.packaging, fill: "hsl(var(--chart-4))" },
     ].filter(item => item.value > 0);
-
-    setResult({ totalMaterialCost, totalHPP, profit, suggestedPrice, pieChartData });
+  
+    setResult({ totalMaterialCost: materialCostPerProduct, totalHPP, profit, suggestedPrice, pieChartData });
   };
   
   const handleCalculate = form.handleSubmit(calculate);
@@ -340,7 +356,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
           <Card>
               <CardHeader>
                   <CardTitle className="font-headline">1. Biaya Bahan Baku</CardTitle>
-                  <CardDescription>Masukkan semua biaya bahan baku untuk satu produk (per-pcs)</CardDescription>
+                  <CardDescription>Masukkan semua bahan baku yang dibutuhkan untuk satu batch produksi (sesuai jumlah produk di atas).</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
               {fields.map((field, index) => (
@@ -367,7 +383,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                         </div>
                         <div className="w-full sm:w-24">
                             <Label>Satuan</Label>
-                            <Input placeholder="pcs, kg" {...form.register(`materials.${index}.unit`)} />
+                            <Input placeholder="meter, kg" {...form.register(`materials.${index}.unit`)} />
                         </div>
                          <Controller
                             control={form.control}
@@ -386,7 +402,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                             )}
                         />
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">Aktifkan 'Harga Total' jika biaya yang dimasukkan adalah untuk keseluruhan jumlah, bukan per satuan.</p>
+                      <p className="text-xs text-muted-foreground mt-1">Aktifkan 'Harga Total' jika biaya yang dimasukkan adalah untuk keseluruhan jumlah (Qty) bahan tersebut, bukan harga per satuan.</p>
 
                       {watchSharePublicly && (
                         <div className="mt-4 space-y-4">
@@ -487,7 +503,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                       </div>
                       <div className="space-y-4">
                           <div className="flex justify-between items-center border-b pb-2">
-                              <span className="text-muted-foreground">Total Biaya Bahan</span>
+                              <span className="text-muted-foreground">Total Biaya Bahan (per produk)</span>
                               <span className="font-semibold">{formatCurrency(result.totalMaterialCost)}</span>
                           </div>
                           <div className="flex justify-between items-center border-b pb-2">
