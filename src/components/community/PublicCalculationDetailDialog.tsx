@@ -91,7 +91,7 @@ export function PublicCalculationDetailDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-[90vw] p-0">
+      <DialogContent className="max-w-2xl w-[90vw] sm:w-full p-0">
           <ScrollArea className="max-h-[90vh]">
             <div className="p-4 md:p-6 space-y-6">
               <DialogHeader>
@@ -162,7 +162,7 @@ export function PublicCalculationDetailDialog({
                           </div>
                           <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
                               <span className="text-primary font-bold">Saran Harga Jual</span>
-                              <span className="font-extrabold text-lg text-primary">
+                              <span className="font-extrabold text-base text-primary">
                               {formatCurrency(suggestedPrice)}
                               </span>
                           </div>
