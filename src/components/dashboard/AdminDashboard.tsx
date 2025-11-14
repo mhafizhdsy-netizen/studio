@@ -579,7 +579,7 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
     
         const notificationData = {
             userId: selectedReport.reporter.id,
-            type: 'report_reply' as const,
+            type: 'report_reply',
             title: "Tanggapan Laporan Anda",
             content: replyMessage,
             referenceId: selectedReport.id,
