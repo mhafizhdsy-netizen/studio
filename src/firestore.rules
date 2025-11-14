@@ -1,6 +1,6 @@
 
 /**
- * @fileoverview Firestore Security Rules for GenHPP application.
+ * @fileoverview Firestore Security Rules for HitunginAja application.
  *
  * Core Philosophy:
  * This ruleset enforces a strict user-ownership model for private data (user profiles, calculations).
@@ -17,10 +17,19 @@ service cloud.firestore {
      * @path /users/{userId}
      */
     match /users/{userId} {
-      allow get, list: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId) && resource != null;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin() && resource != null;
+      
+      /**
+       * @description Controls access to AI consultant chat history.
+       * @path /users/{userId}/ai_consultant_history/{messageId}
+       */
+      match /ai_consultant_history/{messageId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     /**
@@ -33,6 +42,22 @@ service cloud.firestore {
       allow update: if isOwner(userId) && resource != null;
       allow delete: if isOwner(userId) && resource != null;
     }
+    
+    /**
+     * @description Controls access to user expenses.
+     * @path /users/{userId}/expenses/{expenseId}
+     */
+    match /users/{userId}/expenses/{expenseId} {
+      allow read, list, create, update, delete: if isOwner(userId);
+    }
+    
+    /**
+     * @description Controls access to user reports.
+     * @path /users/{userId}/reports/{reportId}
+     */
+    match /users/{userId}/reports/{reportId} {
+       allow read, list, create, update, delete: if isOwner(userId);
+    }
 
     /**
      * @description Controls access to publicly shared calculations.
@@ -40,7 +65,8 @@ service cloud.firestore {
      */
     match /public_calculations/{calcId} {
       allow get, list: if true;
-      allow write, delete: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
       
       /**
        * @description Controls access to comments on public calculations.
@@ -49,7 +75,8 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read, list: if true;
         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if false; // For simplicity, editing/deleting is disallowed
+        allow update: if false; 
+        allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
       }
     }
     
@@ -80,9 +107,16 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
+    
+    function isAdmin() {
+      // Check for admin status on the user's document in Firestore.
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
 
     function isParticipant(sessionId) {
       return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_sessions/$(sessionId)).data.participantIds;
     }
   }
 }
+
+    

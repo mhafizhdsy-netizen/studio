@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useFirestore, useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy } from 'firebase/firestore';
-import { Loader2, ServerCrash, Users, Package } from "lucide-react";
+import { Loader2, ServerCrash, Users, Package, Pin } from "lucide-react";
 import {
     Card,
     CardContent,
@@ -24,6 +24,7 @@ import Image from "next/image";
 export interface PublicCalculation extends Omit<Calculation, 'userId' | 'isPublic'> {
     userName: string;
     userPhotoURL?: string;
+    isFeatured?: boolean;
 }
 
 export function PublicCalculationList() {
@@ -32,6 +33,7 @@ export function PublicCalculationList() {
 
     const publicCalculationsQuery = useMemoFirebase(() => {
         if (!firestore) return null;
+        // This query just fetches all. We will sort on the client-side.
         return query(collection(firestore, 'public_calculations'), orderBy('updatedAt', 'desc'));
     }, [firestore]);
 
@@ -55,8 +57,15 @@ export function PublicCalculationList() {
       </div>
     );
   }
+  
+  const sortedCalculations = calculations?.sort((a, b) => {
+    if (a.isFeatured && !b.isFeatured) return -1;
+    if (!a.isFeatured && b.isFeatured) return 1;
+    // For items with same featured status, sort by date (already done by query)
+    return 0;
+  });
 
-  if (calculations && calculations.length === 0) {
+  if (sortedCalculations && sortedCalculations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center w-full h-full">
         <Users className="h-12 w-12 text-muted-foreground mb-4" />
@@ -73,7 +82,7 @@ export function PublicCalculationList() {
   return (
     <>
         <div className="w-full grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {calculations && calculations.map((calc) => (
+            {sortedCalculations && sortedCalculations.map((calc) => (
                 <PublicCalculationCard key={calc.id} calculation={calc} onSelect={() => setSelectedCalc(calc)} />
             ))}
         </div>
@@ -100,6 +109,11 @@ function PublicCalculationCard({ calculation, onSelect }: { calculation: PublicC
                 ) : (
                     <div className="flex items-center justify-center h-full">
                         <Package className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                )}
+                {calculation.isFeatured && (
+                    <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1.5 shadow-lg">
+                        <Pin className="h-4 w-4" />
                     </div>
                 )}
             </div>
@@ -133,3 +147,5 @@ function PublicCalculationCard({ calculation, onSelect }: { calculation: PublicC
         </Card>
     )
 }
+
+    

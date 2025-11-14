@@ -13,6 +13,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isUserLoading && user) {
+      // Check for suspension
+      if ((user as any).isSuspended) {
+        // Redirect to a suspended page or show a message
+        // For now, redirecting to a placeholder or back to landing
+        router.push('/?error=suspended');
+        return;
+      }
       router.push('/dashboard');
     }
   }, [user, isUserLoading, router]);
@@ -31,3 +38,5 @@ export default function LoginPage() {
 
   return <LoginForm />;
 }
+
+    

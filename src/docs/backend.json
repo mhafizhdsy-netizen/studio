@@ -5,7 +5,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the GenHPP application.",
+      "description": "Represents a user of the HitunginAja application.",
       "properties": {
         "id": {
           "type": "string",
@@ -29,14 +29,24 @@
           "type": "string",
           "description": "Timestamp indicating when the user account was created.",
           "format": "date-time"
+        },
+        "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Flag to check if user has completed the onboarding flow."
+        },
+        "isAdmin": {
+          "type": "boolean",
+          "description": "Flag to check if the user has admin privileges."
+        },
+        "isSuspended": {
+          "type": "boolean",
+          "description": "Flag to check if the user's account is suspended."
         }
       },
       "required": [
         "id",
         "name",
-        "email",
-        "photoURL",
-        "createdAt"
+        "email"
       ]
     },
     "Calculation": {
@@ -64,9 +74,19 @@
         },
         "materials": {
           "type": "array",
-          "description": "A list of material costs associated with the product.",
+          "description": "A list of materials associated with the product.",
           "items": {
-            "type": "string"
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "cost": { "type": "number" },
+              "qty": { "type": "number" },
+              "unit": { "type": "string" },
+              "description": { "type": "string" },
+              "isTotalCost": { "type": "boolean" },
+              "purchaseLink": { "type": "string", "format": "uri" }
+            },
+             "required": ["name", "cost", "qty"]
           }
         },
         "laborCost": {
@@ -123,6 +143,10 @@
           "type": "string",
           "description": "Reference to the original Calculation."
         },
+        "isFeatured": {
+            "type": "boolean",
+            "description": "Flag to check if the calculation is featured by an admin."
+        },
         "productName": {
           "type": "string",
           "description": "The name of the product."
@@ -148,6 +172,23 @@
           "type": "string",
           "description": "Timestamp indicating when the calculation was performed.",
           "format": "date-time"
+        },
+         "materials": {
+          "type": "array",
+          "description": "A list of materials associated with the product.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "cost": { "type": "number" },
+              "qty": { "type": "number" },
+              "unit": { "type": "string" },
+              "description": { "type": "string" },
+              "isTotalCost": { "type": "boolean" },
+              "purchaseLink": { "type": "string", "format": "uri" }
+            },
+            "required": ["name", "cost", "qty"]
+          }
         }
       },
       "required": [
@@ -191,6 +232,10 @@
           "type": "string",
           "description": "Timestamp indicating when the comment was created.",
           "format": "date-time"
+        },
+        "parentId": {
+          "type": "string",
+          "description": "The ID of the parent comment if this is a reply."
         }
       },
       "required": [
@@ -251,6 +296,76 @@
         }
       },
       "required": ["senderId", "content", "createdAt"]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents a single operational expense entry.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the expense." },
+        "userId": { "type": "string", "description": "The UID of the user who logged the expense." },
+        "name": { "type": "string", "description": "Name or description of the expense." },
+        "amount": { "type": "number", "description": "The cost of the expense." },
+        "category": { 
+          "type": "string", 
+          "description": "The category of the expense.",
+          "enum": ["Sewa Tempat", "Listrik", "Gaji Karyawan", "Biaya Pengemasan", "Lainnya"]
+        },
+        "date": { "type": "string", "format": "date-time", "description": "The date the expense was incurred." }
+      },
+      "required": ["id", "userId", "name", "amount", "category", "date"]
+    },
+    "ProfitReport": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "ProfitReport",
+        "type": "object",
+        "description": "Represents an aggregated profit analysis report for a specific period.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique ID for the report, e.g., YYYY-MM." },
+            "userId": { "type": "string", "description": "The UID of the user." },
+            "month": { "type": "string", "description": "The month of the report in YYYY-MM format." },
+            "totalProductionCost": { "type": "number", "description": "Sum of all HPP from calculations in that month." },
+            "totalOperationalCost": { "type": "number", "description": "Sum of all expenses in that month." },
+            "totalRevenue": { "type": "number", "description": "Sum of all suggested prices from calculations in that month." },
+            "estimatedProfit": { "type": "number", "description": "Total Revenue - (Total Production Cost + Total Operational Cost)." },
+            "averageMargin": { "type": "number", "description": "Average profit margin from calculations." },
+            "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the report was generated." }
+        },
+        "required": [
+            "id",
+            "userId",
+            "month",
+            "totalProductionCost",
+            "totalOperationalCost",
+            "totalRevenue",
+            "estimatedProfit",
+            "averageMargin",
+            "createdAt"
+        ]
+    },
+     "AIChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AIChatMessage",
+      "type": "object",
+      "description": "Represents a single message in a conversation with the AI Business Consultant.",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["user", "model"],
+          "description": "The role of the message sender (user or AI model)."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the message."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the message was created."
+        }
+      },
+      "required": ["role", "content", "createdAt"]
     }
   },
   "auth": {
@@ -294,6 +409,18 @@
               "name": "calcId",
               "description": "The unique ID of the calculation."
             }
+          ]
+        }
+      },
+       {
+        "path": "/users/{userId}/ai_consultant_history/{messageId}",
+        "definition": {
+          "entityName": "AIChatMessage",
+          "schema": { "$ref": "#/backend/entities/AIChatMessage" },
+          "description": "Stores the AI consultant chat history for a specific user. Access is restricted to the user.",
+          "params": [
+            { "name": "userId", "description": "The Firebase Auth UID of the user." },
+            { "name": "messageId", "description": "The unique ID of the chat message." }
           ]
         }
       },
@@ -353,8 +480,34 @@
             { "name": "messageId", "description": "The unique ID of the message." }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/expenses/{expenseId}",
+        "definition": {
+            "entityName": "Expense",
+            "schema": { "$ref": "#/backend/entities/Expense" },
+            "description": "Stores operational expense entries for a user.",
+            "params": [
+                { "name": "userId", "description": "The Firebase Auth UID of the user." },
+                { "name": "expenseId", "description": "The unique ID of the expense." }
+            ]
+        }
+      },
+      {
+          "path": "/users/{userId}/reports/{reportId}",
+          "definition": {
+              "entityName": "ProfitReport",
+              "schema": { "$ref": "#/backend/entities/ProfitReport" },
+              "description": "Stores generated profit analysis reports for a user.",
+              "params": [
+                  { "name": "userId", "description": "The Firebase Auth UID of the user." },
+                  { "name": "reportId", "description": "The unique ID of the report (e.g., YYYY-MM)." }
+              ]
+          }
       }
     ],
-    "reasoning": "The Firestore structure is updated to support the anonymous chat feature. The AI chat history is no longer stored in Firestore and is managed by the client application state."
+    "reasoning": "The Firestore structure is updated to support the AI Consultant feature by adding a new collection to store the chat history for each user."
   }
 }
+
+    
