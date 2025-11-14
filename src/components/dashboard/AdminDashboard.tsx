@@ -576,12 +576,16 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
     
         setIsSendingReply(true);
 
-        const { error: rpcError } = await supabase.rpc('send_admin_notification', {
-            target_user_id: selectedReport.reporter.id,
+        const notifications = [{
+            userId: selectedReport.reporter.id,
+            type: 'report_reply' as const,
             title: 'Tanggapan Laporan Anda',
             content: replyMessage,
-            type: 'report_reply',
-            reference_id: selectedReport.id,
+            referenceId: selectedReport.id,
+        }];
+
+        const { error: rpcError } = await supabase.rpc('send_broadcast_notifications', {
+           notifications_data: notifications,
         });
 
         if (rpcError) {
@@ -904,4 +908,3 @@ export function AdminDashboard() {
   );
 }
 
-    
