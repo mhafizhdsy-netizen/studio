@@ -7,10 +7,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Bot, Calculator, CheckCircle, DollarSign, Landmark, Megaphone, Share2, Sparkles, Loader2 } from "lucide-react";
+import { ArrowRight, Bot, Calculator, CheckCircle, DollarSign, Landmark, Megaphone, Share2, Sparkles } from "lucide-react";
 import { placeholderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/supabase/auth-provider";
+import { InfinityLoader } from '@/components/ui/infinity-loader';
 
 const heroImage = placeholderImages.find(p => p.id === "hero");
 
@@ -29,7 +30,7 @@ export default function LandingPage() {
   if (isLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        <InfinityLoader />
       </div>
     );
   }

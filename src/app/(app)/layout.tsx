@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/supabase/auth-provider";
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
-import { Loader2 } from "lucide-react";
+import { InfinityLoader } from "@/components/ui/infinity-loader";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { SiteStatus } from "@/components/layout/SiteStatusHandler";
@@ -19,7 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isLoading || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <InfinityLoader />
       </div>
     );
   }

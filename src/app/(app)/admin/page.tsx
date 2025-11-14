@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
+import { InfinityLoader } from "@/components/ui/infinity-loader";
 
 export default function AdminPage() {
     const { user, isLoading: isAuthLoading } = useAuth();
@@ -45,7 +46,7 @@ export default function AdminPage() {
     if (isLoading || isAuthLoading) {
         return (
             <div className="flex h-screen items-center justify-center">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <InfinityLoader />
             </div>
         );
     }

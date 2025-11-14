@@ -62,6 +62,19 @@
   .animate-page-fade-in {
     animation: page-fade-in 0.6s ease-out forwards;
   }
+
+  /* Infinity Loader Animation */
+  .infinity-loader-path {
+    stroke-dasharray: 315;
+    stroke-dashoffset: 315;
+    animation: draw-infinity 2s linear infinite;
+  }
+
+  @keyframes draw-infinity {
+    to {
+      stroke-dashoffset: -315;
+    }
+  }
 }
 
 @layer utilities {

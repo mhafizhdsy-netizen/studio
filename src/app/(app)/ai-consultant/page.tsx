@@ -9,6 +9,7 @@ import { consultAI } from '@/ai/flows/consultant-flow';
 import type { AIChatMessage } from '@/components/ai-consultant/AIChatView';
 import { AIChatView } from '@/components/ai-consultant/AIChatView';
 import { AIChatInput } from '@/components/ai-consultant/AIChatInput';
+import { InfinityLoader } from '@/components/ui/infinity-loader';
 
 export default function AIConsultantPage() {
   const { user } = useAuth();
@@ -122,7 +123,7 @@ export default function AIConsultantPage() {
         <div className="flex-1 overflow-y-auto p-4">
             {isLoading ? (
                 <div className="flex h-full items-center justify-center">
-                    <Loader2 className="h-10 w-10 animate-spin text-primary"/>
+                    <InfinityLoader />
                 </div>
             ) : (
                 <AIChatView history={history} isResponding={isResponding} />

@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import type { Calculation } from "../dashboard/CalculationHistory";
 import { PublicCalculationDetailDialog } from "./PublicCalculationDetailDialog";
 import Image from "next/image";
+import { InfinityLoader } from "../ui/infinity-loader";
 
 // PublicCalculation now includes the full breakdown
 export interface PublicCalculation extends Calculation {
@@ -51,8 +52,7 @@ export function PublicCalculationList() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center text-center w-full h-full">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Lagi ngumpulin inspirasi...</p>
+        <InfinityLoader />
       </div>
     );
   }
