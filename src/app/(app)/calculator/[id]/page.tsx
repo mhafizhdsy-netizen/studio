@@ -9,7 +9,8 @@ interface EditPageParams {
     params: { id: string };
 }
 
-export default function EditCalculatorPageForUser({ params: { id } }: EditPageParams) {
+export default function EditCalculatorPageForUser({ params }: EditPageParams) {
+  const { id } = params;
   const { user } = useUser();
   const firestore = useFirestore();
   
