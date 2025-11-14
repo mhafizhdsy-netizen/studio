@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { doc, serverTimestamp, collection } from 'firebase/firestore';
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ const materialSchema = z.object({
 const formSchema = z.object({
   productName: z.string().min(1, "Nama produk tidak boleh kosong"),
   productImageUrl: z.string().optional(),
+  productDescription: z.string().optional(),
   materials: z.array(materialSchema).min(1, "Minimal ada 1 bahan baku"),
   laborCost: z.coerce.number().min(0, "Biaya harus positif"),
   overhead: z.coerce.number().min(0, "Biaya harus positif"),
@@ -89,15 +90,13 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  
+  const calcId = useRef(existingCalculation?.id || doc(collection(firestore, 'temp')).id).current;
 
-  // Use a ref to store a unique ID for the calculation session, mainly for image uploads before saving.
-  const calcIdRef = useRef(existingCalculation?.id || doc(collection(firestore, 'temp')).id);
-
-  // State for image upload
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(existingCalculation?.productImageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   const form = useForm<FormData>({
@@ -105,6 +104,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     defaultValues: {
       productName: "",
       productImageUrl: "",
+      productDescription: "",
       materials: [{ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false, purchaseLink: "" }],
       laborCost: 0,
       overhead: 0,
@@ -122,6 +122,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   });
 
   const watchSharePublicly = form.watch("sharePublicly");
+  const watchProductName = form.watch("productName");
 
   useEffect(() => {
     if (existingCalculation) {
@@ -138,6 +139,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       form.reset({
         productName: existingCalculation.productName,
         productImageUrl: existingCalculation.productImageUrl || "",
+        productDescription: existingCalculation.productDescription || "",
         materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1, unit: "", description: "", isTotalCost: false, purchaseLink: "" }],
         laborCost: Number(existingCalculation.laborCost),
         overhead: Number(existingCalculation.overhead),
@@ -186,7 +188,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     }
     
     const cleanFileName = sanitizeFileName(file.name);
-    const filePath = `public/product-images/${user.uid}/${calcIdRef.current}/${cleanFileName}`;
+    const filePath = `public/product-images/${user.uid}/${calcId}/${cleanFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (progress) => {
@@ -206,30 +208,22 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   };
   
   const calculate = (data: FormData) => {
-    // 1. Calculate total material cost for the entire batch
     const totalMaterialCostForBatch = data.materials.reduce((acc, mat) => {
       const cost = mat.cost || 0;
       const qty = mat.qty || 1;
-      // If 'isTotalCost' is true, the cost is already for the total qty of that material.
-      // Otherwise, it's cost per unit of material, so we multiply by qty.
       const materialTotal = mat.isTotalCost ? cost : cost * qty;
       return acc + (isNaN(materialTotal) ? 0 : materialTotal);
     }, 0);
   
-    // 2. Sum up all total costs for the batch
     const totalBatchCost = totalMaterialCostForBatch + data.laborCost + data.overhead;
   
-    // 3. Calculate per-product cost by dividing by quantity produced
     const costPerProductBeforePackaging = data.productQuantity > 0 ? totalBatchCost / data.productQuantity : 0;
   
-    // 4. Add per-product packaging cost to get final HPP
     const totalHPP = costPerProductBeforePackaging + data.packaging;
   
-    // 5. Calculate profit and suggested price based on the final HPP
     const profit = totalHPP * (data.margin / 100);
     const suggestedPrice = totalHPP + profit;
   
-    // For Pie Chart (cost per product)
     const materialCostPerProduct = data.productQuantity > 0 ? totalMaterialCostForBatch / data.productQuantity : 0;
     const laborCostPerProduct = data.productQuantity > 0 ? data.laborCost / data.productQuantity : 0;
     const overheadPerProduct = data.productQuantity > 0 ? data.overhead / data.productQuantity : 0;
@@ -258,6 +252,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const calculationData: Omit<Calculation, 'id' | 'createdAt' | 'updatedAt'> = {
         productName: data.productName,
         productImageUrl: data.productImageUrl || "",
+        productDescription: data.productDescription || "",
         materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty), unit: m.unit || "", description: m.description || "", isTotalCost: m.isTotalCost || false, purchaseLink: m.purchaseLink || "" })),
         laborCost: Number(data.laborCost),
         overhead: Number(data.overhead),
@@ -266,48 +261,35 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         totalHPP: result.totalHPP,
         suggestedPrice: result.suggestedPrice,
         isPublic: data.sharePublicly || false,
-        userId: existingCalculation?.userId || user.uid,
+        userId: user.uid,
         productQuantity: data.productQuantity,
         productionTips: data.productionTips || "",
     };
 
-    let newCalcId = existingCalculation?.id;
-
     if (existingCalculation) {
-        // Update existing document
-        const calcRef = doc(firestore, 'users', calculationData.userId, existingCalculation.id);
+        const calcRef = doc(firestore, 'users', user.uid, existingCalculation.id);
         const dataToSave = { ...calculationData, updatedAt: serverTimestamp() };
-        setDocumentNonBlocking(calcRef, dataToSave, { merge: true });
+        updateDocumentNonBlocking(calcRef, dataToSave);
     } else {
-        // Create new document
-        const userCalcsColRef = collection(firestore, 'users', calculationData.userId, 'calculations');
+        const userCalcsColRef = collection(firestore, 'users', user.uid, 'calculations');
         const dataToSave = { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
-        // Let Firestore generate the ID, but get the reference to know the ID
-        const newDocRef = await addDocumentNonBlocking(userCalcsColRef, dataToSave);
-        newCalcId = newDocRef.id;
+        await addDocumentNonBlocking(userCalcsColRef, dataToSave);
     }
-
-    if (!newCalcId) {
-        setIsSubmitting(false);
-        toast({ title: "Gagal Menyimpan", description: "Tidak bisa mendapatkan ID untuk perhitungan baru.", variant: "destructive" });
-        return;
-    }
-
-    // Public calculation document
-    const publicCalcRef = doc(firestore, 'public_calculations', newCalcId);
+    
+    const publicCalcRef = doc(firestore, 'public_calculations', calcId);
 
     if (data.sharePublicly) {
         const publicData: any = {
             ...calculationData,
-            userName: existingCalculation?.userName || user.displayName || 'Anonymous',
-            userPhotoURL: existingCalculation?.userPhotoURL || user.photoURL || '',
+            userName: user.displayName || 'Anonymous',
+            userPhotoURL: user.photoURL || '',
             createdAt: existingCalculation?.createdAt || serverTimestamp(),
             updatedAt: serverTimestamp(),
-            userId: user.uid, // Explicitly add userId to public calc
+            userId: user.uid,
         };
         delete publicData.isPublic;
 
-        setDocumentNonBlocking(publicCalcRef, publicData, { merge: true });
+        updateDocumentNonBlocking(publicCalcRef, publicData);
     } else if (existingCalculation?.isPublic) {
         deleteDocumentNonBlocking(publicCalcRef);
     }
@@ -364,6 +346,26 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                 <Input id="productName" placeholder="Contoh: Kaos Polos 'Cuan Series'" {...form.register("productName")} />
                 {form.formState.errors.productName && <p className="text-sm text-destructive mt-1">{form.formState.errors.productName.message}</p>}
               </div>
+
+               <div className="space-y-2">
+                <ProductDescriptionGenerator
+                    productName={watchProductName}
+                    onDescriptionGenerated={(desc) => form.setValue("productDescription", desc.marketplace)}
+                />
+               </div>
+
+                <div>
+                    <Label htmlFor="productDescription">Deskripsi Produk (untuk Komunitas)</Label>
+                    <Textarea
+                        id="productDescription"
+                        placeholder="Deskripsi produk akan muncul di sini setelah dibuat oleh AI, atau bisa diisi manual..."
+                        {...form.register("productDescription")}
+                        rows={5}
+                    />
+                     <p className="text-xs text-muted-foreground mt-1">
+                       Deskripsi ini akan ditampilkan jika Anda membagikan perhitungan ke komunitas.
+                    </p>
+                </div>
             </CardContent>
           </Card>
 
@@ -587,9 +589,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
               )}
               </CardContent>
           </Card>
-          {result && (
-              <ProductDescriptionGenerator productName={form.getValues("productName")} />
-          )}
+          
           {result && (
               <ProfitAIAnalyst
                 calculationData={{
@@ -616,5 +616,3 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
-
-    

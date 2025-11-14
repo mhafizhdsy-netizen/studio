@@ -41,6 +41,7 @@ export function PublicCalculationDetailDialog({
   const {
     id,
     productName,
+    productDescription,
     productImageUrl,
     materials,
     laborCost,
@@ -102,6 +103,12 @@ export function PublicCalculationDetailDialog({
             ) : (
                 <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
                     <Package className="h-12 w-12 text-muted-foreground" />
+                </div>
+            )}
+
+            {productDescription && (
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <p>{productDescription}</p>
                 </div>
             )}
             
@@ -179,5 +186,3 @@ export function PublicCalculationDetailDialog({
     </Dialog>
   );
 }
-
-    

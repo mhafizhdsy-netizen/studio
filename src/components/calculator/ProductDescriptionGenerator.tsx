@@ -2,13 +2,6 @@
 "use client";
 
 import { useState } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Bot,
@@ -19,38 +12,49 @@ import {
   Instagram,
   Clapperboard,
   Store,
+  ChevronDown,
 } from 'lucide-react';
 import { generateDescription } from '@/ai/flows/product-description-flow';
 import type { ProductDescriptionOutput } from '@/ai/flows/product-description-schemas';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 
 interface ProductDescriptionGeneratorProps {
   productName: string;
+  onDescriptionGenerated: (description: ProductDescriptionOutput) => void;
 }
 
 export function ProductDescriptionGenerator({
   productName,
+  onDescriptionGenerated,
 }: ProductDescriptionGeneratorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ProductDescriptionOutput | null>(null);
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
   const handleGenerate = async () => {
     if (!productName) {
-      setError('Nama produk tidak boleh kosong.');
+      toast({
+        title: "Nama Produk Kosong",
+        description: "Harap isi nama produk terlebih dahulu.",
+        variant: "destructive"
+      });
       return;
     }
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setIsOpen(true); // Open the collapsible on generate
 
     try {
       const aiResult = await generateDescription({ productName });
       setResult(aiResult);
+      onDescriptionGenerated(aiResult); // Pass the whole object up
     } catch (e: any) {
       console.error(e);
       setError('Waduh, AI-nya lagi istirahat. Coba beberapa saat lagi ya!');
@@ -71,28 +75,23 @@ export function ProductDescriptionGenerator({
   }
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="font-headline text-xl flex items-center gap-2">
-          <FileText className="text-primary" />
-          AI Product Desc Generator
-        </CardTitle>
-        <CardDescription>
-          Biarin AI yang mikirin caption jualanmu yang ciamik!
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Button onClick={handleGenerate} disabled={isLoading || !productName} className="w-full">
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Bot className="h-4 w-4" />
-          )}
-          <span className="ml-2">Buatkan Deskripsi Produk</span>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <Button variant="outline" className="w-full" disabled={!productName}>
+          <Bot className="h-4 w-4 mr-2" />
+            Buat Deskripsi dengan AI
+          <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="space-y-4 pt-4">
+        {isLoading && (
+            <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+        )}
         
         {error && (
-            <Alert variant="destructive" className="mt-4">
+            <Alert variant="destructive">
                 <Bot className="h-4 w-4" />
                 <AlertTitle>Gagal Membuat Deskripsi</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
@@ -100,12 +99,12 @@ export function ProductDescriptionGenerator({
         )}
 
         {result && (
-          <div className="mt-6">
-            <Tabs defaultValue="instagram" className="w-full">
+          <div className="mt-2">
+            <Tabs defaultValue="marketplace" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="marketplace"><Store className="h-4 w-4 mr-2"/>Marketplace</TabsTrigger>
                     <TabsTrigger value="instagram"><Instagram className="h-4 w-4 mr-2"/>Instagram</TabsTrigger>
                     <TabsTrigger value="tiktok"><Clapperboard className="h-4 w-4 mr-2"/>TikTok</TabsTrigger>
-                    <TabsTrigger value="marketplace"><Store className="h-4 w-4 mr-2"/>Marketplace</TabsTrigger>
                 </TabsList>
                 <div className="relative mt-2">
                     <TabsContent value="instagram">
@@ -121,8 +120,8 @@ export function ProductDescriptionGenerator({
             </Tabs>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 

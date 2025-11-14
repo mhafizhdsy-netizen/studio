@@ -25,6 +25,7 @@ export interface Calculation {
   id: string;
   productName: string;
   productImageUrl?: string;
+  productDescription?: string;
   materials: { name: string; cost: number; qty: number, unit?: string, description?: string, isTotalCost?: boolean, purchaseLink?: string }[];
   laborCost: number;
   overhead: number;
@@ -151,5 +152,3 @@ export function CalculationHistory() {
     </>
   );
 }
-
-    
