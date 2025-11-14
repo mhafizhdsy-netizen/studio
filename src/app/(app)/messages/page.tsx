@@ -10,7 +10,7 @@ import { ChatInput } from "@/components/messages/ChatInput";
 import { ChatView, type Message } from "@/components/messages/ChatView";
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { RealtimeChannel } from "@supabase/supabase-js";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ChatSession {
     id: string;
@@ -197,13 +197,42 @@ export default function AnonymousChatPage() {
 
     if (session) {
         const otherParticipantName = session.participantIds.length > 1 ? `Teman Ngobrol` : '...';
+
+        // Waiting Room UI
+        if (session.status === 'pending') {
+            return (
+                <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                    <Card className="max-w-sm w-full">
+                        <CardHeader>
+                            <CardTitle className="font-headline">Ruang Tunggu</CardTitle>
+                            <CardDescription>Sabar ya, lagi cari teman ngobrol yang pas buat kamu.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center justify-center space-y-4 py-8">
+                             <div className="relative">
+                                <UsersRound className="h-16 w-16 text-primary"/>
+                                <div className="absolute top-0 right-0 -mr-2 -mt-2">
+                                    <div className="relative flex h-5 w-5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-5 w-5 bg-primary"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="text-muted-foreground">Mencari teman ngobrol...</p>
+                        </CardContent>
+                    </Card>
+                    <Button variant="ghost" size="sm" onClick={handleEndChat} className="mt-6">Batal & Keluar</Button>
+                </div>
+            )
+        }
+
+        // Active Chat UI
         return (
             <div className="flex flex-col h-full">
                 <header className="p-4 border-b flex items-center justify-between">
                     <div>
                         <h3 className="font-semibold text-lg">Chat Anonim</h3>
                         <p className="text-sm text-muted-foreground">
-                            {session.status === 'pending' ? 'Menunggu teman ngobrol...' : 'Terhubung!'}
+                            Terhubung dengan {otherParticipantName}!
                         </p>
                     </div>
                     <Button variant="destructive" size="sm" onClick={handleEndChat}>Akhiri Obrolan</Button>
@@ -272,3 +301,4 @@ export default function AnonymousChatPage() {
 }
 
     
+
