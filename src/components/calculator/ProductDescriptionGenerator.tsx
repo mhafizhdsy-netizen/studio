@@ -71,7 +71,7 @@ export function ProductDescriptionGenerator({
 
   return (
     <div className="space-y-4">
-        <Button variant="outline" className="w-full" disabled={!productName || isLoading} onClick={handleGenerate}>
+        <Button variant="accent" className="w-full" disabled={!productName || isLoading} onClick={handleGenerate}>
           {isLoading ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
