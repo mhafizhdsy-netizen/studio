@@ -574,9 +574,9 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
 
     const handleSendReply = async () => {
         if (!selectedReport || !replyMessage) return;
-
+    
         setIsSendingReply(true);
-
+    
         const notificationData = {
             userId: selectedReport.reporter.id,
             type: 'report_reply' as const,
@@ -584,28 +584,28 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
             content: replyMessage,
             referenceId: selectedReport.id,
         };
-        
+    
         try {
             const response = await fetch('/api/send-admin-notification', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify([notificationData]),
+                body: JSON.stringify([notificationData]), // Send as an array
             });
-            
+    
             const result = await response.json();
-
+    
             if (!response.ok) {
                 throw new Error(result.error || 'Gagal mengirim balasan.');
             }
-
+    
             toast({ title: 'Balasan Terkirim' });
             await updateReportStatus(selectedReport.id, 'resolved');
             setIsReplyOpen(false);
             setReplyMessage("");
             setSelectedReport(null);
-
+    
         } catch (error: any) {
             console.error("Error sending reply:", error);
             toast({
@@ -925,6 +925,7 @@ export function AdminDashboard() {
     
 
     
+
 
 
 

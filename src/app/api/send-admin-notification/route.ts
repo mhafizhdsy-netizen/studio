@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
         const notifications = await req.json();
 
         // Basic validation
-        if (!notifications || (Array.isArray(notifications) && notifications.length === 0)) {
-            return NextResponse.json({ error: 'No notification data provided.' }, { status: 400 });
+        if (!notifications || !Array.isArray(notifications) || notifications.length === 0) {
+            return NextResponse.json({ error: 'No notification data provided or invalid format.' }, { status: 400 });
         }
 
         // It's crucial to use the SERVICE_ROLE_KEY here to bypass RLS.
