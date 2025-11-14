@@ -567,12 +567,12 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
         if (!replyingReport || !replyContent) return;
         setIsReplying(true);
         
-        const { error } = await supabase.from('notifications').insert({
-            userId: replyingReport.reporter.id,
-            type: 'report_reply',
-            title: `Balasan untuk Laporan Anda: "${replyingReport.calculation.productName}"`,
-            content: replyContent,
-            referenceId: replyingReport.id,
+        const { error } = await supabase.rpc('send_admin_notification', {
+            p_user_id: replyingReport.reporter.id,
+            p_title: `Balasan untuk Laporan Anda: "${replyingReport.calculation.productName}"`,
+            p_content: replyContent,
+            p_type: 'report_reply',
+            p_reference_id: replyingReport.id
         });
 
         if (error) {
