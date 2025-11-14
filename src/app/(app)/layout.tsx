@@ -3,7 +3,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/firebase";
+import { useUser, useFirestore } from "@/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Loader2 } from "lucide-react";
@@ -11,6 +12,7 @@ import { Loader2 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,6 +21,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.replace("/");
     }
   }, [user, isUserLoading, router]);
+
+  useEffect(() => {
+    // Pastikan data pengguna lama memiliki field isAdmin
+    const ensureAdminField = async () => {
+        if (user && firestore) {
+            const userDocRef = doc(firestore, "users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                // Jika field isAdmin tidak ada, tambahkan sebagai false
+                if (userData.isAdmin === undefined) {
+                    await setDoc(userDocRef, { isAdmin: false }, { merge: true });
+                }
+            }
+        }
+    };
+
+    if (!isUserLoading && user) {
+        ensureAdminField();
+    }
+  }, [user, isUserLoading, firestore]);
 
   if (isUserLoading || !user) {
     return (
