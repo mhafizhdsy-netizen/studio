@@ -1,9 +1,23 @@
 
 "use client";
 
-import { useState, useEffect, useRef, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent, useRef } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
-import { zodResolver } from "@hodix-ui/react-label";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  useUser,
+  useFirestore,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from "@/firebase";
+import {
+  collection,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera, Link as LinkIcon, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +34,9 @@ import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { ProductDescriptionGenerator } from "./ProductDescriptionGenerator";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { moderateImage } from "@/ai/flows/image-moderation-flow";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Calculation } from "../dashboard/CalculationHistory";
 
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
@@ -260,17 +277,17 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
     let finalCalcId = existingCalculation?.id;
 
-    if (existingCalculation) {
-        // Update existing calculation
-        const calcRef = doc(firestore, 'users', user.uid, existingCalculation.id);
-        const dataToSave = { ...calculationData, updatedAt: serverTimestamp() };
-        updateDocumentNonBlocking(calcRef, dataToSave);
+    if (finalCalcId) {
+      // Update existing calculation
+      const calcRef = doc(firestore, 'users', user.uid, finalCalcId);
+      const dataToSave = { ...calculationData, updatedAt: serverTimestamp() };
+      updateDocumentNonBlocking(calcRef, dataToSave);
     } else {
-        // Add new calculation and get the new ID
-        const userCalcsColRef = collection(firestore, 'users', user.uid, 'calculations');
-        const dataToSave = { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
-        const newDocRef = await addDocumentNonBlocking(userCalcsColRef, dataToSave);
-        finalCalcId = newDocRef.id;
+      // Add new calculation and get the new ID
+      const userCalcsColRef = collection(firestore, 'users', user.uid, 'calculations');
+      const dataToSave = { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+      const newDocRef = await addDocumentNonBlocking(userCalcsColRef, dataToSave);
+      finalCalcId = newDocRef.id;
     }
     
     if (finalCalcId) {
@@ -279,7 +296,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       if (data.sharePublicly) {
           const publicData: any = {
               ...calculationData,
-              id: finalCalcId, // Ensure the ID is set
+              calculationId: finalCalcId, // Ensure the ID is set
               userName: user.displayName || 'Anonymous',
               userPhotoURL: user.photoURL || '',
               createdAt: existingCalculation?.createdAt || serverTimestamp(),
@@ -618,3 +635,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
+
+    
