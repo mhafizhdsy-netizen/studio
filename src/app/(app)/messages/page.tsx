@@ -64,11 +64,10 @@ export default function AnonymousChatPage() {
             if (!user) return;
             setIsLoading(true);
 
+            // Use the new secure view 'user_chat_sessions'
             const { data, error } = await supabase
-                .from('chat_sessions')
+                .from('user_chat_sessions')
                 .select('*')
-                .contains('participantIds', [user.id])
-                .in('status', ['pending', 'active'])
                 .limit(1)
                 .single();
 

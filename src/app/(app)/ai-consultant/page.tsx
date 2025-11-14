@@ -59,13 +59,15 @@ export default function AIConsultantPage() {
       const { error: userError } = await supabase.from('ai_consultant_history').insert(userMessage);
       if (userError) throw userError;
 
-      // 2. Prepare history for AI by excluding the temp message and adding the new one
-      const aiHistory = history.map(h => ({
+      // 2. Prepare history for AI
+      // We only need the direct history, not the temporary optimistic one
+      const currentHistory = (await supabase.from('ai_consultant_history').select('*').eq('userId', user.id).order('createdAt', { ascending: true })).data || [];
+      
+      const aiHistory = currentHistory.map(h => ({
         role: h.role as 'user' | 'model',
         content: [{ text: h.content }],
       }));
-      aiHistory.push({ role: 'user', content: [{ text }] });
-      
+
       // 3. Get AI response
       const aiResponse = await consultAI({
           prompt: text,
@@ -79,14 +81,9 @@ export default function AIConsultantPage() {
       };
 
       // 4. Save AI message to DB
-      const { data: newAiMessage, error: aiError } = await supabase
-        .from('ai_consultant_history')
-        .insert(aiMessage)
-        .select()
-        .single();
-      if (aiError) throw aiError;
+      await supabase.from('ai_consultant_history').insert(aiMessage);
       
-      // 5. Update UI by replacing temp message with real data
+      // 5. Fetch the latest history to get all real messages
       const newHistory = await supabase.from('ai_consultant_history').select('*').eq('userId', user.id).order('createdAt', { ascending: true });
       if(newHistory.data) setHistory(newHistory.data);
 
@@ -99,15 +96,14 @@ export default function AIConsultantPage() {
         isError: true,
         userId: user.id,
       };
+      
       // Save error message to DB
-      const { data: newErrorMessage, error: dbError } = await supabase.from('ai_consultant_history').insert(errorMessage).select().single();
-       if (dbError) {
-         console.error("Could not save error message to DB", dbError);
-         setHistory(prev => prev.filter(m => m.id !== 'temp-user'));
-       } else if (newErrorMessage) {
-        const newHistory = await supabase.from('ai_consultant_history').select('*').eq('userId', user.id).order('createdAt', { ascending: true });
-        if(newHistory.data) setHistory(newHistory.data);
-       }
+      await supabase.from('ai_consultant_history').insert(errorMessage);
+       
+      // Refetch history to show the error message correctly
+      const newHistory = await supabase.from('ai_consultant_history').select('*').eq('userId', user.id).order('createdAt', { ascending: true });
+      if(newHistory.data) setHistory(newHistory.data);
+
     } finally {
       setIsResponding(false);
     }
