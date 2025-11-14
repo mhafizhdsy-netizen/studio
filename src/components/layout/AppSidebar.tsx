@@ -35,6 +35,9 @@ import { useRouter } from 'next/navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
 import { Logo } from '../ui/logo';
 import { Badge } from '../ui/badge';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { useEffect, useState } from 'react';
 
 
 const AdminBadge = () => (
@@ -47,6 +50,20 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+        if (!user) return;
+        const { data } = await supabase
+            .from('users')
+            .select('isAdmin')
+            .eq('id', user.id)
+            .single();
+        setIsAdmin(data?.isAdmin || false);
+    };
+    checkAdmin();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -64,8 +81,7 @@ export function AppSidebar() {
 
   const displayName = user?.user_metadata?.name || user?.email;
   const photoURL = user?.user_metadata?.photoURL;
-  const isAdmin = user?.user_metadata?.isAdmin || false;
-
+  
   return (
     <>
       <SidebarHeader>

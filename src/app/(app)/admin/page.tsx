@@ -5,22 +5,44 @@ import { useAuth } from "@/supabase/auth-provider";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { supabase } from "@/lib/supabase";
 
 export default function AdminPage() {
-    const { user, isLoading } = useAuth();
+    const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const isAdmin = user?.user_metadata?.isAdmin || false;
 
     useEffect(() => {
-        if (!isLoading && !isAdmin) {
-            router.replace('/dashboard');
-        }
-    }, [isLoading, isAdmin, router]);
+        const checkAdminStatus = async () => {
+            if (isAuthLoading) return;
+            if (!user) {
+                router.replace('/dashboard');
+                return;
+            }
 
-    if (isLoading) {
+            setIsLoading(true);
+            const { data } = await supabase
+                .from('users')
+                .select('isAdmin')
+                .eq('id', user.id)
+                .single();
+
+            const isAdminUser = data?.isAdmin || false;
+            setIsAdmin(isAdminUser);
+
+            if (!isAdminUser) {
+                router.replace('/dashboard');
+            }
+            setIsLoading(false);
+        }
+        checkAdminStatus();
+    }, [isAuthLoading, user, router]);
+
+    if (isLoading || isAuthLoading) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />

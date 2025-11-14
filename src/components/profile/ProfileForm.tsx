@@ -139,8 +139,6 @@ export function ProfileForm() {
         filePath
       );
       
-      // We no longer need to update the photoURL here because the database trigger will handle it.
-      // However, we call updateUser just to trigger the 'on_auth_user_updated' trigger if no other data changed.
       const { error: updateError } = await supabase.auth.updateUser({
         data: { ...user.user_metadata, photoURL: newPhotoURL }
       });
