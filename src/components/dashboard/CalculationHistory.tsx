@@ -71,23 +71,30 @@ export function CalculationHistory() {
 
     setIsDeleting(true);
     
-    // Define references for both private and public documents
     const userCalcRef = doc(firestore, 'users', user.uid, 'calculations', selectedCalcId);
     const publicCalcRef = doc(firestore, 'public_calculations', selectedCalcId);
     
-    // Non-blocking deletion for both documents
-    deleteDocumentNonBlocking(userCalcRef);
-    
-    // Check if public doc exists before trying to delete
-    // This is a "fire and forget" check, we don't block for it,
-    // just attempt deletion if it might exist.
-    // The deleteDocumentNonBlocking is already safe against non-existent docs.
-    deleteDocumentNonBlocking(publicCalcRef);
-    
-    toast({
-      title: "Berhasil Dihapus",
-      description: "Perhitunganmu sudah dihapus dari riwayat dan komunitas.",
-    });
+    try {
+      // Non-blocking deletion for both documents
+      deleteDocumentNonBlocking(userCalcRef);
+      
+      // We don't know for sure if a public doc exists, but we can try to delete it.
+      // deleteDocumentNonBlocking is safe against non-existent docs.
+      deleteDocumentNonBlocking(publicCalcRef);
+      
+      toast({
+        title: "Berhasil Dihapus",
+        description: "Perhitunganmu sudah dihapus dari riwayat dan (jika ada) dari komunitas.",
+      });
+    } catch (e) {
+        console.error("Deletion failed:", e);
+        toast({
+            title: "Gagal Menghapus",
+            description: "Terjadi kesalahan saat menghapus perhitungan.",
+            variant: "destructive",
+        });
+    }
+
 
     setIsDeleting(false);
     setIsDeleteDialogOpen(false);
@@ -144,7 +151,7 @@ export function CalculationHistory() {
           <AlertDialogHeader>
             <AlertDialogTitle>Yakin mau hapus perhitungan ini?</AlertDialogTitle>
             <AlertDialogDescription>
-              Data yang sudah dihapus nggak bisa dikembalikan lagi lho. Ini juga akan menghapusnya dari halaman komunitas.
+              Data yang sudah dihapus nggak bisa dikembalikan lagi lho. Ini juga akan menghapusnya dari halaman komunitas jika pernah dibagikan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

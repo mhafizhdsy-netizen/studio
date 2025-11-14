@@ -4,7 +4,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { FirestorePermissionError, errorEmitter } from '@/lib/errors';
+import { FirestorePermissionError, errorEmitter } from '@/firebase/errors';
 import {
   collection,
   doc,
@@ -347,40 +347,42 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
         }.`,
       });
     } catch (e: any) {
-        try {
-            const permissionError = new FirestorePermissionError({
-                path: calcRef.path,
-                operation: 'update',
-                requestResourceData: dataToUpdate,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-        } catch (error) {
-            console.error("Failed to create contextual error:", error);
-            console.error("Original Firestore error:", e);
-             toast({
-                title: 'Gagal',
-                description: 'Gagal memperbarui status pilihan. Cek aturan keamanan.',
-                variant: 'destructive',
-            });
-        }
+        // The permission error will now be thrown globally by the listener
+        // But we can still provide a user-friendly toast here.
+        toast({
+            title: 'Gagal',
+            description: 'Gagal memperbarui status pilihan. Cek aturan keamanan atau konsol error.',
+            variant: 'destructive',
+        });
+        // We still create and emit the error for detailed debugging.
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: calcRef.path,
+            operation: 'update',
+            requestResourceData: dataToUpdate,
+        }));
     }
   };
 
-  const handleDeleteCalculation = async (calcId: string) => {
+  const handleDeleteCalculation = async (calcId: string, userId: string) => {
     if (!firestore) return;
-    const calcRef = doc(firestore, 'public_calculations', calcId);
+    const publicCalcRef = doc(firestore, 'public_calculations', calcId);
+    const userCalcRef = doc(firestore, 'users', userId, 'calculations', calcId);
+
     try {
-      await deleteDoc(calcRef);
+      // Delete both documents
+      await deleteDoc(publicCalcRef);
+      await deleteDoc(userCalcRef); // Also delete the private one
       toast({
         title: 'Dihapus!',
-        description: 'Perhitungan publik telah berhasil dihapus.',
+        description: 'Perhitungan publik dan privat telah berhasil dihapus.',
       });
     } catch (e) {
       toast({
         title: 'Gagal',
-        description: 'Gagal menghapus perhitungan publik.',
+        description: 'Gagal menghapus perhitungan.',
         variant: 'destructive',
       });
+      console.error(e);
     }
   };
 
@@ -462,7 +464,7 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
                               : 'Jadikan Pilihan'}
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleDeleteCalculation(calc.id)}
+                            onClick={() => handleDeleteCalculation(calc.id, calc.userId)}
                             className="text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
