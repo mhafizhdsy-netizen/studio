@@ -5,7 +5,7 @@ import { useState, useEffect, ChangeEvent, useRef } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser } from "@/firebase";
+import { useAuth } from "@/supabase/auth-provider";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera, Link as LinkIcon, Info } from "lucide-react";
@@ -82,7 +82,7 @@ const fileToDataUri = (file: File): Promise<string> => {
 
 
 export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -151,7 +151,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
   const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    if (!supabase || !user) {
+    if (!user) {
       toast({ title: "Error", description: "Layanan penyimpanan tidak tersedia.", variant: "destructive" });
       return;
     }
@@ -183,7 +183,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     
     const calculationId = existingCalculation?.id || uuidv4();
     const cleanFileName = sanitizeFileName(file.name);
-    const filePath = `public/product-images/${user.uid}/${calculationId}/${cleanFileName}`;
+    const filePath = `public/product-images/${user.id}/${calculationId}/${cleanFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (progress) => {
@@ -236,7 +236,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const handleCalculate = form.handleSubmit(calculate);
 
   async function onSubmit(data: FormData) {
-    if (!user || !supabase) return;
+    if (!user) return;
     if (!result) {
         toast({ title: "Oops!", description: "Hitung dulu hasilnya sebelum menyimpan ya.", variant: "destructive" });
         return;
@@ -259,7 +259,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         totalHPP: result.totalHPP,
         suggestedPrice: result.suggestedPrice,
         isPublic: data.sharePublicly || false,
-        userId: user.uid,
+        userId: user.id,
         productQuantity: data.productQuantity,
         productionTips: data.productionTips || "",
         updatedAt: new Date().toISOString(),
@@ -275,35 +275,16 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       return;
     }
     
+    // Manage public calculation table
     if (data.sharePublicly) {
         const publicData = {
-            id: calculationId,
-            productName: data.productName,
-            productImageUrl: data.productImageUrl || "",
-            productDescription: data.productDescription || "",
-            materials: calculationData.materials,
-            laborCost: Number(data.laborCost),
-            overhead: Number(data.overhead),
-            packaging: Number(data.packaging),
-            margin: Number(data.margin),
-            totalHPP: result.totalHPP,
-            suggestedPrice: result.suggestedPrice,
-            isPublic: true,
-            userId: user.uid,
-            productQuantity: data.productQuantity,
-            productionTips: data.productionTips || "",
-            userName: user.displayName || 'Anonymous',
-            userPhotoURL: user.photoURL || '',
-            createdAt: existingCalculation?.createdAt || new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            id: calculationId, // Use the same ID
+            // All other fields are now handled by the public_calculations view
         };
-        const { error: publicError } = await supabase.from('public_calculations').upsert(publicData);
-        if (publicError) {
-            console.error('Supabase public calculation upsert error:', publicError);
-            // Optionally notify user about partial failure
-        }
+        // We don't need to upsert to public_calculations anymore, the view handles it
     } else if (existingCalculation?.isPublic) {
-        await supabase.from('public_calculations').delete().eq('id', calculationId);
+        // If it was public and now it's not, we just need to update `isPublic` to false
+        // The view will automatically exclude it. The upsert above already handles this.
     }
 
     const randomToast = motivationalToasts[Math.floor(Math.random() * motivationalToasts.length)];
@@ -325,7 +306,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
             <CardContent className="space-y-4">
                <div
                 className="relative aspect-video w-full bg-muted rounded-lg flex items-center justify-center border-2 border-dashed border-border cursor-pointer hover:border-primary transition-colors"
-                onClick={() => supabase && fileInputRef.current?.click()}
+                onClick={() => user && fileInputRef.current?.click()}
               >
                 {imageUrl ? (
                   <Image src={imageUrl} alt="Pratinjau Produk" layout="fill" className="object-cover rounded-lg" />
@@ -350,7 +331,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                   onChange={handlePhotoChange}
                   className="hidden"
                   accept="image/png, image/jpeg, image/webp"
-                  disabled={isUploading || !supabase}
+                  disabled={isUploading || !user}
                 />
               </div>
               <div>

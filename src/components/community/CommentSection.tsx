@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, useDoc } from "@/firebase";
-import { collection, query, orderBy, Timestamp, serverTimestamp, doc } from "firebase/firestore";
+import { useAuth } from "@/supabase/auth-provider";
+import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,20 +16,26 @@ import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "../ui/badge";
+import { useQuery } from "@tanstack/react-query";
 
 interface UserProfile {
     isAdmin?: boolean;
+    name: string;
 }
 
 export interface Comment {
   id: string;
   userId: string;
-  userName: string;
-  userPhotoURL: string;
+  calculationId: string;
   text: string;
-  createdAt: Timestamp;
+  createdAt: string;
   parentId?: string;
   replies?: Comment[];
+  user?: {
+      name: string;
+      photoURL?: string;
+      isAdmin?: boolean;
+  }
 }
 
 const commentSchema = z.object({
@@ -42,14 +48,13 @@ interface CommentSectionProps {
 
 const getInitials = (name: string) => (name || "A").split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
 
-const formatDate = (timestamp: Timestamp | null) => {
+const formatDate = (timestamp: string | null) => {
     if (!timestamp) return 'Baru saja';
-    return formatDistanceToNow(timestamp.toDate(), { addSuffix: true, locale: id });
+    return formatDistanceToNow(new Date(timestamp), { addSuffix: true, locale: id });
 };
 
 function CommentForm({ calculationId, parentId, onAfterSubmit, autofocus }: { calculationId: string; parentId?: string; onAfterSubmit?: () => void; autofocus?: boolean; }) {
-    const { user } = useUser();
-    const firestore = useFirestore();
+    const { user } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<z.infer<typeof commentSchema>>({
@@ -66,35 +71,35 @@ function CommentForm({ calculationId, parentId, onAfterSubmit, autofocus }: { ca
     }
     
     const onSubmit = async (values: z.infer<typeof commentSchema>) => {
-        if (!user || !firestore) return;
+        if (!user) return;
         setIsSubmitting(true);
     
         const commentData: any = {
-          userId: user.uid,
-          userName: user.displayName || "Anonim",
-          userPhotoURL: user.photoURL || "",
+          userId: user.id,
+          calculationId: calculationId,
           text: values.text,
-          createdAt: serverTimestamp(),
         };
 
         if (parentId) {
             commentData.parentId = parentId;
         }
     
-        const commentsColRef = collection(firestore, 'public_calculations', calculationId, 'comments');
-        await addDocumentNonBlocking(commentsColRef, commentData);
+        await supabase.from('comments').insert(commentData);
         
         form.reset();
         setIsSubmitting(false);
         onAfterSubmit?.();
       };
 
+    const photoURL = user?.user_metadata?.photoURL;
+    const name = user?.user_metadata?.name || 'Anonim';
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4 flex gap-2 items-start">
                 <Avatar className="h-9 w-9 mt-1">
-                    <AvatarImage src={user.photoURL ?? undefined} alt={user.displayName ?? ''} />
-                    <AvatarFallback>{getInitials(user.displayName ?? '')}</AvatarFallback>
+                    <AvatarImage src={photoURL} alt={name} />
+                    <AvatarFallback>{getInitials(name)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                     <FormField
@@ -119,30 +124,26 @@ function CommentForm({ calculationId, parentId, onAfterSubmit, autofocus }: { ca
     );
 }
 
-function CommentItem({ comment, calculationId }: { comment: Comment, calculationId: string }) {
+function CommentItem({ comment, calculationId, onCommentAdded }: { comment: Comment, calculationId: string, onCommentAdded: () => void }) {
     const [isReplying, setIsReplying] = useState(false);
     const [showReplies, setShowReplies] = useState(true);
-    const firestore = useFirestore();
 
-    const userDocRef = useMemoFirebase(() => {
-        if(!firestore || !comment.userId) return null;
-        return doc(firestore, 'users', comment.userId);
-    }, [firestore, comment.userId]);
-
-    const {data: userProfile} = useDoc<UserProfile>(userDocRef);
+    const userName = comment.user?.name || "Anonim";
+    const userPhotoURL = comment.user?.photoURL;
+    const isAdmin = comment.user?.isAdmin || false;
 
     return (
         <div className="flex gap-3">
             <Avatar className="h-8 w-8">
-                <AvatarImage src={comment.userPhotoURL} alt={comment.userName} />
-                <AvatarFallback className="text-xs">{getInitials(comment.userName)}</AvatarFallback>
+                <AvatarImage src={userPhotoURL} alt={userName} />
+                <AvatarFallback className="text-xs">{getInitials(userName)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
                 <div className="bg-muted/50 p-3 rounded-lg">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
-                             <p className="font-semibold text-sm">{comment.userName}</p>
-                             {userProfile?.isAdmin && <Badge variant="accent" className="text-xs px-1.5 py-0"><Shield className="h-3 w-3 mr-1"/>Admin</Badge>}
+                             <p className="font-semibold text-sm">{userName}</p>
+                             {isAdmin && <Badge variant="accent" className="text-xs px-1.5 py-0"><Shield className="h-3 w-3 mr-1"/>Admin</Badge>}
                         </div>
                         <p className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</p>
                     </div>
@@ -156,7 +157,7 @@ function CommentItem({ comment, calculationId }: { comment: Comment, calculation
                     <CommentForm
                         calculationId={calculationId}
                         parentId={comment.id}
-                        onAfterSubmit={() => setIsReplying(false)}
+                        onAfterSubmit={() => { setIsReplying(false); onCommentAdded(); }}
                         autofocus
                     />
                 )}
@@ -172,7 +173,7 @@ function CommentItem({ comment, calculationId }: { comment: Comment, calculation
                         <CollapsibleContent>
                              <div className="mt-4 pl-4 border-l-2 space-y-4">
                                 {comment.replies.map(reply => (
-                                    <CommentItem key={reply.id} comment={reply} calculationId={calculationId} />
+                                    <CommentItem key={reply.id} comment={reply} calculationId={calculationId} onCommentAdded={onCommentAdded} />
                                 ))}
                             </div>
                         </CollapsibleContent>
@@ -183,19 +184,39 @@ function CommentItem({ comment, calculationId }: { comment: Comment, calculation
     )
 }
 
-export function CommentSection({ calculationId }: CommentSectionProps) {
-  const { user } = useUser();
-  const firestore = useFirestore();
-  
-  const commentsQuery = useMemoFirebase(() => {
-    if (!firestore || !calculationId) return null;
-    return query(
-      collection(firestore, 'public_calculations', calculationId, 'comments'),
-      orderBy('createdAt', 'asc')
-    );
-  }, [firestore, calculationId]);
+const fetchComments = async (calculationId: string) => {
+    if (!calculationId) return [];
+    const { data, error } = await supabase
+        .from('comments')
+        .select(`
+            id,
+            userId,
+            calculationId,
+            text,
+            createdAt,
+            parentId,
+            user:users (
+                name,
+                photoURL,
+                isAdmin
+            )
+        `)
+        .eq('calculationId', calculationId)
+        .order('createdAt', { ascending: true });
+    
+    if (error) {
+        console.error("Error fetching comments", error);
+        throw error;
+    }
+    return data || [];
+};
 
-  const { data: allComments, isLoading: isLoadingComments } = useCollection<Omit<Comment, 'replies'>>(commentsQuery);
+export function CommentSection({ calculationId }: CommentSectionProps) {
+  const { data: allComments, isLoading: isLoadingComments, refetch } = useQuery({
+      queryKey: ['comments', calculationId],
+      queryFn: () => fetchComments(calculationId),
+      enabled: !!calculationId
+  });
 
   const comments = useMemo(() => {
     if (!allComments) return [];
@@ -203,14 +224,17 @@ export function CommentSection({ calculationId }: CommentSectionProps) {
     const rootComments: Comment[] = [];
 
     // First pass: create a map of all comments
-    allComments.forEach(comment => {
+    allComments.forEach((comment: any) => {
         commentMap.set(comment.id, { ...comment, replies: [] });
     });
     
     // Second pass: group replies under their parents
-    allComments.forEach(comment => {
+    allComments.forEach((comment: any) => {
         if (comment.parentId && commentMap.has(comment.parentId)) {
-            commentMap.get(comment.parentId)?.replies?.push(commentMap.get(comment.id)!);
+            const parent = commentMap.get(comment.parentId);
+            if (parent) {
+                parent.replies = parent.replies ? [...parent.replies, commentMap.get(comment.id)!] : [commentMap.get(comment.id)!];
+            }
         } else {
             rootComments.push(commentMap.get(comment.id)!);
         }
@@ -229,13 +253,13 @@ export function CommentSection({ calculationId }: CommentSectionProps) {
             {isLoadingComments && <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin"/></div>}
             
             {comments && comments.length > 0 ? comments.map((comment) => (
-                <CommentItem key={comment.id} comment={comment} calculationId={calculationId} />
+                <CommentItem key={comment.id} comment={comment} calculationId={calculationId} onCommentAdded={refetch} />
             )) : !isLoadingComments && (
                 <p className="text-sm text-muted-foreground text-center py-4">Jadilah yang pertama berkomentar!</p>
             )}
         </div>
         
-        <CommentForm calculationId={calculationId} />
+        <CommentForm calculationId={calculationId} onAfterSubmit={refetch} />
     </div>
   );
 }

@@ -1,87 +1,126 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { addDoc, collection, doc, getDocs, limit, query, serverTimestamp, updateDoc, where, Timestamp, orderBy } from 'firebase/firestore';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/supabase/auth-provider";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Loader2, MessageSquare, Send, UsersRound, Search } from "lucide-react";
 import { ChatInput } from "@/components/messages/ChatInput";
 import { ChatView, type Message } from "@/components/messages/ChatView";
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
-import { FirestorePermissionError } from "@/firebase/errors";
+import { RealtimeChannel } from "@supabase/supabase-js";
+
+interface ChatSession {
+    id: string;
+    status: 'pending' | 'active' | 'ended';
+    participantIds: string[];
+}
 
 export default function AnonymousChatPage() {
-    const { user } = useUser();
-    const firestore = useFirestore();
-    const [session, setSession] = useState<{ id: string, status: 'pending' | 'active' | 'ended', participantIds: string[] } | null>(null);
+    const { user } = useAuth();
+    const [session, setSession] = useState<ChatSession | null>(null);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFinding, setIsFinding] = useState(false);
     const [notFound, setNotFound] = useState(false);
 
-    const messagesQuery = useMemoFirebase(() => {
-        if (!firestore || !session) return null;
-        return query(collection(firestore, 'chat_sessions', session.id, 'messages'), orderBy('createdAt', 'asc'));
-    }, [firestore, session]);
+    // Subscribe to session and message changes
+    useEffect(() => {
+        let sessionChannel: RealtimeChannel | null = null;
+        let messagesChannel: RealtimeChannel | null = null;
 
-    const { data: messages } = useCollection<Message>(messagesQuery);
-    
-    // Effect to find user's active/pending session on load
+        const setupSubscriptions = (sessionId: string) => {
+            // Channel for the current session document
+            sessionChannel = supabase.channel(`chat_sessions:id=eq.${sessionId}`)
+                .on<ChatSession>('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_sessions', filter: `id=eq.${sessionId}` },
+                (payload) => {
+                    setSession(payload.new as ChatSession);
+                })
+                .subscribe();
+
+            // Channel for messages in the current session
+            messagesChannel = supabase.channel(`chat_messages:sessionId=eq.${sessionId}`)
+                .on<Message>('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `sessionId=eq.${sessionId}` },
+                (payload) => {
+                    setMessages(currentMessages => [...currentMessages, payload.new as Message]);
+                })
+                .subscribe();
+        };
+
+        if (session?.id) {
+            setupSubscriptions(session.id);
+        }
+
+        return () => {
+            if (sessionChannel) supabase.removeChannel(sessionChannel);
+            if (messagesChannel) supabase.removeChannel(messagesChannel);
+        };
+    }, [session?.id]);
+
+    // Find user's active/pending session on load
     useEffect(() => {
         const findMySession = async () => {
-            if (!user || !firestore) return;
+            if (!user) return;
             setIsLoading(true);
-            try {
-                const q = query(
-                    collection(firestore, 'chat_sessions'),
-                    where('participantIds', 'array-contains', user.uid),
-                    where('status', 'in', ['pending', 'active'])
-                );
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    const mySessionDoc = querySnapshot.docs[0];
-                    setSession({ id: mySessionDoc.id, ...mySessionDoc.data() } as any);
-                }
-            } catch (error) {
+
+            const { data, error } = await supabase
+                .from('chat_sessions')
+                .select('*')
+                .contains('participantIds', [user.id])
+                .in('status', ['pending', 'active'])
+                .limit(1)
+                .single();
+
+            if (data) {
+                setSession(data);
+                // Fetch initial messages for the session
+                const { data: messagesData } = await supabase
+                    .from('chat_messages')
+                    .select('*')
+                    .eq('sessionId', data.id)
+                    .order('createdAt', { ascending: true });
+                setMessages(messagesData || []);
+            } else if (error && error.code !== 'PGRST116') { // Ignore "No rows found" error
                 console.error("Error finding user session:", error);
             }
             setIsLoading(false);
         };
         findMySession();
-    }, [user, firestore]);
+    }, [user]);
 
     const handleFindChat = async () => {
-        if (!user || !firestore) return;
+        if (!user) return;
         setIsFinding(true);
         setNotFound(false);
 
         try {
-            const q = query(
-                collection(firestore, 'chat_sessions'),
-                where('status', '==', 'pending'),
-                limit(1)
-            );
-            const querySnapshot = await getDocs(q);
-
-            let availableSession: { id: string, data: any } | null = null;
-
-            querySnapshot.forEach(doc => {
-                if (!doc.data().participantIds.includes(user.uid)) {
-                    availableSession = { id: doc.id, data: doc.data() };
-                }
-            });
-
+            // Find a pending session from another user
+            const { data: availableSession, error: findError } = await supabase
+                .from('chat_sessions')
+                .select('*')
+                .eq('status', 'pending')
+                .not('participantIds', 'cs', `{${user.id}}`) // Exclude my own pending sessions
+                .limit(1)
+                .single();
+            
+            if (findError && findError.code !== 'PGRST116') throw findError;
 
             if (availableSession) {
                 // Join existing session
-                const sessionRef = doc(firestore, 'chat_sessions', availableSession.id);
-                await updateDoc(sessionRef, {
-                    status: 'active',
-                    participantIds: [...availableSession.data.participantIds, user.uid]
-                });
-                setSession({ id: availableSession.id, ...availableSession.data, status: 'active', participantIds: [...availableSession.data.participantIds, user.uid] } as any);
+                const { data: updatedSession, error: updateError } = await supabase
+                    .from('chat_sessions')
+                    .update({
+                        status: 'active',
+                        participantIds: [...availableSession.participantIds, user.id]
+                    })
+                    .eq('id', availableSession.id)
+                    .select()
+                    .single();
+
+                if (updateError) throw updateError;
+                setSession(updatedSession);
             } else {
-                // No pending session found
                 setNotFound(true);
             }
         } catch (error) {
@@ -91,63 +130,43 @@ export default function AnonymousChatPage() {
     };
     
     const handleCreateAndWait = async () => {
-        if (!user || !firestore) return;
+        if (!user) return;
         setIsFinding(true);
         setNotFound(false);
 
         try {
-            // Create new session
-            const newSessionData = {
-                participantIds: [user.uid],
-                status: 'pending',
-                createdAt: serverTimestamp()
-            };
-            const newSessionRef = await addDoc(collection(firestore, 'chat_sessions'), newSessionData)
-                .catch(serverError => {
-                    const permissionError = new FirestorePermissionError({
-                        path: 'chat_sessions',
-                        operation: 'create',
-                        requestResourceData: newSessionData,
-                    });
-                    throw permissionError;
-                });
-            setSession({ id: newSessionRef.id, ...newSessionData });
-
+            const { data: newSession, error } = await supabase
+                .from('chat_sessions')
+                .insert({
+                    participantIds: [user.id],
+                    status: 'pending'
+                })
+                .select()
+                .single();
+            
+            if (error) throw error;
+            setSession(newSession);
         } catch (error) {
             console.error("Error creating chat session:", error);
-            if (!(error instanceof FirestorePermissionError)) {
-                 const permissionError = new FirestorePermissionError({
-                    path: 'chat_sessions',
-                    operation: 'list',
-                });
-                throw permissionError;
-            }
-            throw error;
         } finally {
             setIsFinding(false);
         }
     };
 
-
     const handleSendMessage = async (text?: string, imageUrl?: string, calculation?: Calculation) => {
-        if (!user || !firestore || !session) return;
-        const messageData = {
-            senderId: user.uid,
-            createdAt: serverTimestamp(),
-            content: {
-                text: text || null,
-                imageUrl: imageUrl || null,
-                calculation: calculation || null,
-            }
-        };
-        await addDoc(collection(firestore, 'chat_sessions', session.id, 'messages'), messageData);
+        if (!user || !session) return;
+        await supabase.from('chat_messages').insert({
+            senderId: user.id,
+            sessionId: session.id,
+            content: { text, imageUrl, calculation }
+        });
     };
 
     const handleEndChat = async () => {
-        if (!firestore || !session) return;
-        const sessionRef = doc(firestore, 'chat_sessions', session.id);
-        await updateDoc(sessionRef, { status: 'ended' });
+        if (!session) return;
+        await supabase.from('chat_sessions').update({ status: 'ended' }).eq('id', session.id);
         setSession(null);
+        setMessages([]);
         setNotFound(false);
     };
     

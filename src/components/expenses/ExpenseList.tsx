@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser } from "@/firebase";
+import { useAuth } from "@/supabase/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -48,7 +49,7 @@ interface ExpenseListProps {
 }
 
 export function ExpenseList({ refreshKey }: ExpenseListProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,12 +60,12 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
 
   useEffect(() => {
     const fetchExpenses = async () => {
-        if (!user || !supabase) return;
+        if (!user) return;
         setIsLoading(true);
         const { data, error } = await supabase
             .from('expenses')
             .select('*')
-            .eq('userId', user.uid)
+            .eq('userId', user.id)
             .order('date', { ascending: false });
 
         if (error) {
@@ -80,7 +81,7 @@ export function ExpenseList({ refreshKey }: ExpenseListProps) {
 
 
   const handleDelete = async () => {
-    if (!user || !supabase || !deleteId) return;
+    if (!user || !deleteId) return;
 
     setIsDeleting(true);
     const { error } = await supabase.from('expenses').delete().eq('id', deleteId);

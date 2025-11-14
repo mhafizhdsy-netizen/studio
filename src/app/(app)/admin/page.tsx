@@ -1,38 +1,24 @@
 
 "use client";
 
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useAuth } from "@/supabase/auth-provider";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
-interface UserProfile {
-    isAdmin?: boolean;
-}
-
 export default function AdminPage() {
-    const { user, isUserLoading } = useUser();
-    const firestore = useFirestore();
+    const { user, isLoading } = useAuth();
     const router = useRouter();
 
-    const userDocRef = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
-
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc<UserProfile>(userDocRef);
+    const isAdmin = user?.user_metadata?.isAdmin || false;
 
     useEffect(() => {
-        // If profile is loaded and user is not an admin, redirect them
-        if (!isUserLoading && !isProfileLoading && userProfile && !userProfile.isAdmin) {
+        if (!isLoading && !isAdmin) {
             router.replace('/dashboard');
         }
-    }, [isUserLoading, isProfileLoading, userProfile, router]);
-    
-    const isLoading = isUserLoading || isProfileLoading;
+    }, [isLoading, isAdmin, router]);
 
     if (isLoading) {
         return (
@@ -42,8 +28,7 @@ export default function AdminPage() {
         );
     }
     
-    // If after loading, the user is still not an admin (or no profile), show access denied
-    if (!userProfile?.isAdmin) {
+    if (!isAdmin) {
         return (
             <main className="flex flex-1 flex-col items-center justify-center p-4 lg:p-6">
                  <Card className="w-full max-w-md text-center">
@@ -64,7 +49,6 @@ export default function AdminPage() {
         )
     }
 
-    // Render admin dashboard if user is an admin
     return (
         <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
             <AdminDashboard />

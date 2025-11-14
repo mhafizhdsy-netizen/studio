@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser } from "@/firebase";
+import { useAuth } from "@/supabase/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { CalculationCard } from "./CalculationCard";
 import { Loader2, ServerCrash } from "lucide-react";
@@ -43,7 +44,7 @@ export interface Calculation {
 }
 
 export function CalculationHistory() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [calculations, setCalculations] = useState<Calculation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,7 +56,7 @@ export function CalculationHistory() {
 
   useEffect(() => {
     const fetchCalculations = async () => {
-      if (!user || !supabase) return;
+      if (!user) return;
 
       setIsLoading(true);
       setError(null);
@@ -64,7 +65,7 @@ export function CalculationHistory() {
         const { data, error } = await supabase
           .from('calculations')
           .select('*')
-          .eq('userId', user.uid)
+          .eq('userId', user.id)
           .order('createdAt', { ascending: false });
 
         if (error) throw error;
@@ -86,35 +87,25 @@ export function CalculationHistory() {
   };
 
   const handleDelete = async () => {
-    if (!user || !selectedCalcId || !supabase) return;
+    if (!user || !selectedCalcId) return;
 
     setIsDeleting(true);
     
-    // In Supabase, we would typically rely on RLS and cascade deletes,
-    // but for explicit deletion from both tables:
-    try {
-      // First, delete from public_calculations if it exists
-      await supabase.from('public_calculations').delete().eq('id', selectedCalcId);
-      
-      // Then, delete from the user's private calculations
-      const { error } = await supabase.from('calculations').delete().eq('id', selectedCalcId);
+    const { error } = await supabase.from('calculations').delete().eq('id', selectedCalcId);
 
-      if (error) throw error;
-
+    if (error) {
+      console.error("Deletion failed:", error);
+      toast({
+          title: "Gagal Menghapus",
+          description: "Terjadi kesalahan saat menghapus perhitungan.",
+          variant: "destructive",
+      });
+    } else {
       setCalculations(prev => prev.filter(c => c.id !== selectedCalcId));
-      
       toast({
         title: "Berhasil Dihapus",
         description: "Perhitunganmu sudah dihapus.",
       });
-
-    } catch (e) {
-        console.error("Deletion failed:", e);
-        toast({
-            title: "Gagal Menghapus",
-            description: "Terjadi kesalahan saat menghapus perhitungan.",
-            variant: "destructive",
-        });
     }
 
     setIsDeleting(false);

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { usePathname } from 'next/navigation';
@@ -27,21 +28,14 @@ import {
   Shield,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useAuth } from '@/firebase';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/supabase/auth-provider';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '../ui/dropdown-menu';
 import { Logo } from '../ui/logo';
 import { Badge } from '../ui/badge';
 
-interface UserProfile {
-  id: string;
-  name: string;
-  isAdmin?: boolean;
-}
 
 const AdminBadge = () => (
     <Badge variant="accent" className="text-xs px-1.5 py-0.5 ml-2">
@@ -51,42 +45,26 @@ const AdminBadge = () => (
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user } = useUser();
-  const auth = useAuth();
+  const { user, signOut } = useAuth();
   const router = useRouter();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-        if (user && supabase) {
-            const { data, error } = await supabase
-                .from('users')
-                .select('id, name, isAdmin')
-                .eq('id', user.uid)
-                .single();
-            if (data) {
-                setUserProfile(data);
-            }
-            if(error) {
-                console.error("Error fetching user profile from Supabase", error);
-            }
-        }
-    };
-    fetchUserProfile();
-  }, [user]);
-
 
   const handleSignOut = async () => {
-    if(auth) {
-        await auth.signOut();
-    }
+    await signOut();
     router.push('/');
   };
 
   const getInitials = (name: string | undefined | null) => {
     if (!name) return '??';
-    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const nameParts = name.split(' ');
+    if (nameParts.length > 1) {
+        return nameParts[0][0] + nameParts[nameParts.length - 1][0];
+    }
+    return name.substring(0, 2).toUpperCase();
   };
+
+  const displayName = user?.user_metadata?.name || user?.email;
+  const photoURL = user?.user_metadata?.photoURL;
+  const isAdmin = user?.user_metadata?.isAdmin || false;
 
   return (
     <>
@@ -233,15 +211,15 @@ export function AppSidebar() {
                 <Button variant="ghost" className="w-full justify-start h-auto px-2 py-1.5">
                     <div className="flex items-center gap-3 w-full">
                         <Avatar>
-                            <AvatarImage src={user?.photoURL ?? undefined} />
+                            <AvatarImage src={photoURL} />
                             <AvatarFallback className='bg-primary text-primary-foreground font-bold'>
-                                {getInitials(user?.displayName || user?.email)}
+                                {getInitials(displayName)}
                             </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                             <div className="font-semibold truncate flex items-center">
-                                <span className="truncate">{user?.displayName}</span>
-                                {userProfile?.isAdmin && <AdminBadge/>}
+                                <span className="truncate">{displayName}</span>
+                                {isAdmin && <AdminBadge/>}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
                         </div>
@@ -255,7 +233,7 @@ export function AppSidebar() {
                         <span>Edit Profil</span>
                     </Link>
                 </DropdownMenuItem>
-                 {userProfile?.isAdmin && (
+                 {isAdmin && (
                     <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>

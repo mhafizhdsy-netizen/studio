@@ -29,12 +29,6 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: "https",
-        hostname: "firebasestorage.googleapis.com",
-        port: "",
-        pathname: "/**",
-      },
       // Tambahkan domain Supabase di sini
       // Anda perlu mengganti `[project_id]` dengan ID proyek Supabase Anda
       {

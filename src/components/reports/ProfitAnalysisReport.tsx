@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { useState, useMemo, useEffect } from 'react';
+import { useAuth } from "@/supabase/auth-provider";
+import { supabase } from "@/lib/supabase";
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import {
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Loader2, ServerCrash, DollarSign, TrendingDown, LineChart, BarChart, PieChart, Info } from 'lucide-react';
+import { Loader2, ServerCrash, DollarSign, TrendingDown, LineChart, Info } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import type { Calculation } from '../dashboard/CalculationHistory';
 import type { Expense } from '../expenses/ExpenseList';
@@ -33,28 +33,70 @@ const getLastSixMonths = () => {
 };
 
 export function ProfitAnalysisReport() {
-    const { user } = useUser();
-    const firestore = useFirestore();
-
+    const { user } = useAuth();
     const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
     const monthOptions = useMemo(() => getLastSixMonths(), []);
 
-    const { monthData, isCalculationsLoading, isExpensesLoading, error } = useMonthlyData(selectedMonth, user, firestore);
+    const [calculations, setCalculations] = useState<Calculation[] | null>(null);
+    const [expenses, setExpenses] = useState<Expense[] | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
 
-    const isLoading = isCalculationsLoading || isExpensesLoading;
+    const dateRange = useMemo(() => {
+        if (!selectedMonth) return null;
+        const [year, monthIndex] = selectedMonth.split('-').map(Number);
+        const startDate = startOfMonth(new Date(year, monthIndex - 1));
+        const endDate = endOfMonth(new Date(year, monthIndex - 1));
+        return { startDate, endDate };
+    }, [selectedMonth]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!user || !dateRange) return;
+
+            setIsLoading(true);
+            setError(null);
+
+            const [calcResponse, expResponse] = await Promise.all([
+                supabase
+                    .from('calculations')
+                    .select('*')
+                    .eq('userId', user.id)
+                    .gte('createdAt', dateRange.startDate.toISOString())
+                    .lte('createdAt', dateRange.endDate.toISOString()),
+                supabase
+                    .from('expenses')
+                    .select('*')
+                    .eq('userId', user.id)
+                    .gte('date', dateRange.startDate.toISOString())
+                    .lte('date', dateRange.endDate.toISOString())
+            ]);
+
+            if (calcResponse.error || expResponse.error) {
+                console.error("Error fetching report data", { calcError: calcResponse.error, expError: expResponse.error });
+                setError(calcResponse.error || expResponse.error);
+            } else {
+                setCalculations(calcResponse.data || []);
+                setExpenses(expResponse.data || []);
+            }
+
+            setIsLoading(false);
+        };
+
+        fetchData();
+    }, [user, dateRange]);
+
 
     const handleMonthChange = (value: string) => {
         setSelectedMonth(value);
     };
 
     const stats = useMemo(() => {
-        if (!monthData) return null;
+        if (!calculations || !expenses) return null;
         
-        const { calculations, expenses } = monthData;
-
         const totalOperationalCost = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-        const totalProductionCost = calculations.reduce((sum, calc) => sum + calc.totalHPP, 0);
-        const totalRevenue = calculations.reduce((sum, calc) => sum + calc.suggestedPrice, 0);
+        const totalProductionCost = calculations.reduce((sum, calc) => sum + (calc.totalHPP * (calc.productQuantity || 1)), 0);
+        const totalRevenue = calculations.reduce((sum, calc) => sum + (calc.suggestedPrice * (calc.productQuantity || 1)), 0);
         const estimatedProfit = totalRevenue - (totalProductionCost + totalOperationalCost);
         const averageMargin = calculations.length > 0
             ? calculations.reduce((sum, calc) => sum + calc.margin, 0) / calculations.length
@@ -68,7 +110,7 @@ export function ProfitAnalysisReport() {
             averageMargin,
         }
 
-    }, [monthData]);
+    }, [calculations, expenses]);
     
     if (isLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-10 w-10 animate-spin text-primary"/></div>;
@@ -99,14 +141,14 @@ export function ProfitAnalysisReport() {
                     <SelectContent>
                         {monthOptions.map(month => (
                             <SelectItem key={month} value={month}>
-                                {format(new Date(month), 'MMMM yyyy', { locale: id })}
+                                {format(new Date(month + '-02'), 'MMMM yyyy', { locale: id })}
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
 
-            {!monthData || (monthData.calculations.length === 0 && monthData.expenses.length === 0) ? (
+            {!calculations || !expenses || (calculations.length === 0 && expenses.length === 0) ? (
                  <Alert>
                     <Info className="h-4 w-4" />
                     <AlertTitle>Data Kosong</AlertTitle>
@@ -123,57 +165,13 @@ export function ProfitAnalysisReport() {
                         <StatCard title="Estimasi Profit" value={formatCurrency(stats.estimatedProfit)} icon={LineChart} description="Pendapatan dikurangi semua biaya." isProfit={true}/>
                     </div>
 
-                    <ReportCharts calculations={monthData.calculations} expenses={monthData.expenses} />
+                    <ReportCharts calculations={calculations} expenses={expenses} />
                 </>
             )}
 
         </div>
     );
 }
-
-function useMonthlyData(month: string, user: any, firestore: any) {
-    const dateRange = useMemo(() => {
-        if (!month) return null;
-        const [year, monthIndex] = month.split('-').map(Number);
-        const startDate = startOfMonth(new Date(year, monthIndex - 1));
-        const endDate = endOfMonth(new Date(year, monthIndex - 1));
-        return { startDate, endDate };
-    }, [month]);
-
-    const calculationsQuery = useMemoFirebase(() => {
-        if (!user || !firestore || !dateRange) return null;
-        return query(
-            collection(firestore, 'users', user.uid, 'calculations'),
-            where('createdAt', '>=', dateRange.startDate),
-            where('createdAt', '<=', dateRange.endDate)
-        );
-    }, [user, firestore, dateRange]);
-
-    const expensesQuery = useMemoFirebase(() => {
-        if (!user || !firestore || !dateRange) return null;
-        return query(
-            collection(firestore, 'users', user.uid, 'expenses'),
-            where('date', '>=', dateRange.startDate),
-            where('date', '<=', dateRange.endDate)
-        );
-    }, [user, firestore, dateRange]);
-
-    const { data: calculations, isLoading: isCalculationsLoading, error: calcError } = useCollection<Calculation>(calculationsQuery);
-    const { data: expenses, isLoading: isExpensesLoading, error: expError } = useCollection<Expense>(expensesQuery);
-
-    const monthData = useMemo(() => {
-        if (!calculations || !expenses) return null;
-        return { calculations, expenses };
-    }, [calculations, expenses]);
-
-    return {
-        monthData,
-        isCalculationsLoading,
-        isExpensesLoading,
-        error: calcError || expError,
-    };
-}
-
 
 function StatCard({ title, value, icon: Icon, description, isProfit = false }: { title: string, value: string, icon: React.ElementType, description: string, isProfit?: boolean }) {
     return (

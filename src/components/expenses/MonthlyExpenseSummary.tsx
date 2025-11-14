@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser } from "@/firebase";
+import { useAuth } from "@/supabase/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { startOfMonth, endOfMonth } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,13 +15,13 @@ interface Expense {
 }
 
 export function MonthlyExpenseSummary() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchExpenses = async () => {
-        if (!user || !supabase) {
+        if (!user) {
             setIsLoading(false);
             return;
         };
@@ -34,7 +35,7 @@ export function MonthlyExpenseSummary() {
         const { data, error } = await supabase
             .from('expenses')
             .select('amount')
-            .eq('userId', user.uid)
+            .eq('userId', user.id)
             .gte('date', startDate.toISOString())
             .lte('date', endDate.toISOString());
 

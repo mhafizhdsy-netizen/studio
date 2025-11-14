@@ -2,9 +2,9 @@
 "use client";
 
 import { cn, formatCurrency } from "@/lib/utils";
+import { User as AuthUser } from '@supabase/supabase-js';
 import { User, Calculator } from "lucide-react";
 import Image from "next/image";
-import type { Timestamp } from 'firebase/firestore';
 
 export interface MessageContent {
     text: string | null;
@@ -16,12 +16,12 @@ export interface Message {
     id: string;
     senderId: string;
     content: MessageContent;
-    createdAt: Timestamp;
+    createdAt: string;
 }
 
 interface ChatViewProps {
     messages: Message[];
-    currentUser: User | null;
+    currentUser: AuthUser | null;
 }
 
 export function ChatView({ messages, currentUser }: ChatViewProps) {
@@ -36,7 +36,7 @@ export function ChatView({ messages, currentUser }: ChatViewProps) {
     return (
         <div className="space-y-4">
             {messages.map(message => {
-                const isUser = message.senderId === currentUser?.uid;
+                const isUser = message.senderId === currentUser?.id;
                 return (
                     <div key={message.id} className={cn("flex items-end gap-2", isUser ? "justify-end" : "justify-start")}>
                         {!isUser && <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground"><User className="h-5 w-5"/></div>}

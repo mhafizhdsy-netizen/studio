@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useUser } from "@/firebase";
+import { useAuth } from "@/supabase/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths, subWeeks, subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +38,7 @@ const calculateStats = (calculations: Calculation[] | null): AnalyticsData => {
 type TimeRange = 'month' | 'week' | 'day';
 
 export function DashboardAnalytics() {
-    const { user } = useUser();
+    const { user } = useAuth();
     const [timeRange, setTimeRange] = useState<TimeRange>('month');
 
     const [currentCalculations, setCurrentCalculations] = useState<Calculation[] | null>(null);
@@ -68,7 +69,7 @@ export function DashboardAnalytics() {
 
     useEffect(() => {
         const fetchData = async () => {
-            if (!user || !supabase) return;
+            if (!user) return;
 
             setIsLoading(true);
 
@@ -76,7 +77,7 @@ export function DashboardAnalytics() {
             const { data: currentData } = await supabase
                 .from('calculations')
                 .select('*')
-                .eq('userId', user.uid)
+                .eq('userId', user.id)
                 .gte('createdAt', currentRange.start.toISOString())
                 .lte('createdAt', currentRange.end.toISOString());
             
@@ -86,7 +87,7 @@ export function DashboardAnalytics() {
             const { data: prevData } = await supabase
                 .from('calculations')
                 .select('*')
-                .eq('userId', user.uid)
+                .eq('userId', user.id)
                 .gte('createdAt', previousRange.start.toISOString())
                 .lte('createdAt', previousRange.end.toISOString());
             

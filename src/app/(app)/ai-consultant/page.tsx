@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/supabase/auth-provider';
 import { supabase } from '@/lib/supabase';
 import { Bot, Loader2 } from 'lucide-react';
 import { consultAI } from '@/ai/flows/consultant-flow';
@@ -10,14 +11,14 @@ import { AIChatView } from '@/components/ai-consultant/AIChatView';
 import { AIChatInput } from '@/components/ai-consultant/AIChatInput';
 
 export default function AIConsultantPage() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [isResponding, setIsResponding] = useState(false);
   const [history, setHistory] = useState<AIChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchHistory = async () => {
-      if (!user || !supabase) {
+      if (!user) {
         setIsLoading(false);
         return;
       }
@@ -25,7 +26,7 @@ export default function AIConsultantPage() {
       const { data, error } = await supabase
         .from('ai_consultant_history')
         .select('*')
-        .eq('userId', user.uid)
+        .eq('userId', user.id)
         .order('createdAt', { ascending: true });
 
       if (error) {
@@ -40,12 +41,12 @@ export default function AIConsultantPage() {
   }, [user]);
 
   const handleSendMessage = async (text: string) => {
-    if (!user || !supabase || !text.trim()) return;
+    if (!user || !text.trim()) return;
 
     const userMessage: Omit<AIChatMessage, 'id' | 'createdAt'> = {
       role: 'user',
       content: text,
-      userId: user.uid,
+      userId: user.id,
     };
     
     // Optimistically update UI
@@ -74,7 +75,7 @@ export default function AIConsultantPage() {
       const aiMessage: Omit<AIChatMessage, 'id' | 'createdAt'> = {
         role: 'model',
         content: aiResponse,
-        userId: user.uid,
+        userId: user.id,
       };
 
       // 4. Save AI message to DB
@@ -86,7 +87,9 @@ export default function AIConsultantPage() {
       if (aiError) throw aiError;
       
       // 5. Update UI by replacing temp message with real data
-      setHistory(prev => [...prev.filter(m => m.id !== 'temp-user'), newAiMessage as AIChatMessage]);
+      const newHistory = await supabase.from('ai_consultant_history').select('*').eq('userId', user.id).order('createdAt', { ascending: true });
+      if(newHistory.data) setHistory(newHistory.data);
+
 
     } catch (error) {
       console.error('Error in AI chat flow:', error);
@@ -94,7 +97,7 @@ export default function AIConsultantPage() {
         role: 'model',
         content: "Waduh, koneksi ke AI lagi ada gangguan. Coba tanya lagi beberapa saat ya.",
         isError: true,
-        userId: user.uid,
+        userId: user.id,
       };
       // Save error message to DB
       const { data: newErrorMessage, error: dbError } = await supabase.from('ai_consultant_history').insert(errorMessage).select().single();
@@ -102,7 +105,8 @@ export default function AIConsultantPage() {
          console.error("Could not save error message to DB", dbError);
          setHistory(prev => prev.filter(m => m.id !== 'temp-user'));
        } else if (newErrorMessage) {
-         setHistory(prev => [...prev.filter(m => m.id !== 'temp-user'), newErrorMessage as AIChatMessage]);
+        const newHistory = await supabase.from('ai_consultant_history').select('*').eq('userId', user.id).order('createdAt', { ascending: true });
+        if(newHistory.data) setHistory(newHistory.data);
        }
     } finally {
       setIsResponding(false);

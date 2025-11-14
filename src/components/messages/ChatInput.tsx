@@ -5,7 +5,7 @@ import { useState, useRef, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useUser } from "@/firebase";
+import { useAuth } from "@/supabase/auth-provider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Paperclip, Loader2, Calculator } from "lucide-react";
@@ -34,7 +34,7 @@ const fileToDataUri = (file: File): Promise<string> => {
 };
 
 export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [isShareCalcOpen, setIsShareCalcOpen] = useState(false);
@@ -54,7 +54,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || disabled) return;
-    if (!supabase || !user) return;
+    if (!user) return;
 
     setIsUploading(true);
     const file = e.target.files[0];
@@ -78,7 +78,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
 
     const fileExtension = file.name.split('.').pop();
     const randomFileName = `${Math.random().toString(36).substring(2)}.${fileExtension}`;
-    const filePath = `public/chat-files/anonymous_chat/${user.uid}/${Date.now()}-${randomFileName}`;
+    const filePath = `public/chat-files/anonymous_chat/${user.id}/${Date.now()}-${randomFileName}`;
     
     try {
         const downloadUrl = await uploadFileToSupabase(file, 'user-assets', filePath);
@@ -109,7 +109,7 @@ export function ChatInput({ onSendMessage, disabled }: ChatInputProps) {
         <Button type="button" variant="ghost" size="icon" onClick={() => setIsShareCalcOpen(true)} disabled={disabled}>
             <Calculator className="h-5 w-5" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading || disabled || !supabase}>
+        <Button type="button" variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isUploading || disabled}>
           {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
         </Button>
         <Input

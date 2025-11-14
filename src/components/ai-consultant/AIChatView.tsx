@@ -1,10 +1,11 @@
+
 'use client';
 
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/supabase/auth-provider';
 import { User, Bot, AlertTriangle, Copy, Check } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ReactMarkdown from 'react-markdown';
-import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -45,7 +46,7 @@ const WelcomeMessage = () => (
 )
 
 export function AIChatView({ history, isResponding }: AIChatViewProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
@@ -61,6 +62,9 @@ export function AIChatView({ history, isResponding }: AIChatViewProps) {
         setTimeout(() => setCopiedMessageId(null), 2000);
     });
   }
+  
+  const displayName = user?.user_metadata?.name || 'User';
+  const photoURL = user?.user_metadata?.photoURL;
 
   return (
     <div className="space-y-6">
@@ -128,8 +132,8 @@ export function AIChatView({ history, isResponding }: AIChatViewProps) {
             </div>
              {isUser && user && (
                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={user.photoURL ?? undefined} alt={user.displayName ?? 'User'} />
-                    <AvatarFallback className='bg-muted-foreground text-muted'>{getInitials(user.displayName ?? '')}</AvatarFallback>
+                    <AvatarImage src={photoURL ?? undefined} alt={displayName} />
+                    <AvatarFallback className='bg-muted-foreground text-muted'>{getInitials(displayName)}</AvatarFallback>
                 </Avatar>
             )}
           </div>

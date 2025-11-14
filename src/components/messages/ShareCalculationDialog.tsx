@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState }from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from 'firebase/firestore';
+import { useAuth } from "@/supabase/auth-provider";
+import { supabase } from "@/lib/supabase";
 import { Loader2, Package } from "lucide-react";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
@@ -25,19 +25,32 @@ interface ShareCalculationDialogProps {
 }
 
 export function ShareCalculationDialog({ isOpen, onOpenChange, onShare }: ShareCalculationDialogProps) {
-    const { user } = useUser();
-    const firestore = useFirestore();
+    const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState("");
+    const [calculations, setCalculations] = useState<Calculation[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const calculationsQuery = useMemoFirebase(() => {
-        if (!user || !firestore) return null;
-        return query(
-            collection(firestore, 'users', user.uid, 'calculations'),
-            orderBy('createdAt', 'desc')
-        );
-    }, [user, firestore]);
+    useEffect(() => {
+        if (!isOpen || !user) return;
 
-    const { data: calculations, isLoading } = useCollection<Calculation>(calculationsQuery);
+        const fetchCalculations = async () => {
+            setIsLoading(true);
+            const { data, error } = await supabase
+                .from('calculations')
+                .select('*')
+                .eq('userId', user.id)
+                .order('createdAt', { ascending: false });
+
+            if (data) {
+                setCalculations(data);
+            }
+            if (error) {
+                console.error("Error fetching calculations for sharing:", error);
+            }
+            setIsLoading(false);
+        };
+        fetchCalculations();
+    }, [isOpen, user]);
 
     const filteredCalculations = calculations?.filter(calc => 
         calc.productName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -54,7 +67,7 @@ export function ShareCalculationDialog({ isOpen, onOpenChange, onShare }: ShareC
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>Bagikan Perhitungan</DialogTitle>
-                    <DialogDescription>Pilih perhitungan HPP yang ingin Anda analisa bersama AI.</DialogDescription>
+                    <DialogDescription>Pilih perhitungan HPP yang ingin Anda bagikan dalam chat.</DialogDescription>
                 </DialogHeader>
                 <div className="py-2">
                     <Input 

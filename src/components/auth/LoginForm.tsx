@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -5,8 +6,6 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/firebase";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,7 +38,6 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export function LoginForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const auth = useAuth();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 
@@ -51,37 +49,23 @@ export function LoginForm() {
     },
   });
 
-  const syncUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
-    if (!supabase) return;
-    const { error } = await supabase
-      .from('users')
-      .upsert({ 
-        id: uid, 
-        name: name, 
-        email: email, 
-        photoURL: photoURL || '',
-      }, { onConflict: 'id' });
-    if (error) console.error("Error syncing user profile to Supabase:", error);
-  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoadingEmail(true);
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
-      const user = userCredential.user;
-      await syncUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
+    const { error } = await supabase.auth.signInWithPassword(values);
 
+    if (error) {
+      toast({
+        title: "Gagal Masuk",
+        description: error.message || "Email atau password salah. Coba lagi yuk!",
+        variant: "destructive",
+      });
+    } else {
       toast({
         title: "Berhasil Masuk!",
         description: "Selamat datang kembali! Yuk lanjutin cuan.",
       });
       router.push("/dashboard");
-    } catch (error) {
-      toast({
-        title: "Gagal Masuk",
-        description: "Email atau password salah. Coba lagi yuk!",
-        variant: "destructive",
-      });
     }
     setIsLoadingEmail(false);
   }
@@ -89,30 +73,22 @@ export function LoginForm() {
 
   async function handleGoogleSignIn() {
     setIsLoadingGoogle(true);
-    try {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        await syncUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
 
-        toast({
-            title: "Berhasil Masuk!",
-            description: "Selamat datang! Yuk mulai hitung HPP.",
-        });
-        router.push("/dashboard");
-    } catch (error: any) {
-        if (error.code === 'auth/user-cancelled' || error.code === 'auth/popup-closed-by-user') {
-            return;
-        }
-        console.error(error);
-        toast({
+    if (error) {
+       toast({
             title: "Gagal Masuk dengan Google",
-            description: "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
+            description: error.message || "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
             variant: "destructive",
         });
-    } finally {
-        setIsLoadingGoogle(false);
     }
+    // Browser will redirect to Google
+    setIsLoadingGoogle(false);
   }
 
   return (

@@ -29,7 +29,7 @@ export default function AuthLayout({
             <Image
                 src={heroImage.imageUrl}
                 alt={heroImage.description}
-                layout="fill"
+                fill
                 className="object-cover"
                 data-ai-hint={heroImage.imageHint}
             />

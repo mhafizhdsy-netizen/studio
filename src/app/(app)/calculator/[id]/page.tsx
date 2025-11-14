@@ -2,7 +2,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/supabase/auth-provider';
 import { supabase } from '@/lib/supabase';
 import { CalculatorForm } from '@/components/calculator/CalculatorForm';
 import { Loader2, ServerCrash } from 'lucide-react';
@@ -12,14 +12,14 @@ import { useState, useEffect } from 'react';
 export default function EditCalculatorPage() {
   const params = useParams();
   const id = params.id as string;
-  const { user } = useUser();
+  const { user } = useAuth();
   const [calculation, setCalculation] = useState<Calculation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const fetchCalculation = async () => {
-        if (!user || !id || !supabase) {
+        if (!user || !id) {
             setIsLoading(false);
             return;
         };
@@ -32,7 +32,7 @@ export default function EditCalculatorPage() {
                 .from('calculations')
                 .select('*')
                 .eq('id', id)
-                .eq('userId', user.uid)
+                .eq('userId', user.id)
                 .single();
             
             if (error) throw error;

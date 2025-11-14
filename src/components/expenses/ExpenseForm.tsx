@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser } from "@/firebase";
+import { useAuth } from "@/supabase/auth-provider";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,7 @@ interface ExpenseFormProps {
 
 export function ExpenseForm({ onFormSubmit }: ExpenseFormProps) {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<ExpenseFormData>({
@@ -56,12 +57,12 @@ export function ExpenseForm({ onFormSubmit }: ExpenseFormProps) {
   });
 
   async function onSubmit(values: ExpenseFormData) {
-    if (!user || !supabase) return;
+    if (!user) return;
 
     setIsLoading(true);
     const expenseData = {
       ...values,
-      userId: user.uid,
+      userId: user.id,
       date: values.date.toISOString(), // Convert date to ISO string for Supabase
     };
 

@@ -3,28 +3,21 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/supabase/auth-provider';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LoginPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isUserLoading && user) {
-      // Check for suspension
-      if ((user as any).isSuspended) {
-        // Redirect to a suspended page or show a message
-        // For now, redirecting to a placeholder or back to landing
-        router.push('/?error=suspended');
-        return;
-      }
+    if (!isLoading && user) {
       router.push('/dashboard');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isLoading, router]);
 
-  if (isUserLoading || user) {
+  if (isLoading || user) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
@@ -38,5 +31,3 @@ export default function LoginPage() {
 
   return <LoginForm />;
 }
-
-    

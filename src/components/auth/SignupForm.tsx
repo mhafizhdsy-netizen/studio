@@ -6,8 +6,6 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth } from "@/firebase";
-import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,7 +51,6 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function SignupForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const auth = useAuth();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   
@@ -94,82 +91,94 @@ export function SignupForm() {
     }
   };
 
-  const syncUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
-    if (!supabase) return;
-    const { error } = await supabase
-      .from('users')
-      .upsert({ 
-        id: uid, 
-        name: name, 
-        email: email, 
-        photoURL: photoURL || '',
-        onboardingCompleted: false,
-        isAdmin: false
-      }, { onConflict: 'id' });
-    if (error) console.error("Error syncing user profile to Supabase:", error);
-  };
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!auth) return;
     setIsLoadingEmail(true);
-    try {
-        const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-        const user = userCredential.user;
-        let photoURL = '';
+    let photoURL = '';
 
-        if (photoFile && supabase) {
-            const cleanFileName = sanitizeFileName(photoFile.name);
-            const filePath = `public/profile-images/${user.uid}/${cleanFileName}`;
-            photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath);
+    if (photoFile) {
+        // We need user ID for path, so we upload after signup
+        // For now, we just prepare the file
+    }
+
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: values.email,
+      password: values.password,
+      options: {
+        data: {
+          name: values.name,
+          photoURL: '', // Start with empty photoURL
         }
-
-        await updateProfile(user, { displayName: values.name, photoURL: photoURL || undefined });
-        await syncUserProfile(user.uid, values.name, values.email, photoURL);
-
-        toast({
-            title: "Akun Berhasil Dibuat!",
-            description: "Selamat datang di HitunginAja! Yuk mulai hitung HPP pertamamu.",
-        });
-        router.push("/dashboard");
-    } catch (error) {
+      }
+    });
+    
+    if (signUpError) {
+      toast({
+          title: "Gagal Daftar",
+          description: signUpError.message || "Email ini mungkin sudah terdaftar. Coba email lain.",
+          variant: "destructive",
+      });
+      setIsLoadingEmail(false);
+      return;
+    }
+    
+    if (!signUpData.user) {
         toast({
             title: "Gagal Daftar",
-            description: "Email ini mungkin sudah terdaftar. Coba email lain.",
+            description: "Gagal membuat pengguna. Silakan coba lagi.",
             variant: "destructive",
         });
-    } finally {
-      setIsLoadingEmail(false);
+        setIsLoadingEmail(false);
+        return;
     }
+
+    const user = signUpData.user;
+
+    if (photoFile) {
+        const cleanFileName = sanitizeFileName(photoFile.name);
+        const filePath = `public/profile-images/${user.id}/${cleanFileName}`;
+        photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath);
+        
+        // Update user metadata with the photoURL
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { ...user.user_metadata, photoURL }
+        });
+
+        if (updateError) {
+            console.error("Error updating user photo after signup:", updateError);
+            toast({
+                title: "Peringatan",
+                description: "Gagal menyimpan foto profil. Anda bisa mengaturnya lagi di halaman profil.",
+            });
+        }
+    }
+
+    toast({
+        title: "Akun Berhasil Dibuat!",
+        description: "Selamat datang di HitunginAja! Yuk mulai hitung HPP pertamamu.",
+    });
+
+    router.push("/dashboard");
+    setIsLoadingEmail(false);
   }
 
   async function handleGoogleSignIn() {
-    if (!auth) return;
     setIsLoadingGoogle(true);
-    try {
-        const provider = new GoogleAuthProvider();
-        const result = await signInWithPopup(auth, provider);
-        const user = result.user;
-        
-        await syncUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+       options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
 
-        toast({
-            title: "Berhasil Masuk!",
-            description: "Selamat datang! Yuk mulai hitung HPP.",
-        });
-        router.push("/dashboard");
-    } catch (error: any) {
-        if (error.code === 'auth/user-cancelled' || error.code === 'auth/popup-closed-by-user') {
-            return;
-        }
-        console.error(error);
-        toast({
+    if (error) {
+       toast({
             title: "Gagal Masuk dengan Google",
-            description: "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
+            description: error.message || "Ada masalah pas coba masuk pakai Google. Coba lagi ya.",
             variant: "destructive",
         });
-    } finally {
-        setIsLoadingGoogle(false);
     }
+    // Browser will redirect
+    setIsLoadingGoogle(false);
   }
 
   const isLoading = isLoadingEmail || isLoadingGoogle;

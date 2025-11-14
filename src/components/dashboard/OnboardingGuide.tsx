@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser, useFirestore, useMemoFirebase } from "@/firebase";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { useAuth } from "@/supabase/auth-provider";
+import { supabase } from "@/lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -26,36 +26,20 @@ import { Progress } from "@/components/ui/progress";
 import { PackagePlus, Wand2, Lightbulb, CheckCircle2 } from "lucide-react";
 
 export function OnboardingGuide() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
 
-  const userDocRef = useMemoFirebase(() => {
-      if (!user || !firestore) return null;
-      return doc(firestore, "users", user.uid);
-  }, [user, firestore]);
-
   useEffect(() => {
-    if (!userDocRef) return;
+    if (!user) return;
 
-    const checkOnboardingStatus = async () => {
-      const docSnap = await getDoc(userDocRef);
-      if (docSnap.exists()) {
-        const userData = docSnap.data();
-        // Show onboarding if onboardingCompleted is not explicitly true
-        if (userData.onboardingCompleted !== true) {
-          setShowOnboarding(true);
-        }
-      } else {
-        // If user doc doesn't exist, they are definitely a new user
-        setShowOnboarding(true);
-      }
-    };
-    checkOnboardingStatus();
-  }, [userDocRef]);
+    // Supabase user_metadata is where custom fields live.
+    if (user.user_metadata?.onboardingCompleted !== true) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!api) return;
@@ -70,12 +54,13 @@ export function OnboardingGuide() {
 
   const handleDismiss = async (skipped = false) => {
     setShowOnboarding(false);
-    if (userDocRef) {
-      await setDoc(userDocRef, {
-        onboardingCompleted: true,
-        onboardingSkipped: skipped,
-        onboardingCompletionDate: serverTimestamp(),
-      }, { merge: true });
+    if (user) {
+      const { error } = await supabase.auth.updateUser({
+        data: { ...user.user_metadata, onboardingCompleted: true }
+      });
+      if (error) {
+        console.error("Error updating onboarding status", error);
+      }
     }
   };
   

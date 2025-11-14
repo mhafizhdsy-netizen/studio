@@ -5,14 +5,7 @@ import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useAuth } from "@/firebase";
-import {
-  updateProfile,
-  updateEmail,
-  updatePassword,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-} from "firebase/auth";
+import { useAuth } from "@/supabase/auth-provider";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,22 +35,9 @@ const profileFormSchema = z
   .object({
     name: z.string().min(2, { message: "Nama minimal 2 karakter." }),
     email: z.string().email({ message: "Format email tidak valid." }),
-    currentPassword: z.string().optional(),
     newPassword: z.string().optional(),
     confirmPassword: z.string().optional(),
   })
-  .refine(
-    (data) => {
-      if (data.newPassword && !data.currentPassword) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Password saat ini dibutuhkan untuk mengubah password.",
-      path: ["currentPassword"],
-    }
-  )
   .refine(
     (data) => {
       if (data.newPassword && data.newPassword.length < 6) {
@@ -95,21 +75,19 @@ const fileToDataUri = (file: File): Promise<string> => {
 };
 
 export function ProfileForm() {
-  const { user, isUserLoading } = useUser();
-  const auth = useAuth();
+  const { user, isLoading: isUserLoading } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [photoURL, setPhotoURL] = useState(user?.photoURL);
+  const [photoURL, setPhotoURL] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-
+  
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user?.displayName || "",
-      email: user?.email || "",
-      currentPassword: "",
+      name: "",
+      email: "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -117,25 +95,15 @@ export function ProfileForm() {
   
   useEffect(() => {
     if (user) {
-        form.reset({
-            name: user.displayName || "",
-            email: user.email || "",
-        });
-        setPhotoURL(user.photoURL);
+        form.setValue('email', user.email || "");
+        form.setValue('name', user.user_metadata.name || "");
+        setPhotoURL(user.user_metadata.photoURL || null);
     }
   }, [user, form]);
 
 
   const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    if (!supabase || !user || !auth.currentUser) {
-      toast({
-        title: "Gagal",
-        description: "Layanan pengguna tidak tersedia.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!e.target.files || e.target.files.length === 0 || !user) return;
 
     const file = e.target.files[0];
     const localUrl = URL.createObjectURL(file);
@@ -152,7 +120,7 @@ export function ProfileForm() {
             description: moderationResult.reason || "Gambar yang Anda pilih melanggar pedoman komunitas kami.",
             variant: "destructive",
         });
-        setPhotoURL(user?.photoURL);
+        setPhotoURL(user.user_metadata.photoURL || null);
         setIsUploading(false);
         setUploadProgress(null);
         if (fileInputRef.current) {
@@ -162,26 +130,20 @@ export function ProfileForm() {
     }
 
     const cleanFileName = sanitizeFileName(file.name);
-    const filePath = `public/profile-images/${user.uid}/${cleanFileName}`;
+    const filePath = `public/profile-images/${user.id}/${cleanFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(
         file,
         'user-assets',
-        filePath,
-        (progress) => {
-          setUploadProgress(progress);
-        }
+        filePath
       );
       
-      await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
-      
-      const { error: supabaseError } = await supabase
-        .from('users')
-        .update({ photoURL: newPhotoURL })
-        .eq('id', user.uid);
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { ...user.user_metadata, photoURL: newPhotoURL }
+      });
 
-      if (supabaseError) throw supabaseError;
+      if (updateError) throw updateError;
 
       setPhotoURL(newPhotoURL);
       toast({
@@ -190,7 +152,7 @@ export function ProfileForm() {
       });
     } catch (uploadError) {
       console.error("Failed to upload or update photo:", uploadError);
-      setPhotoURL(user?.photoURL);
+      setPhotoURL(user.user_metadata.photoURL || null);
       toast({
         title: "Gagal Mengunggah Foto",
         description: "Terjadi kesalahan saat mengunggah foto profil.",
@@ -214,36 +176,30 @@ export function ProfileForm() {
       : "?";
 
   async function onSubmit(data: ProfileFormData) {
-    if (!user || !auth.currentUser || !supabase) return;
+    if (!user) return;
     setIsSubmitting(true);
 
     try {
-      const needsReauth = data.newPassword || data.email !== user.email;
-      if (data.currentPassword && needsReauth && user.email) {
-        const credential = EmailAuthProvider.credential(user.email, data.currentPassword);
-        await reauthenticateWithCredential(auth.currentUser, credential);
-      } else if (!data.currentPassword && needsReauth) {
-         throw new Error("Password saat ini dibutuhkan untuk mengubah email atau password.");
-      }
+        const hasDataChanged = data.name !== user.user_metadata.name;
+        const hasEmailChanged = data.email !== user.email;
 
-      if (data.name !== user.displayName) {
-        await updateProfile(auth.currentUser, { displayName: data.name });
-      }
+        // Prepare update objects
+        const userUpdateData: any = {};
+        if (hasDataChanged) {
+            userUpdateData.data = { ...user.user_metadata, name: data.name };
+        }
+        if (hasEmailChanged) {
+            userUpdateData.email = data.email;
+        }
+        if (data.newPassword) {
+            userUpdateData.password = data.newPassword;
+        }
 
-      if (data.email !== user.email) {
-        await updateEmail(auth.currentUser, data.email);
-      }
-
-      if (data.newPassword) {
-        await updatePassword(auth.currentUser, data.newPassword);
-      }
-      
-      const { error: supabaseError } = await supabase
-        .from('users')
-        .update({ name: data.name, email: data.email })
-        .eq('id', user.uid);
-
-      if (supabaseError) throw supabaseError;
+        // Perform update if there's anything to change
+        if (Object.keys(userUpdateData).length > 0) {
+            const { error } = await supabase.auth.updateUser(userUpdateData);
+            if (error) throw error;
+        }
       
       toast({
         title: "Profil Berhasil Diperbarui!",
@@ -252,24 +208,15 @@ export function ProfileForm() {
       
       form.reset({
         ...data,
-        currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
 
     } catch (error: any) {
       console.error(error);
-      let description = "Terjadi kesalahan. Coba lagi nanti.";
-      if (error.code === 'auth/wrong-password' || error.message.includes("Password saat ini dibutuhkan")) {
-        description = "Password saat ini yang kamu masukkan salah atau kosong."
-      } else if (error.code === 'auth/email-already-in-use') {
-        description = "Email ini sudah digunakan oleh akun lain."
-      } else if (error.code === 'auth/requires-recent-login') {
-        description = "Perlu login ulang untuk melakukan aksi ini. Silakan logout dan login kembali."
-      }
       toast({
         title: "Gagal Memperbarui Profil",
-        description: description,
+        description: error.message || "Terjadi kesalahan. Coba lagi nanti.",
         variant: "destructive",
       });
     }
@@ -277,7 +224,7 @@ export function ProfileForm() {
     setIsSubmitting(false);
   }
 
-  if (isUserLoading) {
+  if (isUserLoading || !user) {
       return <div className="flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
   }
 
@@ -297,7 +244,7 @@ export function ProfileForm() {
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={photoURL || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground font-bold text-2xl">
-                    {getInitials(user?.displayName)}
+                    {getInitials(user.user_metadata.name)}
                   </AvatarFallback>
                 </Avatar>
                 <Button
@@ -305,8 +252,8 @@ export function ProfileForm() {
                   size="icon"
                   variant="secondary"
                   className="absolute bottom-0 right-0 rounded-full h-7 w-7"
-                  onClick={() => supabase && fileInputRef.current?.click()}
-                  disabled={isUploading || !supabase}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
                 >
                   {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                 </Button>
@@ -316,7 +263,7 @@ export function ProfileForm() {
                   onChange={handlePhotoChange}
                   className="hidden"
                   accept="image/png, image/jpeg, image/webp"
-                  disabled={isUploading || !supabase}
+                  disabled={isUploading}
                 />
               </div>
               <div className="flex-grow w-full space-y-2">
@@ -355,23 +302,10 @@ export function ProfileForm() {
               <CardHeader>
                 <CardTitle className="text-lg">Ubah Password</CardTitle>
                 <CardDescription>
-                  Isi jika ingin mengubah password. Anda harus memasukkan password saat ini.
+                  Isi jika ingin mengubah password.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="currentPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password Saat Ini</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} disabled={isSubmitting}/>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="newPassword"

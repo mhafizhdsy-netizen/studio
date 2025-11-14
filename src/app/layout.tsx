@@ -1,6 +1,6 @@
 
 import type { Metadata } from "next";
-import { FirebaseClientProvider } from "@/firebase";
+import { AuthProvider } from "@/supabase/auth-provider";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
 
@@ -27,10 +27,10 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
+        <AuthProvider>
           {children}
           <Toaster />
-        </FirebaseClientProvider>
+        </AuthProvider>
       </body>
     </html>
   );
