@@ -11,9 +11,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
-import { Loader2, Send, MessageSquare, CornerDownRight } from "lucide-react";
+import { Loader2, Send, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 
 export interface Comment {
   id: string;
@@ -115,6 +117,7 @@ function CommentForm({ calculationId, parentId, onAfterSubmit, autofocus }: { ca
 
 function CommentItem({ comment, calculationId }: { comment: Comment, calculationId: string }) {
     const [isReplying, setIsReplying] = useState(false);
+    const [showReplies, setShowReplies] = useState(true);
 
     return (
         <div className="flex gap-3">
@@ -142,13 +145,23 @@ function CommentItem({ comment, calculationId }: { comment: Comment, calculation
                         autofocus
                     />
                 )}
-
+                
                 {comment.replies && comment.replies.length > 0 && (
-                    <div className="mt-4 pl-4 border-l-2 space-y-4">
-                        {comment.replies.map(reply => (
-                            <CommentItem key={reply.id} comment={reply} calculationId={calculationId} />
-                        ))}
-                    </div>
+                     <Collapsible open={showReplies} onOpenChange={setShowReplies}>
+                        <CollapsibleTrigger asChild>
+                             <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs text-muted-foreground">
+                                {showReplies ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
+                                {showReplies ? `Sembunyikan ${comment.replies.length} balasan` : `Tampilkan ${comment.replies.length} balasan`}
+                            </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                             <div className="mt-4 pl-4 border-l-2 space-y-4">
+                                {comment.replies.map(reply => (
+                                    <CommentItem key={reply.id} comment={reply} calculationId={calculationId} />
+                                ))}
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
                 )}
             </div>
         </div>
