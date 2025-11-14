@@ -16,7 +16,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp), // Kept for any legacy or other uses, but app logic will use Supabase
+    firestore: getFirestore(firebaseApp), // Kept for type consistency, though may not be used directly
   };
 }
 
@@ -27,5 +27,3 @@ export * from './client-provider';
 // export * from './firestore/use-doc';
 export * from './non-blocking-updates';
 export * from './non-blocking-login';
-export * from '@/lib/errors';
-export * from '@/lib/error-emitter';

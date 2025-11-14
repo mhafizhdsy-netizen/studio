@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ServerCrash } from 'lucide-react';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError } from '@/lib/errors';
 
 export default function GlobalError({
   error,
@@ -19,7 +19,7 @@ export default function GlobalError({
     console.error("Global Error Boundary Caught:", error);
   }, [error]);
 
-  const isFirestorePermissionError = error instanceof FirestorePermissionError;
+  const isPermissionError = error instanceof FirestorePermissionError;
 
   return (
     <html>
@@ -41,13 +41,13 @@ export default function GlobalError({
                 <p className='text-muted-foreground'>{error.message.split('\n')[0]}</p>
               </div>
 
-              {isFirestorePermissionError && (
+              {isPermissionError && (
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="item-1">
-                    <AccordionTrigger className='font-semibold'>Detail Konteks Error Firestore</AccordionTrigger>
+                    <AccordionTrigger className='font-semibold'>Detail Konteks Error</AccordionTrigger>
                     <AccordionContent>
                       <pre className="mt-2 w-full whitespace-pre-wrap rounded-md bg-muted p-4 text-sm font-mono">
-                        {JSON.stringify(error.request, null, 2)}
+                        {JSON.stringify((error as FirestorePermissionError).request, null, 2)}
                       </pre>
                     </AccordionContent>
                   </AccordionItem>

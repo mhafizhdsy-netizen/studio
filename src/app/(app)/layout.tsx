@@ -3,8 +3,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@/firebase";
-import { supabase } from "@/lib/supabase";
+import { useUser, useAuth } from "@/firebase";
+import { supabase, setSupabaseAuthToken } from "@/lib/supabase";
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Loader2 } from "lucide-react";
@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
+  const auth = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -21,27 +22,62 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    const ensureSupabaseProfile = async () => {
-        if (user && supabase) {
-            const { data } = await supabase.from('users').select('id').eq('id', user.uid).single();
-            if (!data) {
-                // Profile doesn't exist, create it
-                await supabase.from('users').upsert({
-                    id: user.uid,
-                    name: user.displayName || 'Pengguna Baru',
-                    email: user.email,
-                    photoURL: user.photoURL,
-                    isAdmin: false,
-                    onboardingCompleted: false
-                });
+    if (isUserLoading || !auth) return;
+
+    // This function handles the synchronization.
+    const syncUserAndSetAuth = async (currentUser: import('firebase/auth').User | null) => {
+        if (currentUser && supabase) {
+            try {
+                // 1. Get the Firebase ID token.
+                const token = await currentUser.getIdToken(true); // Force refresh
+                
+                // 2. Set Supabase auth token. This is the crucial step for RLS.
+                setSupabaseAuthToken(token);
+
+                // 3. Check if user profile exists in Supabase.
+                const { data, error: selectError } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('id', currentUser.uid)
+                    .single();
+
+                if (selectError && selectError.code !== 'PGRST116') { // PGRST116 is "exact-one-row-not-found", which is expected for new users.
+                    console.error("Error checking user profile in Supabase:", selectError);
+                }
+
+                // 4. If profile doesn't exist, create it.
+                if (!data) {
+                    const { error: upsertError } = await supabase.from('users').upsert({
+                        id: currentUser.uid,
+                        name: currentUser.displayName || 'Pengguna Baru',
+                        email: currentUser.email,
+                        photoURL: currentUser.photoURL,
+                        isAdmin: false,
+                        onboardingCompleted: false
+                    });
+                    if (upsertError) {
+                        console.error("Error creating Supabase user profile:", upsertError);
+                    }
+                }
+            } catch (e) {
+                console.error("Error in token/sync process:", e);
             }
+        } else {
+            // User is logged out, clear the Supabase token.
+            setSupabaseAuthToken(null);
         }
     };
 
-    if (!isUserLoading && user) {
-        ensureSupabaseProfile();
-    }
-  }, [user, isUserLoading]);
+    // Run the sync function for the initial user state.
+    syncUserAndSetAuth(user);
+
+    // Set up the listener for subsequent auth state changes.
+    const unsubscribe = auth.onIdTokenChanged(syncUserAndSetAuth);
+
+    // Cleanup subscription on unmount.
+    return () => unsubscribe();
+  }, [user, isUserLoading, auth]);
+
 
   if (isUserLoading || !user) {
     return (
