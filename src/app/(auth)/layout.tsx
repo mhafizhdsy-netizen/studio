@@ -3,6 +3,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { Logo } from "@/components/ui/logo";
 import { placeholderImages } from "@/lib/placeholder-images";
+import { useAuth } from "@/supabase/auth-provider";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function AuthLayout({
   children,
