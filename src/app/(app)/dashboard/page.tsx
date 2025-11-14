@@ -10,10 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MonthlyExpenseSummary } from "@/components/expenses/MonthlyExpenseSummary";
 import { DashboardAnalytics } from "@/components/dashboard/DashboardAnalytics";
 import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
-import { useUser } from "@/firebase";
+import { useAuth } from "@/supabase/auth-provider";
 
 export default function DashboardPage() {
-  const { user } = useUser();
+  const { user } = useAuth();
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
