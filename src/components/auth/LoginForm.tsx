@@ -17,9 +17,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, MailWarning, MailCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { AuthApiError } from "@supabase/supabase-js";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid." }),
@@ -40,6 +42,8 @@ export function LoginForm() {
   const router = useRouter();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
+  const [showVerificationAlert, setShowVerificationAlert] = useState(false);
+  const [resendEmail, setResendEmail] = useState("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,17 +53,23 @@ export function LoginForm() {
     },
   });
 
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoadingEmail(true);
+    setShowVerificationAlert(false);
+
     const { error } = await supabase.auth.signInWithPassword(values);
 
     if (error) {
-      toast({
-        title: "Gagal Masuk",
-        description: error.message || "Email atau password salah. Coba lagi yuk!",
-        variant: "destructive",
-      });
+      if (error instanceof AuthApiError && error.message === 'Email not confirmed') {
+        setShowVerificationAlert(true);
+        setResendEmail(values.email);
+      } else {
+        toast({
+          title: "Gagal Masuk",
+          description: error.message || "Email atau password salah. Coba lagi yuk!",
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "Berhasil Masuk!",
@@ -69,7 +79,6 @@ export function LoginForm() {
     }
     setIsLoadingEmail(false);
   }
-
 
   async function handleGoogleSignIn() {
     setIsLoadingGoogle(true);
@@ -91,6 +100,29 @@ export function LoginForm() {
     setIsLoadingGoogle(false);
   }
 
+  const handleResendVerification = async () => {
+    if (!resendEmail) return;
+    setIsLoadingEmail(true);
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: resendEmail,
+    });
+    setIsLoadingEmail(false);
+    if (error) {
+      toast({
+        title: "Gagal Mengirim Ulang",
+        description: error.message || "Gagal mengirim ulang email verifikasi. Coba beberapa saat lagi.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Email Terkirim!",
+        description: `Link verifikasi baru telah dikirim ke ${resendEmail}.`,
+      });
+      setShowVerificationAlert(false);
+    }
+  };
+
   return (
     <>
       <div className="grid gap-2 text-center">
@@ -99,6 +131,21 @@ export function LoginForm() {
           Masukkan email dan password untuk melanjutkan.
         </p>
       </div>
+
+      {showVerificationAlert && (
+        <Alert variant="destructive">
+          <MailWarning className="h-4 w-4" />
+          <AlertTitle>Verifikasi Email Anda</AlertTitle>
+          <AlertDescription>
+            Email Anda belum terverifikasi. Silakan cek inbox untuk link konfirmasi.
+          </AlertDescription>
+          <Button variant="link" className="p-0 h-auto mt-2 text-destructive" onClick={handleResendVerification} disabled={isLoadingEmail}>
+             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Kirim Ulang Verifikasi
+          </Button>
+        </Alert>
+      )}
+
        <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
             {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
             Masuk dengan Google

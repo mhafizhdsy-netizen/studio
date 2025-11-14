@@ -17,12 +17,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera } from "lucide-react";
+import { Loader2, Camera, MailCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { sanitizeFileName } from "@/lib/utils";
 import { moderateImage } from "@/ai/flows/image-moderation-flow";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nama minimal 2 karakter." }),
@@ -50,9 +51,9 @@ const fileToDataUri = (file: File): Promise<string> => {
 
 export function SignupForm() {
   const { toast } = useToast();
-  const router = useRouter();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -133,7 +134,6 @@ export function SignupForm() {
 
     const user = signUpData.user;
 
-    // Now, upload photo if it exists
     if (photoFile) {
         const cleanFileName = sanitizeFileName(photoFile.name);
         const filePath = `public/profile-images/${user.id}/${cleanFileName}`;
@@ -142,31 +142,17 @@ export function SignupForm() {
             photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath);
             
             // Update user metadata with the final photoURL
-            const { error: updateError } = await supabase.auth.updateUser({
+            await supabase.auth.updateUser({
               data: { ...user.user_metadata, photoURL }
             });
 
-            if (updateError) {
-                // This is not critical, the profile can be updated later.
-                console.warn("Could not update user metadata with photoURL after signup:", updateError);
-            }
         } catch (uploadError) {
-            console.error("Photo upload failed after signup:", uploadError);
-            toast({
-                title: "Peringatan",
-                description: "Akun berhasil dibuat, tetapi gagal mengunggah foto profil. Anda bisa mengaturnya lagi di halaman profil.",
-                variant: "default",
-            });
+           // This is not critical, the profile can be updated later.
+           console.warn("Photo upload failed after signup:", uploadError);
         }
     }
-
-    toast({
-        title: "Akun Berhasil Dibuat!",
-        description: "Selamat datang di HitunginAja! Kami akan mengalihkan Anda ke dashboard.",
-    });
-
-    // The onAuthStateChange listener in the layout will handle the redirect.
-    // No need to call router.push here, as it might race with the auth state.
+    
+    setShowVerificationMessage(true);
     setIsLoadingEmail(false);
   }
 
@@ -186,11 +172,29 @@ export function SignupForm() {
             variant: "destructive",
         });
     }
-    // Browser will redirect
     setIsLoadingGoogle(false);
   }
 
   const isLoading = isLoadingEmail || isLoadingGoogle;
+
+  if (showVerificationMessage) {
+    return (
+        <Alert>
+            <MailCheck className="h-4 w-4" />
+            <AlertTitle className="font-bold text-lg">Satu Langkah Lagi!</AlertTitle>
+            <AlertDescription className="mt-2">
+                Akunmu berhasil dibuat. Kami telah mengirimkan link verifikasi ke <strong>{form.getValues('email')}</strong>.
+                <br/><br/>
+                Silakan cek inbox (dan folder spam), lalu klik link tersebut untuk mengaktifkan akunmu sebelum login.
+            </AlertDescription>
+             <div className="mt-6 text-center">
+                <Button asChild>
+                    <Link href="/login">Kembali ke Halaman Login</Link>
+                </Button>
+            </div>
+        </Alert>
+    );
+  }
 
   return (
     <>
