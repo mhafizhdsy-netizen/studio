@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase";
 import { doc, serverTimestamp, collection } from 'firebase/firestore';
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Button } from "@/components/ui/button";
@@ -91,7 +91,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   
-  const calcId = useRef(existingCalculation?.id || doc(collection(firestore, 'temp')).id).current;
+  const calcId = existingCalculation?.id || doc(collection(firestore, 'temp')).id;
 
   const [imageUrl, setImageUrl] = useState<string | null>(existingCalculation?.productImageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
@@ -273,7 +273,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     } else {
         const userCalcsColRef = collection(firestore, 'users', user.uid, 'calculations');
         const dataToSave = { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
-        await addDocumentNonBlocking(userCalcsColRef, dataToSave);
+        addDocumentNonBlocking(userCalcsColRef, dataToSave);
     }
     
     const publicCalcRef = doc(firestore, 'public_calculations', calcId);
@@ -289,7 +289,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         };
         delete publicData.isPublic;
 
-        updateDocumentNonBlocking(publicCalcRef, publicData);
+        setDocumentNonBlocking(publicCalcRef, publicData, { merge: true });
     } else if (existingCalculation?.isPublic) {
         deleteDocumentNonBlocking(publicCalcRef);
     }

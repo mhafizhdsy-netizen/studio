@@ -38,7 +38,7 @@ service cloud.firestore {
      */
     match /users/{userId}/calculations/{calcId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId); // Admins should not list private calculations directly.
+      allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) && resource != null;
@@ -66,8 +66,8 @@ service cloud.firestore {
      */
     match /public_calculations/{calcId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
+      allow write: if isSignedIn() && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
       
       /**
        * @description Controls access to comments on public calculations.
