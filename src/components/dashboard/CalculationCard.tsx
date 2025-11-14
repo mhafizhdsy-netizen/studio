@@ -32,14 +32,18 @@ export function CalculationCard({ calculation, onDelete }: CalculationCardProps)
   };
   
   const formatDate = (timestamp: any) => {
-    if (timestamp && typeof timestamp.seconds === 'number') {
-      return new Date(timestamp.seconds * 1000).toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
+    if (!timestamp) return 'No date';
+    // Check if it's already a Date object or a string
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    try {
+        return date.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
+    } catch (e) {
+        return 'Invalid date';
     }
-    return 'No date';
   }
 
   return (

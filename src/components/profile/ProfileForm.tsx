@@ -5,7 +5,7 @@ import { useState, useRef, ChangeEvent, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useAuth, useFirestore } from "@/firebase";
+import { useUser, useAuth } from "@/firebase";
 import {
   updateProfile,
   updateEmail,
@@ -14,7 +14,6 @@ import {
   EmailAuthProvider,
 } from "firebase/auth";
 import { supabase, uploadFileToSupabase } from "@/lib/supabase";
-import { doc, setDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -98,7 +97,6 @@ const fileToDataUri = (file: File): Promise<string> => {
 export function ProfileForm() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -141,11 +139,10 @@ export function ProfileForm() {
 
     const file = e.target.files[0];
     const localUrl = URL.createObjectURL(file);
-    setPhotoURL(localUrl); // Show preview immediately
+    setPhotoURL(localUrl);
     setIsUploading(true);
     setUploadProgress(0);
 
-    // Moderate image before upload
     const imageDataUri = await fileToDataUri(file);
     const moderationResult = await moderateImage({ imageDataUri });
 
@@ -155,11 +152,11 @@ export function ProfileForm() {
             description: moderationResult.reason || "Gambar yang Anda pilih melanggar pedoman komunitas kami.",
             variant: "destructive",
         });
-        setPhotoURL(user?.photoURL); // Revert to old photo
+        setPhotoURL(user?.photoURL);
         setIsUploading(false);
         setUploadProgress(null);
         if (fileInputRef.current) {
-            fileInputRef.current.value = ""; // Reset file input
+            fileInputRef.current.value = "";
         }
         return;
     }
@@ -177,19 +174,23 @@ export function ProfileForm() {
         }
       );
       
-      // Update Auth and Firestore
       await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
-      const userDocRef = doc(firestore, "users", user.uid);
-      await setDoc(userDocRef, { photoURL: newPhotoURL }, { merge: true });
+      
+      const { error: supabaseError } = await supabase
+        .from('users')
+        .update({ photoURL: newPhotoURL })
+        .eq('id', user.uid);
 
-      setPhotoURL(newPhotoURL); // Set final URL
+      if (supabaseError) throw supabaseError;
+
+      setPhotoURL(newPhotoURL);
       toast({
         title: "Foto Profil Diperbarui",
         description: "Foto profil Anda telah berhasil diubah.",
       });
     } catch (uploadError) {
-      console.error("Failed to upload photo:", uploadError);
-      setPhotoURL(user?.photoURL); // Revert to old photo on error
+      console.error("Failed to upload or update photo:", uploadError);
+      setPhotoURL(user?.photoURL);
       toast({
         title: "Gagal Mengunggah Foto",
         description: "Terjadi kesalahan saat mengunggah foto profil.",
@@ -197,7 +198,7 @@ export function ProfileForm() {
       });
     } finally {
       setIsUploading(false);
-      setTimeout(() => setUploadProgress(null), 2000); // Hide progress bar after 2s
+      setTimeout(() => setUploadProgress(null), 2000);
     }
   };
 
@@ -213,7 +214,7 @@ export function ProfileForm() {
       : "?";
 
   async function onSubmit(data: ProfileFormData) {
-    if (!user || !auth.currentUser || !firestore) return;
+    if (!user || !auth.currentUser || !supabase) return;
     setIsSubmitting(true);
 
     try {
@@ -225,27 +226,24 @@ export function ProfileForm() {
          throw new Error("Password saat ini dibutuhkan untuk mengubah email atau password.");
       }
 
-      // Update Profile Name
       if (data.name !== user.displayName) {
         await updateProfile(auth.currentUser, { displayName: data.name });
       }
 
-      // Update Email
       if (data.email !== user.email) {
         await updateEmail(auth.currentUser, data.email);
       }
 
-      // Update Password
       if (data.newPassword) {
         await updatePassword(auth.currentUser, data.newPassword);
       }
       
-      const userDocRef = doc(firestore, "users", user.uid);
-      await setDoc(
-        userDocRef,
-        { name: data.name, email: data.email },
-        { merge: true }
-      );
+      const { error: supabaseError } = await supabase
+        .from('users')
+        .update({ name: data.name, email: data.email })
+        .eq('id', user.uid);
+
+      if (supabaseError) throw supabaseError;
       
       toast({
         title: "Profil Berhasil Diperbarui!",

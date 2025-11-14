@@ -2,21 +2,8 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { FirestorePermissionError, errorEmitter } from '@/lib/errors';
-import {
-  collection,
-  doc,
-  updateDoc,
-  deleteDoc,
-  query,
-  getDocs,
-  Timestamp,
-  orderBy,
-  limit,
-  where,
-  getDoc,
-} from 'firebase/firestore';
+import { useUser } from '@/firebase';
+import { supabase } from '@/lib/supabase';
 import {
   Card,
   CardContent,
@@ -60,7 +47,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { Badge } from '../ui/badge';
-import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import Link from 'next/link';
 
 // Interfaces
@@ -69,7 +55,7 @@ interface UserProfile {
   name: string;
   email: string;
   photoURL?: string;
-  createdAt: any;
+  createdAt: string;
   isSuspended?: boolean;
   isAdmin?: boolean;
 }
@@ -79,7 +65,7 @@ interface PublicCalculation {
   productName: string;
   userName: string;
   isFeatured?: boolean;
-  createdAt: any;
+  createdAt: string;
   userId: string;
   commentCount?: number;
 }
@@ -122,14 +108,20 @@ function StatCard({
 }
 
 function AdminStats({ calculationsWithComments }: { calculationsWithComments: PublicCalculation[] | null }) {
-  const firestore = useFirestore();
+  const [users, setUsers] = useState<UserProfile[] | null>(null);
+  const [usersLoading, setUsersLoading] = useState(true);
 
-  const usersQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'users') : null),
-    [firestore]
-  );
-  
-  const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!supabase) return;
+      setUsersLoading(true);
+      const { data, error } = await supabase.from('users').select('*');
+      if (data) setUsers(data);
+      if (error) console.error("Error fetching users for stats", error);
+      setUsersLoading(false);
+    };
+    fetchUsers();
+  }, []);
   
   const isLoading = usersLoading || !calculationsWithComments;
   
@@ -160,69 +152,62 @@ function AdminStats({ calculationsWithComments }: { calculationsWithComments: Pu
 }
 
 function UserManager() {
-  const firestore = useFirestore();
   const { toast } = useToast();
-  const usersQuery = useMemoFirebase(
-    () =>
-      firestore ? query(collection(firestore, 'users'), orderBy('createdAt', 'desc')) : null,
-    [firestore]
-  );
-  const { data: users, isLoading } = useCollection<UserProfile>(usersQuery);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (!supabase) return;
+      setIsLoading(true);
+      const { data, error } = await supabase.from('users').select('*').order('createdAt', { ascending: false });
+      if (data) setUsers(data);
+      if(error) console.error("Error fetching users:", error);
+      setIsLoading(false);
+    }
+    fetchUsers();
+  }, []);
 
   const handleToggleSuspend = async (uid: string, isSuspended?: boolean) => {
-    if (!firestore) return;
-    const userRef = doc(firestore, 'users', uid);
-    try {
-      await updateDoc(userRef, { isSuspended: !isSuspended });
-      toast({
-        title: 'Sukses!',
-        description: `Status pengguna telah ${
-          !isSuspended ? 'ditangguhkan' : 'diaktifkan'
-        }.`,
-      });
-    } catch (e) {
-      toast({
-        title: 'Gagal',
-        description: 'Gagal memperbarui status pengguna.',
-        variant: 'destructive',
-      });
+    if (!supabase) return;
+    const { error } = await supabase.from('users').update({ isSuspended: !isSuspended }).eq('id', uid);
+    if (error) {
+      toast({ title: 'Gagal', description: 'Gagal memperbarui status pengguna.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Sukses!', description: `Status pengguna telah diperbarui.` });
+      setUsers(users.map(u => u.id === uid ? { ...u, isSuspended: !isSuspended } : u));
     }
   };
 
   const handleToggleAdmin = async (uid: string, isAdmin?: boolean) => {
-    if (!firestore) return;
-    const userRef = doc(firestore, 'users', uid);
-    try {
-      await updateDoc(userRef, { isAdmin: !isAdmin });
-      toast({
-        title: 'Sukses!',
-        description: `Status admin untuk pengguna telah ${
-          !isAdmin ? 'diberikan' : 'dihapus'
-        }.`,
-      });
-    } catch (e) {
-      toast({
-        title: 'Gagal',
-        description: 'Gagal memperbarui status admin pengguna.',
-        variant: 'destructive',
-      });
+    if (!supabase) return;
+    const { error } = await supabase.from('users').update({ isAdmin: !isAdmin }).eq('id', uid);
+     if (error) {
+      toast({ title: 'Gagal', description: 'Gagal memperbarui status admin.', variant: 'destructive' });
+    } else {
+      toast({ title: 'Sukses!', description: `Status admin pengguna telah diperbarui.` });
+      setUsers(users.map(u => u.id === uid ? { ...u, isAdmin: !isAdmin } : u));
     }
   };
 
-  const handleDeleteUser = (uid: string) => {
-    if (!firestore) return;
-    const userRef = doc(firestore, 'users', uid);
+  const handleDeleteUser = async (uid: string) => {
+    if (!supabase) return;
     
     // This is a simplified deletion. In a real-world scenario,
     // you would use a Firebase Function to delete the user from Auth
     // and all their associated data (calculations, expenses, etc.).
-    deleteDocumentNonBlocking(userRef);
+    const { error } = await supabase.from('users').delete().eq('id', uid);
 
-    toast({
-      title: 'Pengguna Dihapus',
-      description: 'Dokumen pengguna di Firestore telah dihapus. Hapus pengguna dari Firebase Authentication secara manual.',
-      duration: 5000,
-    });
+    if (error) {
+        toast({ title: "Gagal Menghapus", description: "Gagal menghapus pengguna dari database.", variant: "destructive"});
+    } else {
+        toast({
+            title: 'Pengguna Dihapus',
+            description: 'Dokumen pengguna di Supabase telah dihapus. Hapus pengguna dari Firebase Authentication secara manual.',
+            duration: 5000,
+        });
+        setUsers(users.filter(u => u.id !== uid));
+    }
   };
 
   return (
@@ -269,7 +254,7 @@ function UserManager() {
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     {user.createdAt
-                      ? format(user.createdAt.toDate(), 'd MMM yyyy')
+                      ? format(new Date(user.createdAt), 'd MMM yyyy')
                       : 'N/A'}
                   </TableCell>
                   <TableCell>
@@ -329,55 +314,36 @@ function UserManager() {
 }
 
 function ContentManager({ calculations, isLoading, onRefresh }: { calculations: PublicCalculation[] | null, isLoading: boolean, onRefresh: () => void }) {
-  const firestore = useFirestore();
   const { toast } = useToast();
 
   const handleToggleFeature = async (
     calcId: string,
     isFeatured?: boolean
   ) => {
-    if (!firestore) return;
-    const calcRef = doc(firestore, 'public_calculations', calcId);
-    const dataToUpdate = { isFeatured: !isFeatured };
-    try {
-      await updateDoc(calcRef, dataToUpdate);
-      toast({
-        title: 'Sukses!',
-        description: `Perhitungan telah ${
-          !isFeatured ? 'ditandai sebagai pilihan' : 'dihapus dari pilihan'
-        }.`,
-      });
-      onRefresh(); // Trigger refresh
-    } catch (e: any) {
-        toast({
-            title: 'Gagal',
-            description: 'Gagal memperbarui status pilihan.',
-            variant: 'destructive',
-        });
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: calcRef.path,
-            operation: 'update',
-            requestResourceData: dataToUpdate,
-        }));
+    if (!supabase) return;
+    const { error } = await supabase.from('public_calculations').update({ isFeatured: !isFeatured }).eq('id', calcId);
+    
+    if (error) {
+        toast({ title: 'Gagal', description: 'Gagal memperbarui status pilihan.', variant: 'destructive'});
+    } else {
+        toast({ title: 'Sukses!', description: `Perhitungan telah diperbarui.`});
+        onRefresh(); 
     }
   };
 
   const handleDeleteCalculation = async (calcId: string, userId: string) => {
-    if (!firestore) return;
+    if (!supabase) return;
     
-    const publicCalcRef = doc(firestore, 'public_calculations', calcId);
-    const userCalcRef = doc(firestore, 'users', userId, 'calculations', calcId);
-
     try {
       // Non-blocking deletions
-      deleteDocumentNonBlocking(publicCalcRef);
-      deleteDocumentNonBlocking(userCalcRef);
+      await supabase.from('public_calculations').delete().eq('id', calcId);
+      await supabase.from('calculations').delete().eq('id', calcId);
 
       toast({
         title: "Dihapus",
         description: "Perhitungan telah dihapus dari publik dan data pengguna.",
       });
-      onRefresh(); // Trigger refresh
+      onRefresh();
 
     } catch (e) {
       console.error(e);
@@ -431,7 +397,7 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
                     <TableCell>{calc.commentCount ?? 0}</TableCell>
                     <TableCell>
                       {calc.createdAt
-                        ? format(calc.createdAt.toDate(), 'd MMM yyyy')
+                        ? format(new Date(calc.createdAt), 'd MMM yyyy')
                         : 'N/A'}
                     </TableCell>
                     <TableCell className="text-right">
@@ -482,11 +448,11 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
 }
 
 function AnalyticsManager() {
-    const firestore = useFirestore();
     const [isLoading, setIsLoading] = useState(true);
-    const [refreshKey, setRefreshKey] = useState(0); // State to trigger re-fetch
+    const [refreshKey, setRefreshKey] = useState(0); 
 
     const [calculationsWithComments, setCalculationsWithComments] = useState<PublicCalculation[] | null>(null);
+    const [users, setUsers] = useState<UserProfile[] | null>(null);
 
     const [analytics, setAnalytics] = useState({
         newUsers7Days: 0,
@@ -495,64 +461,49 @@ function AnalyticsManager() {
         mostCommentedCalcs: [] as { name: string; id: string; count: number; }[],
     });
 
-    const usersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('createdAt', 'desc')) : null, [firestore]);
-    const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
-
-    // This query is now just the base query. We'll add comment counts manually.
-    const publicCalcsQuery = useMemoFirebase(
-      () => (firestore ? query(collection(firestore, 'public_calculations'), orderBy('createdAt', 'desc')) : null),
-      [firestore, refreshKey]
-    );
-    const { data: publicCalcs, isLoading: publicCalcsLoading } = useCollection<PublicCalculation>(publicCalcsQuery);
-
-
     useEffect(() => {
-        if (publicCalcsLoading || usersLoading || !publicCalcs || !firestore || !users) {
-            setIsLoading(publicCalcsLoading || usersLoading);
-            return;
-        }
+        if (!supabase) return;
 
         const fetchAnalytics = async () => {
             setIsLoading(true);
             try {
-                // 1. Fetch all comment counts
+                // 1. Fetch users
+                const { data: usersData, error: usersError } = await supabase.from('users').select('*').order('createdAt', { ascending: false });
+                if (usersError) throw usersError;
+                setUsers(usersData);
+                
+                // 2. Fetch public calculations
+                const { data: publicCalcsData, error: publicCalcsError } = await supabase.from('public_calculations').select('*').order('createdAt', { ascending: false });
+                if (publicCalcsError) throw publicCalcsError;
+
+                // 3. Fetch comment counts for each calculation
                 const calcsWithCommentCounts = await Promise.all(
-                    publicCalcs.map(async (calc) => {
-                        const commentsRef = collection(firestore, 'public_calculations', calc.id, 'comments');
-                        try {
-                             const fullSnapshot = await getDocs(commentsRef);
-                             return {
-                                 ...calc,
-                                 commentCount: fullSnapshot.size,
-                             };
-                        } catch (error) {
-                             console.error(`Could not fetch comments for ${calc.id}`, error);
-                             const contextualError = new FirestorePermissionError({
-                                path: `public_calculations/${calc.id}/comments`,
-                                operation: 'list',
-                            });
-                            errorEmitter.emit('permission-error', contextualError);
-                             return { ...calc, commentCount: 0 };
+                    (publicCalcsData || []).map(async (calc) => {
+                        const { count, error } = await supabase.from('comments').select('id', { count: 'exact' }).eq('calculationId', calc.id);
+                        if (error) {
+                            console.error(`Could not fetch comments for ${calc.id}`, error);
+                            return { ...calc, commentCount: 0 };
                         }
+                        return { ...calc, commentCount: count ?? 0 };
                     })
                 );
                 setCalculationsWithComments(calcsWithCommentCounts);
 
-                // 2. Calculate New Users
+                // 4. Calculate New Users
                 const now = new Date();
                 const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
                 const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-                const newUsers7Days = users.filter(u => u.createdAt?.toDate() > sevenDaysAgo).length;
-                const newUsers30Days = users.filter(u => u.createdAt?.toDate() > thirtyDaysAgo).length;
+                const newUsers7Days = (usersData || []).filter(u => new Date(u.createdAt) > sevenDaysAgo).length;
+                const newUsers30Days = (usersData || []).filter(u => new Date(u.createdAt) > thirtyDaysAgo).length;
 
-                // 3. Calculate Most Active Users (based on public calculation count)
-                const userCalcCounts = publicCalcs.reduce((acc, calc) => {
-                acc[calc.userId] = (acc[calc.userId] || 0) + 1;
-                return acc;
+                // 5. Calculate Most Active Users
+                const userCalcCounts = (publicCalcsData || []).reduce((acc, calc) => {
+                    acc[calc.userId] = (acc[calc.userId] || 0) + 1;
+                    return acc;
                 }, {} as Record<string, number>);
                 
-                const userMap = new Map(users.map(u => [u.id, {name: u.name, photoURL: u.photoURL || ''}]));
+                const userMap = new Map((usersData || []).map(u => [u.id, {name: u.name, photoURL: u.photoURL || ''}]));
                 
                 const mostActiveUsers = Object.entries(userCalcCounts)
                     .map(([userId, count]) => ({
@@ -564,7 +515,7 @@ function AnalyticsManager() {
                     .sort((a, b) => b.count - a.count)
                     .slice(0, 5);
 
-                // 4. Calculate Most Commented Calcs (using the data from step 1)
+                // 6. Calculate Most Commented Calcs
                 const mostCommentedCalcs = calcsWithCommentCounts
                     .filter(c => (c.commentCount ?? 0) > 0)
                     .sort((a, b) => (b.commentCount ?? 0) - (a.commentCount ?? 0))
@@ -582,9 +533,7 @@ function AnalyticsManager() {
 
         fetchAnalytics();
 
-    }, [firestore, publicCalcs, users, publicCalcsLoading, usersLoading]);
-
-    const finalLoading = isLoading || usersLoading || publicCalcsLoading;
+    }, [refreshKey]);
 
     return (
       <div className="space-y-6">
@@ -599,7 +548,7 @@ function AnalyticsManager() {
             <UserManager />
           </TabsContent>
           <TabsContent value="content" className="mt-4">
-            <ContentManager calculations={calculationsWithComments} isLoading={finalLoading} onRefresh={() => setRefreshKey(k => k + 1)}/>
+            <ContentManager calculations={calculationsWithComments} isLoading={isLoading} onRefresh={() => setRefreshKey(k => k + 1)}/>
           </TabsContent>
            <TabsContent value="analytics" className="mt-4">
                 <div className="space-y-6">
@@ -608,8 +557,8 @@ function AnalyticsManager() {
                             <CardTitle className="flex items-center gap-2"><TrendingUp className="text-primary"/> Pertumbuhan Pengguna</CardTitle>
                         </CardHeader>
                         <CardContent className="grid sm:grid-cols-2 gap-4">
-                            <StatCard title="Pengguna Baru (7 Hari)" value={finalLoading ? '...' : analytics.newUsers7Days.toString()} icon={Users} />
-                            <StatCard title="Pengguna Baru (30 Hari)" value={finalLoading ? '...' : analytics.newUsers30Days.toString()} icon={Users} />
+                            <StatCard title="Pengguna Baru (7 Hari)" value={isLoading ? '...' : analytics.newUsers7Days.toString()} icon={Users} />
+                            <StatCard title="Pengguna Baru (30 Hari)" value={isLoading ? '...' : analytics.newUsers30Days.toString()} icon={Users} />
                         </CardContent>
                     </Card>
                     <Card>
@@ -620,7 +569,7 @@ function AnalyticsManager() {
                             <div>
                                 <h3 className="font-semibold mb-2">Pengguna Paling Aktif</h3>
                                 <p className="text-sm text-muted-foreground mb-4">Berdasarkan jumlah perhitungan yang dibagikan ke publik.</p>
-                                {finalLoading ? <Loader2 className="animate-spin" /> : (
+                                {isLoading ? <Loader2 className="animate-spin" /> : (
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -648,7 +597,7 @@ function AnalyticsManager() {
                             <div>
                                 <h3 className="font-semibold mb-2">Post Paling Banyak Dikomentari</h3>
                                 <p className="text-sm text-muted-foreground mb-4">Perhitungan publik dengan diskusi terbanyak.</p>
-                                {finalLoading ? <Loader2 className="animate-spin" /> : (
+                                {isLoading ? <Loader2 className="animate-spin" /> : (
                                     <Table>
                                         <TableHeader>
                                             <TableRow>

@@ -6,9 +6,8 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth } from "@/firebase";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,6 +21,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid." }),
@@ -41,7 +41,6 @@ export function LoginForm() {
   const { toast } = useToast();
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 
@@ -53,10 +52,27 @@ export function LoginForm() {
     },
   });
 
+  const syncUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('users')
+      .upsert({ 
+        id: uid, 
+        name: name, 
+        email: email, 
+        photoURL: photoURL || '',
+        // onboardingCompleted and isAdmin will default to false in Supabase
+      }, { onConflict: 'id' });
+    if (error) console.error("Error syncing user profile to Supabase:", error);
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoadingEmail(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+      await syncUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
+
       toast({
         title: "Berhasil Masuk!",
         description: "Selamat datang kembali! Yuk lanjutin cuan.",
@@ -72,23 +88,6 @@ export function LoginForm() {
     setIsLoadingEmail(false);
   }
 
-  const createUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
-    if (!firestore) return;
-    const userDocRef = doc(firestore, 'users', uid);
-    const userDoc = await getDoc(userDocRef);
-    // Hanya buat dokumen jika belum ada
-    if (!userDoc.exists()) {
-        await setDoc(userDocRef, {
-            id: uid,
-            name,
-            email,
-            photoURL: photoURL || '',
-            createdAt: serverTimestamp(),
-            onboardingCompleted: false,
-            isAdmin: false,
-        }, { merge: true });
-    }
-  }
 
   async function handleGoogleSignIn() {
     setIsLoadingGoogle(true);
@@ -96,7 +95,7 @@ export function LoginForm() {
         const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
-        await createUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
+        await syncUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
 
         toast({
             title: "Berhasil Masuk!",
@@ -105,7 +104,6 @@ export function LoginForm() {
         router.push("/dashboard");
     } catch (error: any) {
         if (error.code === 'auth/user-cancelled' || error.code === 'auth/popup-closed-by-user') {
-            // User cancelled the sign-in flow, do nothing.
             return;
         }
         console.error(error);

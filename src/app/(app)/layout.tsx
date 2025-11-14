@@ -3,8 +3,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useFirestore } from "@/firebase";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { useUser } from "@/firebase";
+import { supabase } from "@/lib/supabase";
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Loader2 } from "lucide-react";
@@ -12,36 +12,36 @@ import { Loader2 } from "lucide-react";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const router = useRouter();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-      // Jika tidak terautentikasi, arahkan ke halaman utama (landing page)
       router.replace("/");
     }
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    // Pastikan data pengguna lama memiliki field isAdmin
-    const ensureAdminField = async () => {
-        if (user && firestore) {
-            const userDocRef = doc(firestore, "users", user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-                const userData = userDoc.data();
-                // Jika field isAdmin tidak ada, tambahkan sebagai false
-                if (userData.isAdmin === undefined) {
-                    await setDoc(userDocRef, { isAdmin: false }, { merge: true });
-                }
+    const ensureSupabaseProfile = async () => {
+        if (user && supabase) {
+            const { data } = await supabase.from('users').select('id').eq('id', user.uid).single();
+            if (!data) {
+                // Profile doesn't exist, create it
+                await supabase.from('users').upsert({
+                    id: user.uid,
+                    name: user.displayName || 'Pengguna Baru',
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    isAdmin: false,
+                    onboardingCompleted: false
+                });
             }
         }
     };
 
     if (!isUserLoading && user) {
-        ensureAdminField();
+        ensureSupabaseProfile();
     }
-  }, [user, isUserLoading, firestore]);
+  }, [user, isUserLoading]);
 
   if (isUserLoading || !user) {
     return (

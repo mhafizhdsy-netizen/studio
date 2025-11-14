@@ -5,19 +5,8 @@ import { useState, useEffect, ChangeEvent, useRef } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {
-  useUser,
-  useFirestore,
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-  setDocumentNonBlocking,
-  deleteDocumentNonBlocking,
-} from "@/firebase";
-import {
-  collection,
-  doc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { useUser } from "@/firebase";
+import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera, Link as LinkIcon, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -30,13 +19,13 @@ import { ExportDialog } from "./ExportDialog";
 import { Textarea } from "../ui/textarea";
 import Image from "next/image";
 import { Progress } from "../ui/progress";
-import { supabase, uploadFileToSupabase } from "@/lib/supabase";
 import { ProductDescriptionGenerator } from "./ProductDescriptionGenerator";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Calculation } from "../dashboard/CalculationHistory";
 import { Button } from "../ui/button";
+import { v4 as uuidv4 } from 'uuid';
 
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
@@ -94,7 +83,6 @@ const fileToDataUri = (file: File): Promise<string> => {
 
 export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const { user } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -170,7 +158,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
     const file = e.target.files[0];
     
-    // Moderate image before upload
     const localUrl = URL.createObjectURL(file);
     setImageUrl(localUrl);
     setIsUploading(true);
@@ -189,13 +176,12 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         setIsUploading(false);
         setUploadProgress(null);
         if (fileInputRef.current) {
-            fileInputRef.current.value = ""; // Reset file input
+            fileInputRef.current.value = ""; 
         }
         return;
     }
     
-    // Use existing calculation ID or generate a new one for the path
-    const calculationId = existingCalculation?.id || doc(collection(firestore, 'temp')).id;
+    const calculationId = existingCalculation?.id || uuidv4();
     const cleanFileName = sanitizeFileName(file.name);
     const filePath = `public/product-images/${user.uid}/${calculationId}/${cleanFileName}`;
 
@@ -208,7 +194,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       toast({ title: "Sukses!", description: "Gambar produk berhasil diunggah." });
     } catch (error) {
       console.error(error);
-      setImageUrl(existingCalculation?.productImageUrl || null); // Revert on error
+      setImageUrl(existingCalculation?.productImageUrl || null); 
       toast({ title: "Gagal", description: "Gagal mengunggah gambar produk.", variant: "destructive" });
     } finally {
         setIsUploading(false);
@@ -250,7 +236,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const handleCalculate = form.handleSubmit(calculate);
 
   async function onSubmit(data: FormData) {
-    if (!user || !firestore) return;
+    if (!user || !supabase) return;
     if (!result) {
         toast({ title: "Oops!", description: "Hitung dulu hasilnya sebelum menyimpan ya.", variant: "destructive" });
         return;
@@ -258,7 +244,10 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     
     setIsSubmitting(true);
     
-    const calculationData: Omit<Calculation, 'id' | 'createdAt' | 'updatedAt'> = {
+    const calculationId = existingCalculation?.id || uuidv4();
+
+    const calculationData = {
+        id: calculationId,
         productName: data.productName,
         productImageUrl: data.productImageUrl || "",
         productDescription: data.productDescription || "",
@@ -273,45 +262,49 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         userId: user.uid,
         productQuantity: data.productQuantity,
         productionTips: data.productionTips || "",
+        updatedAt: new Date().toISOString(),
+        ...(existingCalculation ? {} : { createdAt: new Date().toISOString() })
     };
 
-    let finalCalcId = existingCalculation?.id;
+    const { error: calcError } = await supabase.from('calculations').upsert(calculationData);
 
-    if (finalCalcId) {
-      // Update existing calculation
-      const calcRef = doc(firestore, 'users', user.uid, finalCalcId);
-      const dataToSave = { ...calculationData, updatedAt: serverTimestamp() };
-      updateDocumentNonBlocking(calcRef, dataToSave);
-    } else {
-      // Add new calculation and get the new ID
-      const userCalcsColRef = collection(firestore, 'users', user.uid, 'calculations');
-      const dataToSave = { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
-      const newDocRef = await addDocumentNonBlocking(userCalcsColRef, dataToSave);
-      finalCalcId = newDocRef.id;
+    if (calcError) {
+      console.error('Supabase calculation upsert error:', calcError);
+      toast({ title: "Gagal Menyimpan", description: "Gagal menyimpan perhitungan.", variant: "destructive" });
+      setIsSubmitting(false);
+      return;
     }
     
-    if (finalCalcId) {
-      const publicCalcRef = doc(firestore, 'public_calculations', finalCalcId);
-
-      if (data.sharePublicly) {
-          const publicData: any = {
-              ...calculationData,
-              calculationId: finalCalcId, // Ensure the ID is set
-              userName: user.displayName || 'Anonymous',
-              userPhotoURL: user.photoURL || '',
-              createdAt: existingCalculation?.createdAt || serverTimestamp(),
-              updatedAt: serverTimestamp(),
-              userId: user.uid,
-          };
-          delete publicData.isPublic;
-
-          setDocumentNonBlocking(publicCalcRef, publicData, { merge: true });
-      } else if (existingCalculation?.isPublic) {
-          // If it was public before and now it is not, delete it
-          deleteDocumentNonBlocking(publicCalcRef);
-      }
+    if (data.sharePublicly) {
+        const publicData = {
+            id: calculationId,
+            productName: data.productName,
+            productImageUrl: data.productImageUrl || "",
+            productDescription: data.productDescription || "",
+            materials: calculationData.materials,
+            laborCost: Number(data.laborCost),
+            overhead: Number(data.overhead),
+            packaging: Number(data.packaging),
+            margin: Number(data.margin),
+            totalHPP: result.totalHPP,
+            suggestedPrice: result.suggestedPrice,
+            isPublic: true,
+            userId: user.uid,
+            productQuantity: data.productQuantity,
+            productionTips: data.productionTips || "",
+            userName: user.displayName || 'Anonymous',
+            userPhotoURL: user.photoURL || '',
+            createdAt: existingCalculation?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        const { error: publicError } = await supabase.from('public_calculations').upsert(publicData);
+        if (publicError) {
+            console.error('Supabase public calculation upsert error:', publicError);
+            // Optionally notify user about partial failure
+        }
+    } else if (existingCalculation?.isPublic) {
+        await supabase.from('public_calculations').delete().eq('id', calculationId);
     }
-
 
     const randomToast = motivationalToasts[Math.floor(Math.random() * motivationalToasts.length)];
     toast(randomToast);
@@ -635,4 +628,3 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
-

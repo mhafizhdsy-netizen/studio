@@ -16,17 +16,16 @@ export function getSdks(firebaseApp: FirebaseApp) {
   return {
     firebaseApp,
     auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp),
+    firestore: getFirestore(firebaseApp), // Kept for any legacy or other uses, but app logic will use Supabase
   };
 }
 
 export * from './provider';
 export * from './client-provider';
-export * from './firestore/use-collection';
-export * from './firestore/use-doc';
+// Removing Firestore-specific hooks
+// export * from './firestore/use-collection';
+// export * from './firestore/use-doc';
 export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from '@/lib/errors';
 export * from '@/lib/error-emitter';
-
-    

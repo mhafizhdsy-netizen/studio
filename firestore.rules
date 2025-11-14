@@ -1,122 +1,23 @@
 
-/**
- * @fileoverview Firestore Security Rules for HitunginAja application.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for private data (user profiles, calculations).
- * It allows public read access to shared calculations and community comments.
- * It manages access to anonymous chat sessions based on participation.
- * Write access is generally restricted to authenticated owners of the data.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // This file is now managed by Supabase Row Level Security.
+    // The rules below are kept for reference but are no longer active for the database.
 
-    /**
-     * @description Controls access to user profiles.
-     * @path /users/{userId}
-     */
+    /*
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin();
-      
-      /**
-       * @description Controls access to AI consultant chat history.
-       * @path /users/{userId}/ai_consultant_history/{messageId}
-       */
-      match /ai_consultant_history/{messageId} {
-        allow read, write: if isOwner(userId);
-      }
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    /**
-     * @description Controls access to calculation history for each user.
-     * @path /users/{userId}/calculations/{calcId}
-     */
-    match /users/{userId}/calculations/{calcId} {
-      // Only the owner of the user document can manage their own calculations.
-      allow read, list, create, update, delete: if isOwner(userId);
-    }
-    
-    /**
-     * @description Controls access to user expenses.
-     * @path /users/{userId}/expenses/{expenseId}
-     */
-    match /users/{userId}/expenses/{expenseId} {
-      allow read, list, create, update, delete: if isOwner(userId);
-    }
-    
-    /**
-     * @description Controls access to user reports.
-     * @path /users/{userId}/reports/{reportId}
-     */
-    match /users/{userId}/reports/{reportId} {
-       allow read, list, create, update, delete: if isOwner(userId);
+    match /users/{userId}/calculations/{calculationId} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
     }
 
-    /**
-     * @description Controls access to publicly shared calculations.
-     * @path /public_calculations/{calcId}
-     */
-    match /public_calculations/{calcId} {
-      allow get, list: if true;
-      // CREATE: Allow if the user is the owner of the data they are creating.
-      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
-      // UPDATE: Admins can feature content. Owners can update their own content.
-      allow update: if isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
-      // DELETE: Can be deleted by the owner or an admin.
-      allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
-      
-      /**
-       * @description Controls access to comments on public calculations.
-       * @path /public_calculations/{calcId}/comments/{commentId}
-       */
-      match /comments/{commentId} {
-        allow read, list: if true;
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-        allow update: if false; 
-        allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
-      }
+    match /public_calculations/{calculationId} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
-    
-    /**
-     * @description Controls access to anonymous chat sessions.
-     * @path /chat_sessions/{sessionId}
-     */
-    match /chat_sessions/{sessionId} {
-      allow list: if isSignedIn();
-      allow get: if isParticipant(sessionId);
-      allow create: if isSignedIn() && request.resource.data.participantIds.hasOnly([request.auth.uid]) && request.resource.data.status == 'pending';
-      allow update: if isParticipant(sessionId);
-
-      /**
-       * @description Controls access to messages within a chat session.
-       * @path /chat_sessions/{sessionId}/messages/{messageId}
-       */
-      match /messages/{messageId} {
-        allow read, list, create: if isParticipant(sessionId);
-        allow update, delete: if false; // Messages are immutable
-      }
-    }
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      // Check for admin status on the user's document in Firestore.
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
-
-    function isParticipant(sessionId) {
-      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chat_sessions/$(sessionId)).data.participantIds;
-    }
+    */
   }
 }

@@ -28,8 +28,8 @@ import {
   Shield,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useAuth } from '@/firebase';
+import { supabase } from '@/lib/supabase';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
@@ -39,11 +39,13 @@ import { Logo } from '../ui/logo';
 import { Badge } from '../ui/badge';
 
 interface UserProfile {
+    id: string;
+    name: string;
     isAdmin?: boolean;
 }
 
 const AdminBadge = () => (
-    <Badge variant="accent" className="text-xs px-1.5 py-0.5">
+    <Badge variant="accent" className="text-xs px-1.5 py-0.5 ml-2">
         <Shield className="h-3 w-3 mr-1"/>Admin
     </Badge>
 )
@@ -52,15 +54,28 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const auth = useAuth();
-  const firestore = useFirestore();
   const router = useRouter();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+        if (user && supabase) {
+            const { data, error } = await supabase
+                .from('users')
+                .select('id, name, isAdmin')
+                .eq('id', user.uid)
+                .single();
+            if (data) {
+                setUserProfile(data);
+            }
+            if(error) {
+                console.error("Error fetching user profile from Supabase", error);
+            }
+        }
+    };
+    fetchUserProfile();
+  }, [user]);
 
-  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
 
   const handleSignOut = async () => {
     if(auth) {

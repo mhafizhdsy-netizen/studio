@@ -6,9 +6,8 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useAuth, useFirestore } from "@/firebase";
+import { useAuth } from "@/firebase";
 import { createUserWithEmailAndPassword, updateProfile, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -55,7 +54,6 @@ export function SignupForm() {
   const { toast } = useToast();
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const [isLoadingEmail, setIsLoadingEmail] = useState(false);
   const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
   
@@ -76,7 +74,6 @@ export function SignupForm() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
        
-      // Moderate image before setting it
       const imageDataUri = await fileToDataUri(file);
       const moderationResult = await moderateImage({ imageDataUri });
 
@@ -87,7 +84,7 @@ export function SignupForm() {
               variant: "destructive",
           });
           if (fileInputRef.current) {
-            fileInputRef.current.value = ""; // Reset file input
+            fileInputRef.current.value = "";
           }
           return;
       }
@@ -97,25 +94,23 @@ export function SignupForm() {
     }
   };
 
-  const createUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
-    if (!firestore) return;
-    const userDocRef = doc(firestore, 'users', uid);
-    const userDoc = await getDoc(userDocRef);
-    if (!userDoc.exists()) {
-        await setDoc(userDocRef, {
-            id: uid,
-            name,
-            email,
-            photoURL: photoURL || '',
-            createdAt: serverTimestamp(),
-            onboardingCompleted: false, 
-            isAdmin: false,
-        }, { merge: true });
-    }
-  }
+  const syncUserProfile = async (uid: string, name: string, email: string, photoURL: string) => {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('users')
+      .upsert({ 
+        id: uid, 
+        name: name, 
+        email: email, 
+        photoURL: photoURL || '',
+        onboardingCompleted: false,
+        isAdmin: false
+      }, { onConflict: 'id' });
+    if (error) console.error("Error syncing user profile to Supabase:", error);
+  };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!auth || !firestore) return;
+    if (!auth) return;
     setIsLoadingEmail(true);
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
@@ -125,12 +120,11 @@ export function SignupForm() {
         if (photoFile && supabase) {
             const cleanFileName = sanitizeFileName(photoFile.name);
             const filePath = `public/profile-images/${user.uid}/${cleanFileName}`;
-            
             photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath);
         }
 
         await updateProfile(user, { displayName: values.name, photoURL: photoURL || undefined });
-        await createUserProfile(user.uid, values.name, values.email, photoURL);
+        await syncUserProfile(user.uid, values.name, values.email, photoURL);
 
         toast({
             title: "Akun Berhasil Dibuat!",
@@ -156,7 +150,7 @@ export function SignupForm() {
         const result = await signInWithPopup(auth, provider);
         const user = result.user;
         
-        await createUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
+        await syncUserProfile(user.uid, user.displayName || 'User', user.email || '', user.photoURL || '');
 
         toast({
             title: "Berhasil Masuk!",
@@ -165,7 +159,6 @@ export function SignupForm() {
         router.push("/dashboard");
     } catch (error: any) {
         if (error.code === 'auth/user-cancelled' || error.code === 'auth/popup-closed-by-user') {
-            // User cancelled the sign-in flow, do nothing.
             return;
         }
         console.error(error);

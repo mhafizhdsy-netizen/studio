@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
-import { useUser, useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, query, orderBy, doc, Timestamp, getDoc } from 'firebase/firestore';
+import { useState, useEffect } from "react";
+import { useUser } from "@/firebase";
+import { supabase } from "@/lib/supabase";
 import { CalculationCard } from "./CalculationCard";
 import { Loader2, ServerCrash } from "lucide-react";
 import { Button } from "../ui/button";
@@ -19,7 +19,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { PublicCalculation } from "../community/PublicCalculationList";
 
 export interface Calculation {
   id: string;
@@ -33,8 +32,8 @@ export interface Calculation {
   totalHPP: number;
   suggestedPrice: number;
   margin: number;
-  createdAt: Timestamp;
-  updatedAt?: Timestamp;
+  createdAt: string; // Changed from Timestamp
+  updatedAt?: string;
   userId: string;
   isPublic?: boolean;
   productQuantity: number;
@@ -46,19 +45,41 @@ export interface Calculation {
 
 export function CalculationHistory() {
   const { user } = useUser();
-  const firestore = useFirestore();
   const { toast } = useToast();
-
-  const calculationsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(collection(firestore, 'users', user.uid, 'calculations'), orderBy('createdAt', 'desc'));
-  }, [user, firestore]);
-
-  const { data: calculations, isLoading, error } = useCollection<Calculation>(calculationsQuery);
-
+  const [calculations, setCalculations] = useState<Calculation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCalcId, setSelectedCalcId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const fetchCalculations = async () => {
+      if (!user || !supabase) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const { data, error } = await supabase
+          .from('calculations')
+          .select('*')
+          .eq('userId', user.uid)
+          .order('createdAt', { ascending: false });
+
+        if (error) throw error;
+        setCalculations(data || []);
+      } catch (e: any) {
+        setError(e);
+        console.error("Error fetching calculations:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCalculations();
+  }, [user]);
 
   const openDeleteDialog = (id: string) => {
     setSelectedCalcId(id);
@@ -66,29 +87,28 @@ export function CalculationHistory() {
   };
 
   const handleDelete = async () => {
-    if (!user || !selectedCalcId || !firestore) return;
+    if (!user || !selectedCalcId || !supabase) return;
 
     setIsDeleting(true);
     
-    const userCalcRef = doc(firestore, 'users', user.uid, 'calculations', selectedCalcId);
-    const publicCalcRef = doc(firestore, 'public_calculations', selectedCalcId);
-    
+    // In Supabase, we would typically rely on RLS and cascade deletes,
+    // but for explicit deletion from both tables:
     try {
-      // Check if the public document exists before attempting to delete
-      const publicDoc = await getDoc(publicCalcRef);
-
-      // Non-blocking deletion for user's private calculation
-      deleteDocumentNonBlocking(userCalcRef);
+      // First, delete from public_calculations if it exists
+      await supabase.from('public_calculations').delete().eq('id', selectedCalcId);
       
-      // If it was public, delete it from the public collection too
-      if (publicDoc.exists()) {
-        deleteDocumentNonBlocking(publicCalcRef);
-      }
+      // Then, delete from the user's private calculations
+      const { error } = await supabase.from('calculations').delete().eq('id', selectedCalcId);
+
+      if (error) throw error;
+
+      setCalculations(prev => prev.filter(c => c.id !== selectedCalcId));
       
       toast({
         title: "Berhasil Dihapus",
         description: "Perhitunganmu sudah dihapus.",
       });
+
     } catch (e) {
         console.error("Deletion failed:", e);
         toast({
@@ -97,7 +117,6 @@ export function CalculationHistory() {
             variant: "destructive",
         });
     }
-
 
     setIsDeleting(false);
     setIsDeleteDialogOpen(false);
@@ -123,7 +142,7 @@ export function CalculationHistory() {
     );
   }
 
-  if (calculations && calculations.length === 0) {
+  if (calculations.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center w-full h-full">
         <h3 className="text-2xl font-bold tracking-tight font-headline">
@@ -144,7 +163,7 @@ export function CalculationHistory() {
       <div className="w-full">
         <h2 className="text-xl font-bold font-headline mb-4">Riwayat Perhitungan</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {calculations && calculations.map((calc) => (
+          {calculations.map((calc) => (
             <CalculationCard key={calc.id} calculation={calc} onDelete={openDeleteDialog} />
           ))}
         </div>
@@ -169,5 +188,3 @@ export function CalculationHistory() {
     </>
   );
 }
-
-    

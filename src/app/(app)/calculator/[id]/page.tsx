@@ -2,29 +2,53 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser } from '@/firebase';
+import { supabase } from '@/lib/supabase';
 import { CalculatorForm } from '@/components/calculator/CalculatorForm';
 import { Loader2, ServerCrash } from 'lucide-react';
 import type { Calculation } from '@/components/dashboard/CalculationHistory';
+import { useState, useEffect } from 'react';
 
-export default function EditCalculatorPageForUser() {
+export default function EditCalculatorPage() {
   const params = useParams();
   const id = params.id as string;
   const { user } = useUser();
-  const firestore = useFirestore();
+  const [calculation, setCalculation] = useState<Calculation | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const calcDocRef = useMemoFirebase(() => {
-    if (!user || !firestore || !id) return null;
-    // This path is now guaranteed to be correct for the logged-in user
-    return doc(firestore, 'users', user.uid, 'calculations', id);
-  }, [user, firestore, id]);
+  useEffect(() => {
+    const fetchCalculation = async () => {
+        if (!user || !id || !supabase) {
+            setIsLoading(false);
+            return;
+        };
 
-  const {
-    data: calculation,
-    isLoading: isDataLoading,
-    error,
-  } = useDoc<Calculation>(calcDocRef);
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const { data, error } = await supabase
+                .from('calculations')
+                .select('*')
+                .eq('id', id)
+                .eq('userId', user.uid)
+                .single();
+            
+            if (error) throw error;
+
+            setCalculation(data);
+
+        } catch (e: any) {
+            console.error("Error fetching calculation for edit:", e);
+            setError(e);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+    fetchCalculation();
+  }, [id, user]);
+
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
@@ -34,7 +58,7 @@ export default function EditCalculatorPageForUser() {
         </h1>
       </div>
       <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed shadow-sm p-4 lg:p-6">
-        {isDataLoading ? (
+        {isLoading ? (
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         ) : error ? (
           <div className="flex flex-col items-center justify-center text-center w-full h-full">
