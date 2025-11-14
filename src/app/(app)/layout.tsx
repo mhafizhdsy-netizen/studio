@@ -10,14 +10,6 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
-// The database trigger 'handle_new_user' now handles profile creation automatically.
-// This client-side check is removed to rely solely on the backend trigger.
-const syncUserProfile = async (user: User) => {
-  // This function is now intentionally left blank.
-  // The logic has been moved to a database trigger for reliability.
-};
-
-
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, session } = useAuth();
   const router = useRouter();
@@ -26,12 +18,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     // If loading is finished and there's no user, redirect to login.
     if (!isLoading && !user) {
       router.replace("/");
-    }
-    
-    // When the user and session are confirmed, sync their profile.
-    // This is crucial for new sign-ups and first logins.
-    if (user && session) {
-        syncUserProfile(user);
     }
 
   }, [user, isLoading, session, router]);
