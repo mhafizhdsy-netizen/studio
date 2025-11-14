@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -92,7 +91,7 @@ export function QuickCalculatorForm() {
             </CardContent>
           </Card>
           
-          <Button type="button" onClick={handleCalculate} className="w-full font-bold bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6">
+          <Button type="button" onClick={handleCalculate} variant="accent" className="w-full font-bold text-lg py-6">
               <Wand2 className="mr-2 h-5 w-5" /> Hitung HPP
           </Button>
         </div>

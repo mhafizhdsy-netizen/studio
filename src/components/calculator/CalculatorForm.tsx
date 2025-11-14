@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent } from "react";
@@ -365,7 +364,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
           <Card>
               <CardHeader>
-                  <CardTitle className="font-headline">4. Kuantitas & Margin</CardTitle>
+                  <CardTitle className="font-headline">4. Kuantitas &amp; Margin</CardTitle>
                   <CardDescription>Tentukan jumlah produksi dan target keuntunganmu.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -382,7 +381,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
               </CardContent>
           </Card>
           
-          <Button type="button" onClick={handleCalculate} className="w-full font-bold bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6">
+          <Button type="button" onClick={handleCalculate} variant="accent" className="w-full font-bold text-lg py-6">
               <Wand2 className="mr-2 h-5 w-5" /> Hitung HPP
           </Button>
         </div>
