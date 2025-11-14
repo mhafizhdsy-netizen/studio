@@ -15,7 +15,6 @@ import {
   LayoutDashboard,
   LogOut,
   Users,
-  Shield,
   User as UserIcon,
   MessageSquare,
   DollarSign,
@@ -41,15 +40,6 @@ export function AppSidebar() {
   const { user } = useUser();
   const auth = useAuth();
   const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      user.getIdTokenResult().then((idTokenResult) => {
-        setIsAdmin(!!idTokenResult.claims.isAdmin);
-      });
-    }
-  }, [user]);
 
   const handleSignOut = async () => {
     if(auth) {
@@ -199,19 +189,6 @@ export function AppSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {isAdmin && (
-             <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname === '/admin'}
-                >
-                  <Link href="/admin">
-                    <Shield />
-                    Admin
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-          )}
         </SidebarMenu>
       </SidebarContent>
       <SidebarSeparator />

@@ -1,18 +1,36 @@
 
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { CalculationHistory } from "@/components/dashboard/CalculationHistory";
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MonthlyExpenseSummary } from "@/components/expenses/MonthlyExpenseSummary";
 import { DashboardAnalytics } from "@/components/dashboard/DashboardAnalytics";
 import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
+import { useUser } from "@/firebase";
+import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 
 export default function DashboardPage() {
+  const { user } = useUser();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      user.getIdTokenResult().then((idTokenResult) => {
+        setIsAdmin(!!idTokenResult.claims.isAdmin);
+      });
+    }
+  }, [user]);
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-       <OnboardingGuide />
+      <OnboardingGuide />
+      
+      {isAdmin && <AdminDashboard />}
+
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold md:text-2xl font-headline">Dashboard</h1>
         <Button asChild className="font-bold">
