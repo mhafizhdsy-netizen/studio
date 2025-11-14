@@ -4,20 +4,17 @@ import { doc } from 'firebase/firestore';
 import { CalculatorForm } from "@/components/calculator/CalculatorForm";
 import { Loader2, ServerCrash } from "lucide-react";
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
+import { useParams } from "next/navigation";
 
-interface EditPageParams {
-    params: { id: string };
-}
-
-export default function EditCalculatorPageForUser({ params }: EditPageParams) {
-  const { id } = params;
+// The component no longer needs to receive params as a prop
+export default function EditCalculatorPageForUser() {
+  const params = useParams();
+  const id = params.id as string; // Extract id from useParams hook
   const { user } = useUser();
   const firestore = useFirestore();
   
-  // This hook now safely depends on `user` and `id`, ensuring it only runs when both are available.
   const calcDocRef = useMemoFirebase(() => {
     if (!firestore || !user || !id) return null;
-    // The path is now simple and correct for the user's own calculations.
     return doc(firestore, 'users', user.uid, 'calculations', id);
   }, [firestore, user, id]);
 
