@@ -110,14 +110,14 @@ export function PublicCalculationDetailDialog({
                       {getInitials(userName)}
                     </AvatarFallback>
                   </Avatar>
-                  <DialogDescription className="flex items-center gap-2">
+                  <div className="text-sm text-muted-foreground flex items-center gap-2">
                     Oleh {userName || "Anonim"}
                     {userIsAdmin && (
                         <Badge variant="accent" className="text-xs px-1.5 py-0">
                             <Shield className="h-3 w-3 mr-1"/>Admin
                         </Badge>
                     )}
-                  </DialogDescription>
+                  </div>
                 </div>
               </DialogHeader>
 
