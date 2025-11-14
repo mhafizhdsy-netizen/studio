@@ -62,17 +62,19 @@ export function PublicCalculationDetailDialog({
 
   const safeMaterials = materials || [];
   
-  // Recalculating costs for pie chart based on per-product values
-  const totalMaterialCostPerProduct = productQuantity > 0 
-    ? safeMaterials.reduce((acc, mat) => acc + (mat.isTotalCost ? (mat.cost || 0) : (mat.cost || 0) * (mat.qty || 0)), 0) / productQuantity 
-    : 0;
-
+  const totalMaterialCostForBatch = safeMaterials.reduce((acc, mat) => acc + (mat.isTotalCost ? (mat.cost || 0) : (mat.cost || 0) * (mat.qty || 0)), 0);
+  
+  const totalBatchCost = totalMaterialCostForBatch + (laborCost || 0) + (overhead || 0);
+  
+  const costPerProductBeforePackaging = productQuantity > 0 ? totalBatchCost / productQuantity : 0;
+  
+  const materialCostPerProduct = productQuantity > 0 ? totalMaterialCostForBatch / productQuantity : 0;
   const laborCostPerProduct = productQuantity > 0 ? (laborCost || 0) / productQuantity : 0;
   const overheadPerProduct = productQuantity > 0 ? (overhead || 0) / productQuantity : 0;
   const packagingPerProduct = packaging || 0;
 
   const pieChartData = [
-    { name: "Bahan Baku", value: totalMaterialCostPerProduct, fill: "hsl(var(--chart-1))" },
+    { name: "Bahan Baku", value: materialCostPerProduct, fill: "hsl(var(--chart-1))" },
     { name: "Tenaga Kerja", value: laborCostPerProduct, fill: "hsl(var(--chart-2))" },
     { name: "Overhead", value: overheadPerProduct, fill: "hsl(var(--chart-3))" },
     { name: "Kemasan", value: packagingPerProduct, fill: "hsl(var(--chart-4))" },
@@ -89,7 +91,7 @@ export function PublicCalculationDetailDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-[90vw] p-0">
+      <DialogContent className="max-w-2xl w-[90vw] p-0">
           <ScrollArea className="max-h-[90vh]">
             <div className="p-4 md:p-6 space-y-6">
               <DialogHeader>
@@ -160,7 +162,7 @@ export function PublicCalculationDetailDialog({
                           </div>
                           <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
                               <span className="text-primary font-bold text-lg">Saran Harga Jual</span>
-                              <span className="font-extrabold text-2xl text-primary">
+                              <span className="font-extrabold text-xl text-primary">
                               {formatCurrency(suggestedPrice)}
                               </span>
                           </div>
