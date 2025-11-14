@@ -1,13 +1,10 @@
-
 "use client";
 import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, getDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { CalculatorForm } from "@/components/calculator/CalculatorForm";
 import { Loader2, ServerCrash } from "lucide-react";
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
-
 
 export default function EditCalculatorPage() {
   const { user } = useUser();
@@ -15,54 +12,33 @@ export default function EditCalculatorPage() {
   const params = useParams();
   const id = params.id as string;
 
-  // State to hold the owner's ID, especially for admins
-  const [ownerId, setOwnerId] = useState<string | null>(null);
+  // --- Revised Data Fetching Logic ---
 
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-  const { data: userProfile } = useDoc(userDocRef);
+  // 1. First, try to fetch from public_calculations. This document contains the owner's userId.
+  const publicCalcDocRef = useMemoFirebase(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, 'public_calculations', id);
+  }, [firestore, id]);
+  
+  const { data: publicCalculation, isLoading: isLoadingPublic } = useDoc<Calculation>(publicCalcDocRef);
 
-  useEffect(() => {
-    if (userProfile?.isAdmin) {
-      const getOwner = async () => {
-        if (!firestore || !id || !user) return;
-        try {
-          const publicDocRef = doc(firestore, 'public_calculations', id);
-          const publicDoc = await getDoc(publicDocRef);
-          if (publicDoc.exists() && publicDoc.data()?.userId) {
-            setOwnerId(publicDoc.data()?.userId);
-          } else {
-            // Fallback: Check if it's the admin's own calculation
-            const adminCalcRef = doc(firestore, 'users', user.uid, 'calculations', id);
-            const adminCalcDoc = await getDoc(adminCalcRef);
-            if (adminCalcDoc.exists()) {
-              setOwnerId(user.uid);
-            } else {
-              setOwnerId(null); // Or handle 'not found' case
-            }
-          }
-        } catch (e) {
-            // If any error, assume it is admin's own calc for now
-            setOwnerId(user.uid);
-        }
-      };
-      getOwner();
-    } else if (user) {
-      setOwnerId(user.uid);
-    }
-  }, [userProfile, user, firestore, id]);
+  // 2. Determine the ownerId. 
+  //    - If public data exists, use its userId.
+  //    - If not, assume the current user is the owner (covers both non-admin editing their own, and admin editing a non-public calc which we assume is their own).
+  const ownerId = publicCalculation?.userId || user?.uid;
 
-
+  // 3. Now, create the definitive reference to the user's private calculation document.
+  //    This will only run when `ownerId` is valid.
   const calcDocRef = useMemoFirebase(() => {
     if (!ownerId || !firestore || !id) return null;
     return doc(firestore, 'users', ownerId, 'calculations', id);
   }, [ownerId, firestore, id]);
 
-  const { data: calculation, isLoading, error } = useDoc<Calculation>(calcDocRef);
-
-  const isDataLoading = isLoading || !ownerId;
+  const { data: calculation, isLoading: isLoadingPrivate, error } = useDoc<Calculation>(calcDocRef);
+  
+  // The final loading state depends on when we expect to have the data.
+  // If we are still trying to figure out the owner, we are loading.
+  const isDataLoading = isLoadingPublic || isLoadingPrivate;
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
@@ -76,7 +52,7 @@ export default function EditCalculatorPage() {
             <div className="flex flex-col items-center justify-center text-center w-full h-full">
                 <ServerCrash className="h-12 w-12 text-destructive mb-4" />
                 <p className="font-semibold text-lg">Oops, ada masalah!</p>
-                <p className="text-muted-foreground">Gagal memuat data perhitungan. Mungkin Anda tidak punya akses.</p>
+                <p className="text-muted-foreground">Gagal memuat data perhitungan. Mungkin Anda tidak punya akses atau data tidak ada.</p>
             </div>
         ) : calculation ? (
           <CalculatorForm existingCalculation={calculation} />
@@ -87,5 +63,3 @@ export default function EditCalculatorPage() {
     </main>
   );
 }
-
-    
