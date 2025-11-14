@@ -106,6 +106,10 @@ export default function AnonymousChatPage() {
                 .limit(1)
                 .single();
     
+            if (findError && findError.code !== 'PGRST116') {
+                throw findError;
+            }
+
             // If a session is found, join it.
             if (availableSession) {
                 const { data: updatedSession, error: updateError } = await supabase
@@ -121,8 +125,7 @@ export default function AnonymousChatPage() {
                 if (updateError) throw updateError; // Rethrow if update fails
                 setSession(updatedSession);
             } else {
-                // This case handles both "no rows" and any other error during find.
-                // It correctly triggers the UI to show the 'wait or retry' options.
+                // This case handles "no rows" and correctly triggers the UI to show the 'wait or retry' options.
                 setNotFound(true);
             }
         } catch (error) {
@@ -151,7 +154,7 @@ export default function AnonymousChatPage() {
             if (error) throw error;
             setSession(newSession);
         } catch (error) {
-            console.error("Error creating chat session:", error);
+            // console.error("Error creating chat session:", error);
         } finally {
             setIsFinding(false);
         }
@@ -267,7 +270,5 @@ export default function AnonymousChatPage() {
         </div>
     );
 }
-
-    
 
     
