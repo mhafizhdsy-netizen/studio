@@ -35,12 +35,15 @@ const calculateStats = (calculations: Calculation[] | null): AnalyticsData => {
     return { totalProducts, averageMargin, totalRevenue, totalProductionCost, estimatedProfit };
 }
 
-type TimeRange = 'month' | 'week' | 'day';
+export type TimeRange = 'month' | 'week' | 'day';
 
-export function DashboardAnalytics() {
+interface DashboardAnalyticsProps {
+    timeRange: TimeRange;
+}
+
+export function DashboardAnalytics({ timeRange }: DashboardAnalyticsProps) {
     const { user } = useAuth();
-    const [timeRange, setTimeRange] = useState<TimeRange>('month');
-
+    
     const [currentCalculations, setCurrentCalculations] = useState<Calculation[] | null>(null);
     const [prevCalculations, setPrevCalculations] = useState<Calculation[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -121,15 +124,6 @@ export function DashboardAnalytics() {
 
     return (
         <div>
-            <div className="flex justify-end mb-4">
-                <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
-                    <TabsList>
-                        <TabsTrigger value="day">Hari Ini</TabsTrigger>
-                        <TabsTrigger value="week">Minggu Ini</TabsTrigger>
-                        <TabsTrigger value="month">Bulan Ini</TabsTrigger>
-                    </TabsList>
-                </Tabs>
-            </div>
             {isLoading ? (
                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <Skeleton className="h-28" />
