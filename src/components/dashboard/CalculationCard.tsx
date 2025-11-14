@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
@@ -27,7 +28,8 @@ export function CalculationCard({ calculation, onDelete }: CalculationCardProps)
   const router = useRouter();
   
   const handleEdit = () => {
-    router.push(`/calculator/${calculation.id}`);
+    const fullPath = `users/${calculation.userId}/calculations/${calculation.id}`;
+    router.push(`/calculator/edit?path=${encodeURIComponent(fullPath)}`);
   };
 
   const handleDelete = () => {

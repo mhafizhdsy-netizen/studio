@@ -346,13 +346,22 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
         }.`,
       });
     } catch (e: any) {
-        const permissionError = new FirestorePermissionError({
-            path: calcRef.path,
-            operation: 'update',
-            requestResourceData: dataToUpdate,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        console.error(e) // Fallback for other errors
+        try {
+            const permissionError = new FirestorePermissionError({
+                path: calcRef.path,
+                operation: 'update',
+                requestResourceData: dataToUpdate,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } catch (error) {
+            console.error("Failed to create contextual error:", error);
+            console.error("Original Firestore error:", e);
+             toast({
+                title: 'Gagal',
+                description: 'Gagal memperbarui status pilihan. Cek aturan keamanan.',
+                variant: 'destructive',
+            });
+        }
     }
   };
 
