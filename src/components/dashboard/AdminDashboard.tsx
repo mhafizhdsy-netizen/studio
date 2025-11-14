@@ -519,9 +519,6 @@ function ContentManager({ calculations, isLoading, onRefresh }: { calculations: 
 function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isReplying, setIsReplying] = useState(false);
-    const [replyingReport, setReplyingReport] = useState<Report | null>(null);
-    const [replyContent, setReplyContent] = useState('');
     const { toast } = useToast();
 
     const fetchReports = async () => {
@@ -563,31 +560,6 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
         }
     };
     
-    const handleSendReply = async () => {
-        if (!replyingReport || !replyContent) return;
-        setIsReplying(true);
-        
-        // Reverting to direct insert due to RPC issues.
-        // This will fail if RLS is restrictive, but it avoids the "function not found" error.
-        const { error } = await supabase.from('notifications').insert({
-            userId: replyingReport.reporter.id,
-            title: `Balasan untuk Laporan Anda: "${replyingReport.calculation.productName}"`,
-            content: replyContent,
-            type: 'report_reply',
-            referenceId: replyingReport.id,
-        });
-
-        if (error) {
-            toast({ title: 'Gagal mengirim balasan', description: error.message, variant: 'destructive' });
-        } else {
-            toast({ title: 'Balasan berhasil dikirim.' });
-            await updateReportStatus(replyingReport.id, 'resolved');
-            setReplyingReport(null);
-            setReplyContent('');
-        }
-        setIsReplying(false);
-    }
-
     const getStatusBadge = (status: Report['status']) => {
         switch (status) {
             case 'pending': return <Badge variant="secondary">Menunggu</Badge>;
@@ -635,8 +607,8 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
                                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => setReplyingReport(report)} disabled={report.status !== 'pending'}>
-                                                    <Send className="mr-2 h-4 w-4" /> Balas & Selesaikan
+                                                <DropdownMenuItem onClick={() => updateReportStatus(report.id, 'resolved')} disabled={report.status !== 'pending'}>
+                                                    <ShieldCheck className="mr-2 h-4 w-4" /> Selesaikan Laporan
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => updateReportStatus(report.id, 'dismissed')} disabled={report.status !== 'pending'}>
                                                     <ShieldX className="mr-2 h-4 w-4" /> Tolak Laporan
@@ -651,30 +623,6 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
                 )}
             </CardContent>
         </Card>
-        <Dialog open={!!replyingReport} onOpenChange={(open) => !open && setReplyingReport(null)}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Balas Laporan</DialogTitle>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div>
-                        <Label>Pesan untuk {replyingReport?.reporter.name}</Label>
-                        <Textarea 
-                            value={replyContent}
-                            onChange={(e) => setReplyContent(e.target.value)}
-                            placeholder="Contoh: Terima kasih atas laporan Anda. Konten telah kami tinjau dan hapus."
-                        />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button variant="ghost" onClick={() => setReplyingReport(null)}>Batal</Button>
-                    <Button onClick={handleSendReply} disabled={isReplying}>
-                        {isReplying && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                        Kirim Balasan
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
         </>
     );
 }
@@ -885,3 +833,5 @@ export function AdminDashboard() {
     </Card>
   );
 }
+
+    
