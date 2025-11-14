@@ -34,19 +34,19 @@ Image: {{media url=imageDataUri}}`,
     safetySettings: [
       {
         category: 'HARM_CATEGORY_HATE_SPEECH',
-        threshold: 'BLOCK_LOW_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
       {
         category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_LOW_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
       {
         category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_LOW_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
       {
         category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        threshold: 'BLOCK_LOW_AND_ABOVE',
+        threshold: 'BLOCK_ONLY_HIGH',
       },
     ],
   },
@@ -70,7 +70,7 @@ const imageModerationFlow = ai.defineFlow(
           
         return {
           isSafe: false,
-          reason: `Gambar ditolak karena mengandung unsur: ${reason}.`,
+          reason: `Gambar ditolak karena mengandung unsur: ${reason || 'Tidak Pantas'}.`,
         };
       }
       
@@ -85,16 +85,15 @@ const imageModerationFlow = ai.defineFlow(
         };
       }
 
-      // 3. If not blocked and no "unsafe" flag, we can consider it safe.
-      // This handles cases where the AI might not return a structured output but the image is fine.
+      // 3. If not blocked and no "unsafe" flag from the LLM, consider it safe.
       return { isSafe: true };
 
     } catch (error) {
       console.error('Image moderation flow error:', error);
-      // If the moderation flow itself fails for any reason, default to flagging as unsafe.
+      // This catch block will now mostly handle network errors or other unexpected issues.
       return {
         isSafe: false,
-        reason: 'Gagal menganalisis gambar. Silakan coba gambar lain.',
+        reason: 'Gagal menganalisis gambar karena masalah teknis. Silakan coba gambar lain.',
       };
     }
   }
