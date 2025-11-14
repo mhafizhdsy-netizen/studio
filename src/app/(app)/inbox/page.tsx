@@ -93,7 +93,7 @@ export default function InboxPage() {
         <div className="flex items-center gap-2">
             <Mail className="h-6 w-6" />
             <h1 className="text-lg font-semibold md:text-2xl font-headline">
-                Kotak Masuk
+                Inbox
             </h1>
         </div>
         <Button
@@ -124,7 +124,7 @@ export default function InboxPage() {
           {!isLoading && !isError && notifications?.length === 0 && (
             <div className="text-center py-10 text-muted-foreground">
                 <InboxIcon className="mx-auto h-12 w-12 mb-4" />
-                <p className="font-semibold">Kotak masuk kosong</p>
+                <p className="font-semibold">Inbox kosong</p>
                 <p>Semua pesan dari admin akan muncul di sini.</p>
             </div>
           )}
@@ -155,5 +155,3 @@ export default function InboxPage() {
     </main>
   );
 }
-
-    

@@ -130,7 +130,7 @@ export function AppSidebar() {
             >
               <Link href="/inbox" className='relative'>
                 <Mail />
-                Kotak Masuk
+                Inbox
                 {unreadCount && unreadCount > 0 && (
                    <span className="absolute right-2 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
                     {unreadCount}

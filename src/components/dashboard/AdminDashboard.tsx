@@ -803,7 +803,7 @@ function SiteStatusManager() {
             <Card className="lg:col-span-2">
                 <CardHeader>
                     <CardTitle>Kirim Siaran ke Semua Pengguna</CardTitle>
-                    <CardDescription>Kirim pesan yang akan muncul di Kotak Masuk semua pengguna.</CardDescription>
+                    <CardDescription>Kirim pesan yang akan muncul di Inbox semua pengguna.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                      <Input value={broadcast.title} onChange={e => setBroadcast(p => ({ ...p, title: e.target.value }))} placeholder="Judul Pesan Siaran"/>
