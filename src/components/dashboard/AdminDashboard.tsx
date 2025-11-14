@@ -586,17 +586,18 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
         };
         
         try {
-            // This is NOT a secure practice for production but is used here to bypass RLS for this specific admin action.
-            // A secure implementation would use a server-side Edge Function.
-            const supabaseAdmin = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-                process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-            );
+            const response = await fetch('/api/send-admin-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(notificationData),
+            });
+            
+            const result = await response.json();
 
-            const { error } = await supabaseAdmin.from('notifications').insert(notificationData);
-
-            if (error) {
-                throw new Error(error.message || 'Gagal mengirim balasan dari server.');
+            if (!response.ok) {
+                throw new Error(result.error || 'Gagal mengirim balasan.');
             }
 
             toast({ title: 'Balasan Terkirim' });
@@ -924,4 +925,5 @@ export function AdminDashboard() {
     
 
     
+
 
