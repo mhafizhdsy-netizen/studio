@@ -166,7 +166,7 @@ export function SignupForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <div className="flex flex-col items-center gap-2">
                 <div 
-                    className="relative rounded-full p-1 border-2 border-dashed border-muted-foreground/50 cursor-pointer hover:border-primary transition-colors"
+                    className="relative p-1 rounded-full border-2 border-dashed border-muted-foreground/50 cursor-pointer hover:border-primary transition-colors"
                     onClick={() => fileInputRef.current?.click()}
                 >
                     <Avatar className="h-24 w-24">
@@ -237,7 +237,7 @@ export function SignupForm() {
                     <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
+                    <span className="bg-card px-2 text-muted-foreground">
                     Atau
                     </span>
                 </div>

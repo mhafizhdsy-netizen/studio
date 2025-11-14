@@ -1,7 +1,7 @@
 
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function AuthLayout({
   children,
