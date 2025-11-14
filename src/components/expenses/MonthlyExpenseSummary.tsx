@@ -49,7 +49,11 @@ export function MonthlyExpenseSummary() {
         setIsLoading(false);
     }
 
-    fetchExpenses();
+    if (user) {
+        fetchExpenses();
+    } else {
+        setIsLoading(false);
+    }
 
   }, [user]);
 
