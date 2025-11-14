@@ -154,12 +154,12 @@ export function SignupForm() {
   const isLoading = isLoadingEmail || isLoadingGoogle;
 
   return (
-    <div className="flex flex-col gap-6">
+    <>
       <div className="grid gap-2 text-center">
-            <h1 className="text-3xl font-bold font-headline">Buat Akun Gratis</h1>
-            <p className="text-balance text-muted-foreground">
-                Mulai perjalanan bisnismu dengan menghitung profit secara akurat.
-            </p>
+        <h1 className="text-3xl font-bold font-headline">Buat Akun Gratis</h1>
+        <p className="text-balance text-muted-foreground">
+            Mulai perjalanan bisnismu dengan menghitung profit secara akurat.
+        </p>
       </div>
 
        <Form {...form}>
@@ -237,7 +237,7 @@ export function SignupForm() {
                     <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
+                    <span className="bg-background px-2 text-muted-foreground">
                     Atau
                     </span>
                 </div>
@@ -248,12 +248,12 @@ export function SignupForm() {
             </Button>
         </form>
       </Form>
-      <div className="text-center text-sm text-muted-foreground">
+      <div className="mt-4 text-center text-sm text-muted-foreground">
         Sudah punya akun?{" "}
         <Link href="/login" className="underline text-primary font-semibold hover:text-primary/80">
           Masuk di sini
         </Link>
       </div>
-    </div>
+    </>
   );
 }
