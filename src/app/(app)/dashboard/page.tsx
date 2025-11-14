@@ -10,32 +10,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MonthlyExpenseSummary } from "@/components/expenses/MonthlyExpenseSummary";
 import { DashboardAnalytics } from "@/components/dashboard/DashboardAnalytics";
 import { OnboardingGuide } from "@/components/dashboard/OnboardingGuide";
-import { useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase";
-import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
-import { doc } from "firebase/firestore";
-
-interface UserProfile {
-    isAdmin?: boolean;
-}
+import { useUser } from "@/firebase";
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const firestore = useFirestore();
-
-  const userDocRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-
-  const { data: userProfile } = useDoc<UserProfile>(userDocRef);
-  const isAdmin = userProfile?.isAdmin === true;
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
       <OnboardingGuide />
       
-      {isAdmin && <AdminDashboard />}
-
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold md:text-2xl font-headline">Dashboard</h1>
         <Button asChild className="font-bold">

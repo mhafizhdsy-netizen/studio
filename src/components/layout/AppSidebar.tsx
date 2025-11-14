@@ -43,9 +43,8 @@ interface UserProfile {
 }
 
 const AdminBadge = () => (
-    <Badge variant="accent" className="ml-2 text-xs">
-        <Shield className="h-3 w-3 mr-1"/>
-        Admin
+    <Badge variant="accent" className="text-xs px-1.5 py-0.5">
+        <Shield className="h-3 w-3 mr-1"/>Admin
     </Badge>
 )
 
@@ -225,9 +224,9 @@ export function AppSidebar() {
                                 {getInitials(user?.displayName || user?.email)}
                             </AvatarFallback>
                         </Avatar>
-                        <div className="flex flex-col overflow-hidden text-left">
+                        <div className="flex-1 min-w-0">
                             <div className="font-semibold truncate flex items-center">
-                                {user?.displayName}
+                                <span className="truncate">{user?.displayName}</span>
                                 {userProfile?.isAdmin && <AdminBadge/>}
                             </div>
                             <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
@@ -242,6 +241,17 @@ export function AppSidebar() {
                         <span>Edit Profil</span>
                     </Link>
                 </DropdownMenuItem>
+                 {userProfile?.isAdmin && (
+                    <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                             <Link href="/admin">
+                                <Shield className="mr-2 h-4 w-4" />
+                                <span>Panel Admin</span>
+                            </Link>
+                        </DropdownMenuItem>
+                    </>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
