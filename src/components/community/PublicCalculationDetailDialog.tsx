@@ -89,9 +89,9 @@ export function PublicCalculationDetailDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl w-full p-0">
-          <ScrollArea className="max-h-[85vh]">
-            <div className="p-6 space-y-6">
+      <DialogContent className="max-w-3xl w-[90vw] p-0">
+          <ScrollArea className="max-h-[90vh]">
+            <div className="p-4 md:p-6 space-y-6">
               <DialogHeader>
                 <DialogTitle className="font-headline text-2xl">{productName}</DialogTitle>
                 <div className="flex items-center gap-2 pt-1">
@@ -149,7 +149,7 @@ export function PublicCalculationDetailDialog({
                   <CardHeader>
                       <CardTitle className="font-headline text-xl">Ringkasan Finansial</CardTitle>
                   </CardHeader>
-                  <CardContent className="grid md:grid-cols-2 gap-6 items-center">
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                       <div className="h-64">
                         <CostPieChart data={pieChartData} />
                       </div>
@@ -184,7 +184,7 @@ export function PublicCalculationDetailDialog({
                                           <span className="font-semibold">{material.name}</span>
                                           <span className="text-xs text-muted-foreground ml-2">{material.qty} {material.unit}</span>
                                       </div>
-                                      <span className="text-sm font-mono">{formatCurrency(material.cost * material.qty)}</span>
+                                      <span className="text-sm font-mono">{formatCurrency((material.cost || 0) * (material.qty || 1))}</span>
                                   </div>
                                   {material.description && <p className="text-xs text-muted-foreground mt-1">{material.description}</p>}
                                   {material.purchaseLink && (
