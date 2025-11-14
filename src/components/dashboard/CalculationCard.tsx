@@ -27,7 +27,6 @@ export function CalculationCard({ calculation, onDelete }: CalculationCardProps)
   const router = useRouter();
   
   const handleEdit = () => {
-    // This now constructs the full path and sends it to the single, reliable edit page.
     const fullPath = `users/${calculation.userId}/calculations/${calculation.id}`;
     router.push(`/calculator/edit?path=${encodeURIComponent(fullPath)}`);
   };
@@ -99,3 +98,5 @@ export function CalculationCard({ calculation, onDelete }: CalculationCardProps)
     </Card>
   );
 }
+
+    

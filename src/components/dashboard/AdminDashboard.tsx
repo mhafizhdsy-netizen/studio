@@ -63,6 +63,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { Badge } from '../ui/badge';
+import { useRouter } from 'next/navigation';
 
 // Interfaces
 interface UserProfile {
@@ -329,6 +330,7 @@ function UserManager() {
 function ContentManager({ calculations, isLoading }: { calculations: PublicCalculation[] | null, isLoading: boolean }) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleToggleFeature = async (
     calcId: string,
@@ -361,6 +363,7 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
 
   const handleDeleteCalculation = async (calcId: string, userId: string) => {
     if (!firestore) return;
+    // Correct paths to the documents
     const publicCalcRef = doc(firestore, 'public_calculations', calcId);
     const userCalcRef = doc(firestore, 'users', userId, 'calculations', calcId);
 
@@ -378,7 +381,20 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
         variant: 'destructive',
       });
       console.error(e);
+       errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: publicCalcRef.path,
+            operation: 'delete',
+        }));
+         errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: userCalcRef.path,
+            operation: 'delete',
+        }));
     }
+  };
+
+  const handleEdit = (calc: PublicCalculation) => {
+    const fullPath = `users/${calc.userId}/calculations/${calc.id}`;
+    router.push(`/calculator/edit?path=${encodeURIComponent(fullPath)}`);
   };
 
   return (
@@ -438,6 +454,12 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
+                          <DropdownMenuItem
+                            onClick={() => handleEdit(calc)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
                               handleToggleFeature(calc.id, calc.isFeatured)
