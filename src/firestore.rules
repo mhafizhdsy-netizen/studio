@@ -66,7 +66,7 @@ service cloud.firestore {
      */
     match /public_calculations/{calcId} {
       allow get, list: if true;
-      allow write: if isSignedIn() && (request.resource.data.userId == request.auth.uid || resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isAdmin());
       allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
       
       /**
