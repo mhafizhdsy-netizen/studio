@@ -1,11 +1,12 @@
+
 'use client';
 
+import { useParams } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { CalculatorForm } from '@/components/calculator/CalculatorForm';
 import { Loader2, ServerCrash } from 'lucide-react';
 import type { Calculation } from '@/components/dashboard/CalculationHistory';
-import { useParams } from 'next/navigation';
 
 export default function EditCalculatorPageForUser() {
   const params = useParams();
@@ -53,3 +54,5 @@ export default function EditCalculatorPageForUser() {
     </main>
   );
 }
+
+    

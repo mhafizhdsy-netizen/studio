@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -35,11 +36,9 @@ import {
   Trash2,
   Pin,
   PinOff,
-  Edit,
   MoreHorizontal,
   TrendingUp,
   BarChart,
-  Calculator,
   ShieldCheck,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -60,9 +59,7 @@ import {
 } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
-import Link from 'next/link';
 import { Badge } from '../ui/badge';
-import { useRouter } from 'next/navigation';
 
 // Interfaces
 interface UserProfile {
@@ -83,10 +80,6 @@ interface PublicCalculation {
   createdAt: any;
   userId: string;
   commentCount?: number;
-}
-
-interface Calculation {
-    id: string;
 }
 
 // Helper Functions
@@ -653,3 +646,5 @@ export function AdminDashboard() {
     </Card>
   );
 }
+
+    
