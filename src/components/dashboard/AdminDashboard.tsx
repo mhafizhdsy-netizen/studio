@@ -576,21 +576,21 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
     
         setIsSendingReply(true);
 
-        const notification = {
+        const notificationData = {
             userId: selectedReport.reporter.id,
-            type: 'report_reply' as const,
+            type: 'report_reply',
             title: 'Tanggapan Laporan Anda',
             content: replyMessage,
             referenceId: selectedReport.id,
         };
 
-        const { error } = await supabase.from('notifications').insert(notification);
+        const { error: insertError } = await supabase.from('notifications').insert(notificationData);
         
-        if (error) {
-            console.error("Error sending reply:", error);
+        if (insertError) {
+            console.error("Error sending reply:", insertError);
             toast({
                 title: "Gagal Mengirim Balasan",
-                description: error.message || "Terjadi kesalahan. Anda mungkin tidak memiliki izin. Coba lagi.",
+                description: insertError.message || "Terjadi kesalahan saat menulis ke database. Periksa RLS.",
                 variant: "destructive",
             });
         } else {
@@ -903,6 +903,3 @@ export function AdminDashboard() {
     </Card>
   );
 }
-
-    
-
