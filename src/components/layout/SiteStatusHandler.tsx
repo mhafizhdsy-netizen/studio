@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/supabase/auth-provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { InfinityLoader } from "@/components/ui/infinity-loader";
+import { SymbolicLoader } from "@/components/ui/symbolic-loader";
 
 const fetchSiteStatus = async () => {
     const { data, error } = await supabase
@@ -47,7 +47,7 @@ export function SiteStatus({ children }: { children: React.ReactNode }) {
     if ((isStatusLoading || isAuthLoading) && !user?.user_metadata.isAdmin) {
          return (
             <div className="flex h-screen w-full items-center justify-center bg-background">
-                <InfinityLoader />
+                <SymbolicLoader />
             </div>
         );
     }
@@ -57,7 +57,7 @@ export function SiteStatus({ children }: { children: React.ReactNode }) {
     if (!user?.user_metadata.isAdmin && (status?.isMaintenanceMode || status?.isUpdateMode)) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-background">
-                <InfinityLoader />
+                <SymbolicLoader />
             </div>
         );
     }

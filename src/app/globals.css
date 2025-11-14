@@ -63,16 +63,16 @@
     animation: page-fade-in 0.6s ease-out forwards;
   }
 
-  /* Infinity Loader Animation */
-  .infinity-loader-path {
-    stroke-dasharray: 315;
-    stroke-dashoffset: 315;
-    animation: draw-infinity 3s linear infinite;
+  /* Symbolic Loader Animation */
+  .symbol-loader-path {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: draw-symbol 2.5s linear infinite;
   }
 
-  @keyframes draw-infinity {
+  @keyframes draw-symbol {
     to {
-      stroke-dashoffset: -315;
+      stroke-dashoffset: -100;
     }
   }
 }

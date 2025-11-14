@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { InfinityLoader } from "../ui/infinity-loader";
+import { SymbolicLoader } from "../ui/symbolic-loader";
 
 export interface Calculation {
   id: string;
@@ -117,7 +117,7 @@ export function CalculationHistory() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center text-center w-full h-full">
-        <InfinityLoader />
+        <SymbolicLoader />
       </div>
     );
   }

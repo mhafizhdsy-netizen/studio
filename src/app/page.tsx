@@ -11,7 +11,7 @@ import { ArrowRight, Bot, Calculator, CheckCircle, DollarSign, Landmark, Megapho
 import { placeholderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/supabase/auth-provider";
-import { InfinityLoader } from '@/components/ui/infinity-loader';
+import { SymbolicLoader } from '@/components/ui/symbolic-loader';
 
 const heroImage = placeholderImages.find(p => p.id === "hero");
 
@@ -30,7 +30,7 @@ export default function LandingPage() {
   if (isLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <InfinityLoader />
+        <SymbolicLoader />
       </div>
     );
   }

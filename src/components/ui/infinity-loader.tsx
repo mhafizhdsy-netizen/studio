@@ -2,6 +2,9 @@
 
 import { cn } from "@/lib/utils";
 
+/**
+ * @deprecated The SymbolicLoader is now used instead.
+ */
 interface InfinityLoaderProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
 }
