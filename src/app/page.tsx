@@ -24,8 +24,8 @@ export default function LandingPage() {
             <Link href="#harga" className="text-muted-foreground hover:text-foreground transition-colors">Harga</Link>
             <Link href="#faq" className="text-muted-foreground hover:text-foreground transition-colors">FAQ</Link>
         </nav>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" asChild>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" asChild>
             <Link href="/login">Masuk</Link>
           </Button>
           <Button asChild className="font-bold">
