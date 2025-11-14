@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import type { Calculation } from "@/components/dashboard/CalculationHistory";

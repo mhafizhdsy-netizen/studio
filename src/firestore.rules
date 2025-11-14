@@ -37,7 +37,8 @@ service cloud.firestore {
      * @path /users/{userId}/calculations/{calcId}
      */
     match /users/{userId}/calculations/{calcId} {
-      allow get, list, create, update, delete: if isOwner(userId) || isAdmin();
+      // Only the owner of the user document can manage their own calculations.
+      allow read, list, create, update, delete: if isOwner(userId);
     }
     
     /**
@@ -62,11 +63,11 @@ service cloud.firestore {
      */
     match /public_calculations/{calcId} {
       allow get, list: if true;
-      // CREATE: Allow if the user is the owner of the data they are creating, OR they are an admin.
-      allow create: if isSignedIn() && (isOwner(request.resource.data.userId) || isAdmin());
-      // UPDATE: Allow if the user is an admin, OR they are the owner of the *existing* document.
+      // CREATE: Allow if the user is the owner of the data they are creating.
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      // UPDATE: Allow if the user is an admin (for featuring), OR they are the owner of the *existing* document.
       allow update: if isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
-      // DELETE: Allow if the user is an admin, OR they are the owner of the existing document.
+      // DELETE: Allow if the user is the owner of the existing resource, or an admin.
       allow delete: if isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
       
       /**

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -347,14 +346,11 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
         }.`,
       });
     } catch (e: any) {
-        // The permission error will now be thrown globally by the listener
-        // But we can still provide a user-friendly toast here.
         toast({
             title: 'Gagal',
             description: 'Gagal memperbarui status pilihan. Cek aturan keamanan atau konsol error.',
             variant: 'destructive',
         });
-        // We still create and emit the error for detailed debugging.
         errorEmitter.emit('permission-error', new FirestorePermissionError({
             path: calcRef.path,
             operation: 'update',
@@ -369,9 +365,8 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
     const userCalcRef = doc(firestore, 'users', userId, 'calculations', calcId);
 
     try {
-      // Delete both documents
       await deleteDoc(publicCalcRef);
-      await deleteDoc(userCalcRef); // Also delete the private one
+      await deleteDoc(userCalcRef);
       toast({
         title: 'Dihapus!',
         description: 'Perhitungan publik dan privat telah berhasil dihapus.',
@@ -443,12 +438,6 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                           <DropdownMenuItem asChild>
-                                <Link href={`/calculator/edit?path=users/${calc.userId}/calculations/${calc.id}`}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit
-                                </Link>
-                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() =>
                               handleToggleFeature(calc.id, calc.isFeatured)
