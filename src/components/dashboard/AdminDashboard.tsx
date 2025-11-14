@@ -520,7 +520,11 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
     const [reports, setReports] = useState<Report[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
-
+    const [isReplyOpen, setIsReplyOpen] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+    const [replyMessage, setReplyMessage] = useState("");
+    const [isSendingReply, setIsSendingReply] = useState(false);
+    
     const fetchReports = async () => {
         setIsLoading(true);
         const { data, error } = await supabase
@@ -560,6 +564,59 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
         }
     };
     
+    const openReplyDialog = (report: Report) => {
+        setSelectedReport(report);
+        setReplyMessage(`Menanggapi laporan Anda tentang konten "${report.calculation.productName}", kami telah...`);
+        setIsReplyOpen(true);
+    };
+
+    const handleSendReply = async () => {
+        if (!selectedReport || !replyMessage) return;
+
+        setIsSendingReply(true);
+
+        const notificationData = {
+            userId: selectedReport.reporter.id,
+            type: 'report_reply' as const,
+            title: "Tanggapan Laporan Anda",
+            content: replyMessage,
+            referenceId: selectedReport.id,
+        };
+        
+        try {
+            const response = await fetch('/api/send-admin-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(notificationData),
+            });
+            
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Gagal mengirim balasan.');
+            }
+
+            toast({ title: 'Balasan Terkirim' });
+            await updateReportStatus(selectedReport.id, 'resolved');
+            setIsReplyOpen(false);
+            setReplyMessage("");
+            setSelectedReport(null);
+
+        } catch (error: any) {
+            console.error("Error sending reply:", error);
+            toast({
+                title: "Gagal Mengirim Balasan",
+                description: error.message || "Terjadi kesalahan. Silakan coba lagi.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSendingReply(false);
+        }
+    };
+
+
     const getStatusBadge = (status: Report['status']) => {
         switch (status) {
             case 'pending': return <Badge variant="secondary">Menunggu</Badge>;
@@ -607,8 +664,8 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
                                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent>
-                                                <DropdownMenuItem onClick={() => updateReportStatus(report.id, 'resolved')} disabled={report.status !== 'pending'}>
-                                                    <ShieldCheck className="mr-2 h-4 w-4" /> Selesaikan Laporan
+                                                <DropdownMenuItem onClick={() => openReplyDialog(report)} disabled={report.status !== 'pending'}>
+                                                    <Send className="mr-2 h-4 w-4" /> Balas & Selesaikan
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => updateReportStatus(report.id, 'dismissed')} disabled={report.status !== 'pending'}>
                                                     <ShieldX className="mr-2 h-4 w-4" /> Tolak Laporan
@@ -623,6 +680,30 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
                 )}
             </CardContent>
         </Card>
+
+        <Dialog open={isReplyOpen} onOpenChange={setIsReplyOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Balas Laporan Pengguna</DialogTitle>
+                </DialogHeader>
+                <div className="py-4 space-y-2">
+                    <p className="text-sm">Anda akan mengirim notifikasi ke <span className="font-semibold">{selectedReport?.reporter.name}</span>.</p>
+                    <Textarea 
+                        value={replyMessage}
+                        onChange={(e) => setReplyMessage(e.target.value)}
+                        placeholder="Tulis balasan Anda di sini..."
+                        rows={5}
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => setIsReplyOpen(false)}>Batal</Button>
+                    <Button onClick={handleSendReply} disabled={isSendingReply}>
+                        {isSendingReply && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Kirim Balasan
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
         </>
     );
 }
@@ -697,12 +778,23 @@ function SiteStatusManager() {
         }));
 
         if (notifications.length > 0) {
-            const { error } = await supabase.from('notifications').insert(notifications);
-            if (error) {
-                toast({ title: 'Gagal mengirim siaran', description: error.message, variant: 'destructive' });
-            } else {
+            try {
+                const response = await fetch('/api/send-admin-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(notifications),
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Gagal mengirim siaran massal.');
+                }
+                
                 toast({ title: 'Pesan siaran berhasil dikirim ke semua pengguna' });
                 setBroadcast({ title: '', message: '' });
+
+            } catch (error: any) {
+                toast({ title: 'Gagal mengirim siaran', description: error.message, variant: 'destructive' });
             }
         } else {
             toast({ title: 'Tidak ada pengguna untuk dikirimi pesan.'});
