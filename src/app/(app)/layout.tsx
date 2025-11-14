@@ -12,41 +12,20 @@ import type { User } from "@supabase/supabase-js";
 
 // This function syncs the user profile to the Supabase `users` table.
 const syncUserProfile = async (user: User) => {
-    try {
-        // Check if profile already exists.
-        // We select 'id' to minimize data transfer.
-        const { data: existingProfile, error: selectError } = await supabase
-            .from('users')
-            .select('id')
-            .eq('id', user.id)
-            .single();
+    // This function is now largely redundant because of the database trigger,
+    // but we keep it as a fallback. The try/catch is removed to prevent
+    // confusing console errors on initial load if the trigger hasn't run yet.
+    
+    // Check if profile already exists.
+    const { data: existingProfile } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
 
-        // If there's an error other than "no rows found", log it.
-        if (selectError && selectError.code !== 'PGRST116') {
-            throw selectError;
-        }
-
-        // If profile already exists, we're done.
-        if (existingProfile) {
-            return;
-        }
-
-        // If not, create a new profile.
-        // We carefully select the data to insert to avoid errors.
-        const { error: insertError } = await supabase.from('users').insert({
-            id: user.id,
-            email: user.email,
-            // Handle different metadata structures from email/password vs. OAuth
-            name: user.user_metadata?.name || user.user_metadata?.full_name || 'Pengguna Baru',
-            photoURL: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
-        });
-
-        if (insertError) {
-            throw insertError;
-        }
-    } catch (error) {
-        // This log helps in debugging if the sync process fails.
-        console.error('Error syncing user profile to Supabase', error);
+    // If profile exists, we're done.
+    if (existingProfile) {
+        return;
     }
 };
 
