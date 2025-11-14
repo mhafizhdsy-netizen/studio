@@ -193,6 +193,10 @@
           "type": "string",
           "description": "Timestamp indicating when the comment was created.",
           "format": "date-time"
+        },
+        "parentId": {
+          "type": "string",
+          "description": "The ID of the parent comment if this is a reply."
         }
       },
       "required": [
