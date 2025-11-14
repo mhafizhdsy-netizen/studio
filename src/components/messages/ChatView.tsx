@@ -3,9 +3,11 @@
 
 import { cn, formatCurrency } from "@/lib/utils";
 import { User as AuthUser } from '@supabase/supabase-js';
-import { User, Calculator, MessageSquareReply } from "lucide-react";
+import { User, Calculator, MessageSquareReply, Copy, Check } from "lucide-react";
 import Image from "next/image";
 import { Button } from "../ui/button";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export interface MessageContent {
     text: string | null;
@@ -32,6 +34,9 @@ interface ChatViewProps {
 }
 
 export function ChatView({ messages, currentUser, onReply }: ChatViewProps) {
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    const { toast } = useToast();
+    
     if (messages.length === 0) {
         return (
             <div className="text-center text-muted-foreground">
@@ -40,6 +45,15 @@ export function ChatView({ messages, currentUser, onReply }: ChatViewProps) {
         );
     }
     
+    const handleCopy = (text: string | null, messageId: string) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text).then(() => {
+            toast({ title: "Pesan disalin!" });
+            setCopiedId(messageId);
+            setTimeout(() => setCopiedId(null), 2000);
+        });
+    }
+
     return (
         <div className="space-y-4">
             {messages.map(message => {
@@ -50,17 +64,27 @@ export function ChatView({ messages, currentUser, onReply }: ChatViewProps) {
                     <div key={message.id} className={cn("flex items-end gap-2 group", isUser ? "justify-end" : "justify-start")}>
                         {!isUser && <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground"><User className="h-5 w-5"/></div>}
                         
-                        <div className="flex items-center gap-2">
-                             {isUser && (
+                        <div className={cn("flex items-center gap-2", isUser ? "flex-row-reverse" : "flex-row")}>
+                            <div className="flex-shrink-0 flex flex-col gap-1 items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="h-7 w-7"
                                     onClick={() => onReply(message)}
                                 >
                                     <MessageSquareReply className="h-4 w-4" />
                                 </Button>
-                            )}
+                                {message.content.text && (
+                                     <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={() => handleCopy(message.content.text, message.id)}
+                                    >
+                                        {copiedId === message.id ? <Check className="h-4 w-4 text-primary"/> : <Copy className="h-4 w-4" />}
+                                    </Button>
+                                )}
+                            </div>
 
                             <div className={cn(
                                 "p-3 rounded-lg max-w-sm md:max-w-md", 
@@ -80,17 +104,6 @@ export function ChatView({ messages, currentUser, onReply }: ChatViewProps) {
                                 )}
                                 {message.content.calculation && <SharedCalculationCard calculation={message.content.calculation} />}
                             </div>
-
-                             {!isUser && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => onReply(message)}
-                                >
-                                    <MessageSquareReply className="h-4 w-4" />
-                                </Button>
-                            )}
                         </div>
                     </div>
                 );
@@ -122,5 +135,3 @@ function SharedCalculationCard({ calculation }: { calculation: any }) {
         </div>
     )
 }
-
-    
