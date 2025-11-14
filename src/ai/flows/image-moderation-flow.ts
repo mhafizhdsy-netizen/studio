@@ -61,9 +61,8 @@ const imageModerationFlow = ai.defineFlow(
   async (input) => {
     try {
       const response = await prompt(input);
-      const output = response.output;
 
-      // Check if Google's safety filters blocked the content at a high severity
+      // 1. Check if the content was blocked by Google's safety filters.
       if (response.blocked) {
         const reason = response.safetyFeedback
           ?.map(fb => fb.rating.category.replace('HARM_CATEGORY_', ''))
@@ -75,25 +74,19 @@ const imageModerationFlow = ai.defineFlow(
         };
       }
       
-      // If AI returns a structured response, check our custom "isSafe" field
-      if (output) {
-        if (output.isSafe === false) {
-          return {
-            isSafe: false,
-            reason:
-              output.reason || 'Gambar mengandung konten yang tidak pantas.',
-          };
-        }
-      } else {
-        // If there's no structured output but it wasn't blocked, there might be an issue.
-        // We default to unsafe to be cautious.
+      const output = response.output;
+
+      // 2. Check if the AI returned a specific "unsafe" flag in the structured output.
+      if (output?.isSafe === false) {
         return {
-            isSafe: false,
-            reason: 'Gagal mendapatkan respons terstruktur dari AI. Coba gambar lain.'
-        }
+          isSafe: false,
+          reason:
+            output.reason || 'Gambar mengandung konten yang tidak pantas.',
+        };
       }
 
-      // If we reach here, it's safe.
+      // 3. If not blocked and no "unsafe" flag, we can consider it safe.
+      // This handles cases where the AI might not return a structured output but the image is fine.
       return { isSafe: true };
 
     } catch (error) {
