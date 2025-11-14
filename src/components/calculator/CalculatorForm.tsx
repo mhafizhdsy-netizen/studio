@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useUser, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, setDocumentNonBlocking, deleteDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase";
 import { doc, serverTimestamp, collection } from 'firebase/firestore';
 import type { Calculation } from "@/components/dashboard/CalculationHistory";
 import { Button } from "@/components/ui/button";
@@ -90,12 +90,14 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
+  // Use a ref to store a unique ID for the calculation session, mainly for image uploads before saving.
+  const calcIdRef = useRef(existingCalculation?.id || doc(collection(firestore, 'temp')).id);
+
   // State for image upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(existingCalculation?.productImageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
-  const calcIdRef = useRef(existingCalculation?.id || doc(collection(firestore, 'temp')).id);
 
 
   const form = useForm<FormData>({
@@ -244,7 +246,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   
   const handleCalculate = form.handleSubmit(calculate);
 
-  function onSubmit(data: FormData) {
+  async function onSubmit(data: FormData) {
     if (!user || !firestore) return;
     if (!result) {
         toast({ title: "Oops!", description: "Hitung dulu hasilnya sebelum menyimpan ya.", variant: "destructive" });
@@ -269,18 +271,30 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         productionTips: data.productionTips || "",
     };
 
-    // Main calculation document
-    const calcRef = doc(firestore, 'users', calculationData.userId, calcIdRef.current);
+    let newCalcId = existingCalculation?.id;
 
-    const dataToSave = existingCalculation
-        ? { ...calculationData, updatedAt: serverTimestamp() }
-        : { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+    if (existingCalculation) {
+        // Update existing document
+        const calcRef = doc(firestore, 'users', calculationData.userId, existingCalculation.id);
+        const dataToSave = { ...calculationData, updatedAt: serverTimestamp() };
+        setDocumentNonBlocking(calcRef, dataToSave, { merge: true });
+    } else {
+        // Create new document
+        const userCalcsColRef = collection(firestore, 'users', calculationData.userId, 'calculations');
+        const dataToSave = { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+        // Let Firestore generate the ID, but get the reference to know the ID
+        const newDocRef = await addDocumentNonBlocking(userCalcsColRef, dataToSave);
+        newCalcId = newDocRef.id;
+    }
 
-    setDocumentNonBlocking(calcRef, dataToSave, { merge: true });
+    if (!newCalcId) {
+        setIsSubmitting(false);
+        toast({ title: "Gagal Menyimpan", description: "Tidak bisa mendapatkan ID untuk perhitungan baru.", variant: "destructive" });
+        return;
+    }
 
     // Public calculation document
-    const publicCalcId = calcIdRef.current;
-    const publicCalcRef = doc(firestore, 'public_calculations', publicCalcId);
+    const publicCalcRef = doc(firestore, 'public_calculations', newCalcId);
 
     if (data.sharePublicly) {
         const publicData: any = {
