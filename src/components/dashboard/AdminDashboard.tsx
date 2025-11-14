@@ -591,7 +591,7 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify([notificationData]),
+                body: JSON.stringify([notificationData]), // API expects an array
             });
     
             const result = await response.json();
