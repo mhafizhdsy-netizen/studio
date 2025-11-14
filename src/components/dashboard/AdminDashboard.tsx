@@ -40,6 +40,7 @@ import {
   TrendingUp,
   BarChart,
   Calculator,
+  ShieldCheck,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
@@ -55,10 +56,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import { Badge } from '../ui/badge';
 
 // Interfaces
 interface UserProfile {
@@ -68,6 +71,7 @@ interface UserProfile {
   photoURL?: string;
   createdAt: any;
   isSuspended?: boolean;
+  isAdmin?: boolean;
 }
 
 interface PublicCalculation {
@@ -189,6 +193,26 @@ function UserManager() {
     }
   };
 
+  const handleToggleAdmin = async (uid: string, isAdmin?: boolean) => {
+    if (!firestore) return;
+    const userRef = doc(firestore, 'users', uid);
+    try {
+      await updateDoc(userRef, { isAdmin: !isAdmin });
+      toast({
+        title: 'Sukses!',
+        description: `Status admin untuk pengguna telah ${
+          !isAdmin ? 'diberikan' : 'dihapus'
+        }.`,
+      });
+    } catch (e) {
+      toast({
+        title: 'Gagal',
+        description: 'Gagal memperbarui status admin pengguna.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleDeleteUser = (uid: string) => {
     toast({
       title: 'Fitur Dalam Pengembangan',
@@ -233,7 +257,10 @@ function UserManager() {
                           {getInitials(user.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">{user.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{user.name}</span>
+                        {user.isAdmin && <Badge variant="accent"><Shield className="h-3 w-3 mr-1" />Admin</Badge>}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
@@ -257,6 +284,17 @@ function UserManager() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleToggleAdmin(user.id, user.isAdmin)
+                          }
+                        >
+                          <ShieldCheck className="mr-2 h-4 w-4" />
+                          {user.isAdmin
+                            ? 'Hapus Status Admin'
+                            : 'Jadikan Admin'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() =>
                             handleToggleSuspend(user.id, user.isSuspended)
@@ -468,10 +506,6 @@ function AnalyticsManager() {
                     publicCalcs.map(async (calc) => {
                         const commentsRef = collection(firestore, 'public_calculations', calc.id, 'comments');
                         try {
-                             const commentsSnapshot = await getDocs(query(commentsRef, limit(1))); // Optimized
-                             // This is a bit of a hack. We can't get count() efficiently on the client.
-                             // Instead, we just check if it's > 0. A full count would require a cloud function.
-                             // For a more accurate but slower count:
                              const fullSnapshot = await getDocs(commentsRef);
                              return {
                                  ...calc,
@@ -479,7 +513,12 @@ function AnalyticsManager() {
                              };
                         } catch (error) {
                              console.error(`Could not fetch comments for ${calc.id}`, error);
-                             return { ...calc, commentCount: 0 }; // Default to 0 on error
+                             const contextualError = new FirestorePermissionError({
+                                path: `public_calculations/${calc.id}/comments`,
+                                operation: 'list',
+                            });
+                            errorEmitter.emit('permission-error', contextualError);
+                             return { ...calc, commentCount: 0 };
                         }
                     })
                 );
