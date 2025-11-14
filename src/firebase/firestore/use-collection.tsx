@@ -37,6 +37,18 @@ export interface InternalQuery extends Query<DocumentData> {
   }
 }
 
+const getPathFromRefOrQuery = (refOrQuery: CollectionReference<DocumentData> | Query<DocumentData>): string => {
+    if (refOrQuery.type === 'collection') {
+      return (refOrQuery as CollectionReference).path;
+    }
+    // This is a more robust way to handle queries, but relies on internal structure
+    if ((refOrQuery as unknown as InternalQuery)._query?.path) {
+      return (refOrQuery as unknown as InternalQuery)._query.path.canonicalString();
+    }
+    // Fallback for other query types, may not be perfect
+    return (refOrQuery as Query).toString();
+};
+
 /**
  * React hook to subscribe to a Firestore collection or query in real-time.
  * Handles nullable references/queries.
@@ -85,11 +97,7 @@ export function useCollection<T = any>(
         setIsLoading(false);
       },
       (error: FirestoreError) => {
-        // This logic extracts the path from either a ref or a query
-        const path: string =
-          memoizedTargetRefOrQuery.type === 'collection'
-            ? (memoizedTargetRefOrQuery as CollectionReference).path
-            : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
+        const path = getPathFromRefOrQuery(memoizedTargetRefOrQuery);
 
         const contextualError = new FirestorePermissionError({
           operation: 'list',

@@ -336,20 +336,23 @@ function ContentManager({ calculations, isLoading }: { calculations: PublicCalcu
   ) => {
     if (!firestore) return;
     const calcRef = doc(firestore, 'public_calculations', calcId);
+    const dataToUpdate = { isFeatured: !isFeatured };
     try {
-      await updateDoc(calcRef, { isFeatured: !isFeatured });
+      await updateDoc(calcRef, dataToUpdate);
       toast({
         title: 'Sukses!',
         description: `Perhitungan telah ${
           !isFeatured ? 'ditandai sebagai pilihan' : 'dihapus dari pilihan'
         }.`,
       });
-    } catch (e) {
-      toast({
-        title: 'Gagal',
-        description: 'Gagal memperbarui status perhitungan.',
-        variant: 'destructive',
-      });
+    } catch (e: any) {
+        const permissionError = new FirestorePermissionError({
+            path: calcRef.path,
+            operation: 'update',
+            requestResourceData: dataToUpdate,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        console.error(e) // Fallback for other errors
     }
   };
 
@@ -490,12 +493,8 @@ function AnalyticsManager() {
     const { data: publicCalcs, isLoading: publicCalcsLoading } = useCollection<PublicCalculation>(publicCalcsQuery);
 
     useEffect(() => {
-        if (publicCalcsLoading || usersLoading) {
-            setIsLoading(true);
-            return;
-        }
-        if (!publicCalcs || !firestore || !users) {
-            setIsLoading(false);
+        if (publicCalcsLoading || usersLoading || !publicCalcs || !firestore || !users) {
+            setIsLoading(publicCalcsLoading || usersLoading);
             return;
         }
 
