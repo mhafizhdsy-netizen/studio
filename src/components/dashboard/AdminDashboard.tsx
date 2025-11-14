@@ -567,12 +567,14 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
         if (!replyingReport || !replyContent) return;
         setIsReplying(true);
         
-        const { error } = await supabase.rpc('send_admin_notification', {
-            p_user_id: replyingReport.reporter.id,
-            p_title: `Balasan untuk Laporan Anda: "${replyingReport.calculation.productName}"`,
-            p_content: replyContent,
-            p_type: 'report_reply',
-            p_reference_id: replyingReport.id
+        // Reverting to direct insert due to RPC issues.
+        // This will fail if RLS is restrictive, but it avoids the "function not found" error.
+        const { error } = await supabase.from('notifications').insert({
+            userId: replyingReport.reporter.id,
+            title: `Balasan untuk Laporan Anda: "${replyingReport.calculation.productName}"`,
+            content: replyContent,
+            type: 'report_reply',
+            referenceId: replyingReport.id,
         });
 
         if (error) {
