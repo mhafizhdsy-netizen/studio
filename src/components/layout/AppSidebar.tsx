@@ -69,6 +69,7 @@ export function AppSidebar() {
   const { data: unreadCount } = useQuery({
     queryKey: ['unreadNotifications', user?.id],
     queryFn: async () => {
+      if (!user) return 0;
       const { count, error } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
@@ -260,7 +261,7 @@ export function AppSidebar() {
                 <Button variant="ghost" className="w-full justify-start h-auto px-2 py-1.5">
                     <div className="flex items-center gap-3 w-full">
                         <Avatar>
-                            <AvatarImage src={photoURL} />
+                            <AvatarImage src={photoURL ?? undefined} />
                             <AvatarFallback className='bg-primary text-primary-foreground font-bold'>
                                 {getInitials(displayName)}
                             </AvatarFallback>
@@ -304,5 +305,3 @@ export function AppSidebar() {
     </>
   );
 }
-
-    
