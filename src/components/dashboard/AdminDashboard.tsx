@@ -121,22 +121,22 @@ function StatCard({
   );
 }
 
-function AdminStats() {
+function AdminStats({ calculationsWithComments }: { calculationsWithComments: PublicCalculation[] | null }) {
   const firestore = useFirestore();
 
   const usersQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'users') : null),
     [firestore]
   );
-  const publicCalcsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'public_calculations') : null),
-    [firestore]
-  );
   
   const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
-  const { data: publicCalcs, isLoading: publicCalcsLoading } = useCollection(publicCalcsQuery);
-
-  const isLoading = usersLoading || publicCalcsLoading;
+  
+  const isLoading = usersLoading || !calculationsWithComments;
+  
+  const totalComments = useMemo(() => {
+    if (!calculationsWithComments) return 0;
+    return calculationsWithComments.reduce((sum, calc) => sum + (calc.commentCount || 0), 0);
+  }, [calculationsWithComments]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -147,14 +147,13 @@ function AdminStats() {
       />
       <StatCard
         title="Perhitungan Publik"
-        value={isLoading ? '...' : (publicCalcs?.length ?? 0).toString()}
+        value={isLoading ? '...' : (calculationsWithComments?.length ?? 0).toString()}
         icon={FileText}
       />
        <StatCard
         title="Total Komentar"
-        value={"..."}
+        value={isLoading ? "..." : totalComments.toString()}
         icon={MessageSquare}
-        description="Fitur dalam pengembangan"
       />
     </div>
   );
@@ -288,18 +287,9 @@ function UserManager() {
   );
 }
 
-function ContentManager() {
+function ContentManager({ calculations, isLoading }: { calculations: PublicCalculation[] | null, isLoading: boolean }) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const publicCalcsQuery = useMemoFirebase(
-    () =>
-      firestore
-        ? query(collection(firestore, 'public_calculations'), orderBy('createdAt', 'desc'))
-        : null,
-    [firestore]
-  );
-  const { data: calculations, isLoading } =
-    useCollection<PublicCalculation>(publicCalcsQuery);
 
   const handleToggleFeature = async (
     calcId: string,
@@ -361,6 +351,7 @@ function ContentManager() {
               <TableRow>
                 <TableHead>Nama Produk</TableHead>
                 <TableHead>Oleh</TableHead>
+                <TableHead>Komentar</TableHead>
                 <TableHead>Dibuat</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
@@ -380,6 +371,7 @@ function ContentManager() {
                       {calc.productName}
                     </TableCell>
                     <TableCell>{calc.userName}</TableCell>
+                    <TableCell>{calc.commentCount ?? 0}</TableCell>
                     <TableCell>
                       {calc.createdAt
                         ? format(calc.createdAt.toDate(), 'd MMM yyyy')
@@ -440,6 +432,8 @@ function ContentManager() {
 function AnalyticsManager() {
     const firestore = useFirestore();
     const [isLoading, setIsLoading] = useState(true);
+    const [calculationsWithComments, setCalculationsWithComments] = useState<PublicCalculation[] | null>(null);
+
     const [analytics, setAnalytics] = useState({
         newUsers7Days: 0,
         newUsers30Days: 0,
@@ -451,38 +445,62 @@ function AnalyticsManager() {
     const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
     const publicCalcsQuery = useMemoFirebase(
-      () => (firestore ? collection(firestore, 'public_calculations') : null),
+      () => (firestore ? query(collection(firestore, 'public_calculations'), orderBy('createdAt', 'desc')) : null),
       [firestore]
     );
     const { data: publicCalcs, isLoading: publicCalcsLoading } = useCollection<PublicCalculation>(publicCalcsQuery);
 
     useEffect(() => {
-        if (!users) return;
-        const now = new Date();
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        if (usersLoading || publicCalcsLoading) {
+            setIsLoading(true);
+            return;
+        }
+        if (!users || !publicCalcs || !firestore) {
+            setIsLoading(false);
+            return;
+        }
 
-        const newUsers7Days = users.filter(u => u.createdAt?.toDate() > sevenDaysAgo).length;
-        const newUsers30Days = users.filter(u => u.createdAt?.toDate() > thirtyDaysAgo).length;
-        
-        setAnalytics(prev => ({ ...prev, newUsers7Days, newUsers30Days }));
-    }, [users]);
-
-
-    useEffect(() => {
-        if (!firestore || !publicCalcs || !users) return;
-        
         const fetchAnalytics = async () => {
             setIsLoading(true);
             try {
-                // Most Active Users (by public calculation count)
-                const userCalcCounts: Record<string, number> = {};
-                publicCalcs.forEach(calc => {
-                  userCalcCounts[calc.userId] = (userCalcCounts[calc.userId] || 0) + 1;
-                });
+                // 1. Fetch all comment counts
+                const calcsWithCommentCounts = await Promise.all(
+                    publicCalcs.map(async (calc) => {
+                        const commentsRef = collection(firestore, 'public_calculations', calc.id, 'comments');
+                        try {
+                             const commentsSnapshot = await getDocs(query(commentsRef, limit(1))); // Optimized
+                             // This is a bit of a hack. We can't get count() efficiently on the client.
+                             // Instead, we just check if it's > 0. A full count would require a cloud function.
+                             // For a more accurate but slower count:
+                             const fullSnapshot = await getDocs(commentsRef);
+                             return {
+                                 ...calc,
+                                 commentCount: fullSnapshot.size,
+                             };
+                        } catch (error) {
+                             console.error(`Could not fetch comments for ${calc.id}`, error);
+                             return { ...calc, commentCount: 0 }; // Default to 0 on error
+                        }
+                    })
+                );
+                setCalculationsWithComments(calcsWithCommentCounts);
+
+                // 2. Calculate New Users
+                const now = new Date();
+                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+                const newUsers7Days = users.filter(u => u.createdAt?.toDate() > sevenDaysAgo).length;
+                const newUsers30Days = users.filter(u => u.createdAt?.toDate() > thirtyDaysAgo).length;
+
+                // 3. Calculate Most Active Users (based on public calculation count)
+                const userCalcCounts = publicCalcs.reduce((acc, calc) => {
+                  acc[calc.userId] = (acc[calc.userId] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>);
                 
                 const userMap = new Map(users.map(u => [u.id, {name: u.name, photoURL: u.photoURL || ''}]));
-
+                
                 const mostActiveUsers = Object.entries(userCalcCounts)
                     .map(([userId, count]) => ({
                         id: userId,
@@ -493,31 +511,16 @@ function AnalyticsManager() {
                     .sort((a, b) => b.count - a.count)
                     .slice(0, 5);
 
-                // Most Commented Calculations
-                const commentedCalcsPromises = publicCalcs.map(async (calc) => {
-                    const commentsRef = collection(firestore, 'public_calculations', calc.id, 'comments');
-                    const commentsSnapshot = await getDocs(commentsRef).catch(error => {
-                        const contextualError = new FirestorePermissionError({
-                            path: `public_calculations/${calc.id}/comments`,
-                            operation: 'list',
-                        });
-                        errorEmitter.emit('permission-error', contextualError);
-                        throw contextualError;
-                    });
-                    return {
-                        id: calc.id,
-                        name: calc.productName,
-                        count: commentsSnapshot.size,
-                    };
-                });
+                // 4. Calculate Most Commented Calcs (using the data from step 1)
+                const mostCommentedCalcs = calcsWithCommentCounts
+                    .filter(c => (c.commentCount ?? 0) > 0)
+                    .sort((a, b) => (b.commentCount ?? 0) - (a.commentCount ?? 0))
+                    .slice(0, 5)
+                    .map(c => ({ id: c.id, name: c.productName, count: c.commentCount ?? 0 }));
                 
-                const commentedCalcs = await Promise.all(commentedCalcsPromises);
-                const mostCommentedCalcs = commentedCalcs.filter(c => c.count > 0).sort((a, b) => b.count - a.count).slice(0, 5);
-                
-                setAnalytics(prev => ({ ...prev, mostActiveUsers, mostCommentedCalcs }));
+                setAnalytics({ newUsers7Days, newUsers30Days, mostActiveUsers, mostCommentedCalcs });
 
             } catch (error) {
-                // Error is already emitted, just log for local debug if needed
                 console.error("Failed to fetch analytics data:", error);
             } finally {
                 setIsLoading(false);
@@ -526,80 +529,98 @@ function AnalyticsManager() {
 
         fetchAnalytics();
 
-    }, [firestore, publicCalcs, users]);
+    }, [firestore, publicCalcs, users, usersLoading, publicCalcsLoading]);
 
     const finalLoading = isLoading || usersLoading || publicCalcsLoading;
 
     return (
-        <div className="space-y-6">
-            <Card>
-                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><TrendingUp className="text-primary"/> Pertumbuhan Pengguna</CardTitle>
-                </CardHeader>
-                <CardContent className="grid sm:grid-cols-2 gap-4">
-                    <StatCard title="Pengguna Baru (7 Hari)" value={finalLoading ? '...' : analytics.newUsers7Days.toString()} icon={Users} />
-                    <StatCard title="Pengguna Baru (30 Hari)" value={finalLoading ? '...' : analytics.newUsers30Days.toString()} icon={Users} />
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><BarChart className="text-primary"/> Analitik Engagement</CardTitle>
-                </CardHeader>
-                <CardContent className="grid lg:grid-cols-2 gap-8">
-                     <div>
-                        <h3 className="font-semibold mb-2">Pengguna Paling Aktif</h3>
-                        <p className="text-sm text-muted-foreground mb-4">Berdasarkan jumlah perhitungan yang dibagikan ke publik.</p>
-                        {finalLoading ? <Loader2 className="animate-spin" /> : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Pengguna</TableHead>
-                                        <TableHead className="text-right">Kontribusi</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {analytics.mostActiveUsers.map(user => (
-                                        <TableRow key={user.id}>
-                                            <TableCell className="flex items-center gap-2">
-                                                 <Avatar className="h-8 w-8">
-                                                    <AvatarImage src={user.photoURL} />
-                                                    <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                                                </Avatar>
-                                                {user.name}
-                                            </TableCell>
-                                            <TableCell className="text-right font-bold">{user.count}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </div>
-                     <div>
-                        <h3 className="font-semibold mb-2">Post Paling Banyak Dikomentari</h3>
-                        <p className="text-sm text-muted-foreground mb-4">Perhitungan publik dengan diskusi terbanyak.</p>
-                         {finalLoading ? <Loader2 className="animate-spin" /> : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Nama Produk</TableHead>
-                                        <TableHead className="text-right">Total Komentar</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                     {analytics.mostCommentedCalcs.map(calc => (
-                                        <TableRow key={calc.id}>
-                                            <TableCell>{calc.name}</TableCell>
-                                            <TableCell className="text-right font-bold">{calc.count}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                         )}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    )
+      <div className="space-y-6">
+        <AdminStats calculationsWithComments={calculationsWithComments} />
+        <Tabs defaultValue="users">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="users">Manajemen Pengguna</TabsTrigger>
+            <TabsTrigger value="content">Manajemen Konten</TabsTrigger>
+            <TabsTrigger value="analytics">Analitik</TabsTrigger>
+          </TabsList>
+          <TabsContent value="users" className="mt-4">
+            <UserManager />
+          </TabsContent>
+          <TabsContent value="content" className="mt-4">
+            <ContentManager calculations={calculationsWithComments} isLoading={finalLoading}/>
+          </TabsContent>
+           <TabsContent value="analytics" className="mt-4">
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><TrendingUp className="text-primary"/> Pertumbuhan Pengguna</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid sm:grid-cols-2 gap-4">
+                            <StatCard title="Pengguna Baru (7 Hari)" value={finalLoading ? '...' : analytics.newUsers7Days.toString()} icon={Users} />
+                            <StatCard title="Pengguna Baru (30 Hari)" value={finalLoading ? '...' : analytics.newUsers30Days.toString()} icon={Users} />
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><BarChart className="text-primary"/> Analitik Engagement</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 className="font-semibold mb-2">Pengguna Paling Aktif</h3>
+                                <p className="text-sm text-muted-foreground mb-4">Berdasarkan jumlah perhitungan yang dibagikan ke publik.</p>
+                                {finalLoading ? <Loader2 className="animate-spin" /> : (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Pengguna</TableHead>
+                                                <TableHead className="text-right">Kontribusi</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {analytics.mostActiveUsers.map(user => (
+                                                <TableRow key={user.id}>
+                                                    <TableCell className="flex items-center gap-2">
+                                                        <Avatar className="h-8 w-8">
+                                                            <AvatarImage src={user.photoURL} />
+                                                            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                                                        </Avatar>
+                                                        {user.name}
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-bold">{user.count}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                )}
+                            </div>
+                            <div>
+                                <h3 className="font-semibold mb-2">Post Paling Banyak Dikomentari</h3>
+                                <p className="text-sm text-muted-foreground mb-4">Perhitungan publik dengan diskusi terbanyak.</p>
+                                {finalLoading ? <Loader2 className="animate-spin" /> : (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Nama Produk</TableHead>
+                                                <TableHead className="text-right">Total Komentar</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {analytics.mostCommentedCalcs.map(calc => (
+                                                <TableRow key={calc.id}>
+                                                    <TableCell>{calc.name}</TableCell>
+                                                    <TableCell className="text-right font-bold">{calc.count}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+           </TabsContent>
+        </Tabs>
+      </div>
+    );
 }
 
 
@@ -616,23 +637,7 @@ export function AdminDashboard() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <AdminStats />
-        <Tabs defaultValue="users">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="users">Manajemen Pengguna</TabsTrigger>
-            <TabsTrigger value="content">Manajemen Konten</TabsTrigger>
-            <TabsTrigger value="analytics">Analitik</TabsTrigger>
-          </TabsList>
-          <TabsContent value="users" className="mt-4">
-            <UserManager />
-          </TabsContent>
-          <TabsContent value="content" className="mt-4">
-            <ContentManager />
-          </TabsContent>
-           <TabsContent value="analytics" className="mt-4">
-            <AnalyticsManager />
-          </TabsContent>
-        </Tabs>
+        <AnalyticsManager />
       </CardContent>
     </Card>
   );
