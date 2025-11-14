@@ -158,11 +158,11 @@ export function PublicCalculationDetailDialog({
                       <div className="space-y-4">
                           <div className="flex justify-between items-center border-b pb-2">
                               <span className="text-muted-foreground">Total HPP</span>
-                              <span className="font-bold text-xl">{formatCurrency(totalHPP)}</span>
+                              <span className="font-bold text-lg">{formatCurrency(totalHPP)}</span>
                           </div>
                           <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                              <span className="text-primary font-bold text-lg">Saran Harga Jual</span>
-                              <span className="font-extrabold text-xl text-primary">
+                              <span className="text-primary font-bold">Saran Harga Jual</span>
+                              <span className="font-extrabold text-lg text-primary">
                               {formatCurrency(suggestedPrice)}
                               </span>
                           </div>
