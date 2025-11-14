@@ -205,7 +205,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   
   const calculate = (data: FormData) => {
     const totalMaterialCost = data.materials.reduce((acc, mat) => {
-        const materialCost = mat.isTotalCost ? mat.cost / mat.qty : mat.cost * mat.qty;
+        const materialCost = mat.isTotalCost ? mat.cost / mat.qty : mat.cost;
         return acc + (isNaN(materialCost) ? 0 : materialCost);
     }, 0);
 
@@ -340,7 +340,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
           <Card>
               <CardHeader>
                   <CardTitle className="font-headline">1. Biaya Bahan Baku</CardTitle>
-                  <CardDescription>Masukkan semua bahan yang kamu pakai untuk satu produk.</CardDescription>
+                  <CardDescription>Masukkan semua biaya bahan baku untuk satu produk (per-pcs)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
               {fields.map((field, index) => (
@@ -380,12 +380,14 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                                         onCheckedChange={field.onChange}
                                     />
                                     <Label htmlFor={`isTotalCost-${index}`} className="text-xs">
-                                        Ini harga total
+                                        Harga Total?
                                     </Label>
                                 </div>
                             )}
                         />
                       </div>
+                      <p className="text-xs text-muted-foreground mt-1">Aktifkan 'Harga Total' jika biaya yang dimasukkan adalah untuk keseluruhan jumlah, bukan per satuan.</p>
+
                       {watchSharePublicly && (
                         <div className="mt-4 space-y-4">
                           <div>
@@ -418,18 +420,18 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
           <Card>
               <CardHeader>
                   <CardTitle className="font-headline">2. Biaya Produksi</CardTitle>
-                  <CardDescription>Biaya tambahan untuk keseluruhan proses produksi.</CardDescription>
+                  <CardDescription>Total biaya tambahan untuk keseluruhan batch produksi.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                   <div>
-                      <Label>Biaya Tenaga Kerja</Label>
+                      <Label>Biaya Tenaga Kerja (Total)</Label>
                       <Input type="number" placeholder="Rp" {...form.register("laborCost")} />
-                      <p className="text-xs text-muted-foreground mt-1">Gaji perhari ÷ jumlah produk perhari. contoh Rp 100.000 ÷ 500</p>
+                      <p className="text-xs text-muted-foreground mt-1">Contoh: Gaji semua karyawan untuk menyelesaikan satu batch.</p>
                   </div>
                   <div>
-                      <Label>Biaya Overhead</Label>
+                      <Label>Biaya Overhead (Total)</Label>
                       <Input type="number" placeholder="Rp" {...form.register("overhead")} />
-                      <p className="text-xs text-muted-foreground mt-1">(listrik,sewa,dll) ÷ jumlah produksi. contoh Rp 2.000.000 ÷ 200 =</p>
+                      <p className="text-xs text-muted-foreground mt-1">Contoh: Total biaya listrik, sewa, dll untuk satu batch.</p>
                   </div>
               </CardContent>
           </Card>
@@ -584,3 +586,5 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     </div>
   );
 }
+
+    
