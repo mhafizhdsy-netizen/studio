@@ -136,8 +136,11 @@ export function PublicCalculationDetailDialog({
                     <ul className="space-y-3">
                         {safeMaterials.map((material, index) => (
                             <li key={index} className="p-3 border rounded-md bg-muted/30">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-semibold">{material.name}</span>
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <span className="font-semibold">{material.name}</span>
+                                        <span className="text-xs text-muted-foreground ml-2">{material.qty} {material.unit}</span>
+                                    </div>
                                     <span className="text-sm font-mono">{formatCurrency(material.cost * material.qty)}</span>
                                 </div>
                                 {material.description && <p className="text-xs text-muted-foreground mt-1">{material.description}</p>}

@@ -24,7 +24,7 @@ export interface Calculation {
   id: string;
   productName: string;
   productImageUrl?: string;
-  materials: { name: string; cost: number; qty: number, description?: string }[];
+  materials: { name: string; cost: number; qty: number, unit?: string, description?: string }[];
   laborCost: number;
   overhead: number;
   packaging: number;

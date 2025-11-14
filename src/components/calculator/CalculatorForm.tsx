@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef, ChangeEvent } from "react";
@@ -30,6 +31,7 @@ const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
   cost: z.coerce.number().min(0, "Biaya harus positif"),
   qty: z.coerce.number().min(1, "Jumlah minimal 1"),
+  unit: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -90,7 +92,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     defaultValues: {
       productName: "",
       productImageUrl: "",
-      materials: [{ name: "", cost: 0, qty: 1, description: "" }],
+      materials: [{ name: "", cost: 0, qty: 1, unit: "", description: "" }],
       laborCost: 0,
       overhead: 0,
       packaging: 0,
@@ -115,13 +117,14 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         ...m,
         cost: Number(m.cost),
         qty: Number(m.qty),
+        unit: m.unit || "",
         description: m.description || "",
       }));
 
       form.reset({
         productName: existingCalculation.productName,
         productImageUrl: existingCalculation.productImageUrl || "",
-        materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1, description: "" }],
+        materials: materials.length > 0 ? materials : [{ name: "", cost: 0, qty: 1, unit: "", description: "" }],
         laborCost: Number(existingCalculation.laborCost),
         overhead: Number(existingCalculation.overhead),
         packaging: Number(existingCalculation.packaging),
@@ -202,7 +205,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const calculationData: Omit<Calculation, 'id' | 'createdAt' | 'updatedAt'> = {
         productName: data.productName,
         productImageUrl: data.productImageUrl || "",
-        materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty), description: m.description || "" })),
+        materials: data.materials.map(m => ({ ...m, cost: Number(m.cost), qty: Number(m.qty), unit: m.unit || "", description: m.description || "" })),
         laborCost: Number(data.laborCost),
         overhead: Number(data.overhead),
         packaging: Number(data.packaging),
@@ -317,7 +320,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                             <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+                      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
                         <div className="flex-grow">
                             <Label>Nama Bahan</Label>
                             <Input placeholder="cth: Kain Katun" {...form.register(`materials.${index}.name`)} />
@@ -330,6 +333,10 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                             <Label>Jumlah</Label>
                             <Input type="number" {...form.register(`materials.${index}.qty`)} />
                         </div>
+                        <div className="w-full sm:w-24">
+                            <Label>Satuan</Label>
+                            <Input placeholder="pcs, kg" {...form.register(`materials.${index}.unit`)} />
+                        </div>
                       </div>
                       {watchSharePublicly && (
                         <div className="mt-2">
@@ -339,7 +346,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                       )}
                   </div>
               ))}
-              <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1, description: "" })}>
+              <Button type="button" variant="outline" onClick={() => append({ name: "", cost: 0, qty: 1, unit: "", description: "" })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Tambah Bahan
               </Button>
               {form.formState.errors.materials && <p className="text-sm text-destructive mt-1">{form.formState.errors.materials.message}</p>}

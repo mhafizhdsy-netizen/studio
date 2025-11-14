@@ -73,6 +73,7 @@
               "name": { "type": "string" },
               "cost": { "type": "number" },
               "qty": { "type": "number" },
+              "unit": { "type": "string" },
               "description": { "type": "string" }
             },
              "required": ["name", "cost", "qty"]
@@ -177,6 +178,7 @@
               "name": { "type": "string" },
               "cost": { "type": "number" },
               "qty": { "type": "number" },
+              "unit": { "type": "string" },
               "description": { "type": "string" }
             },
             "required": ["name", "cost", "qty"]
