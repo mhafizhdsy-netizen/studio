@@ -1,11 +1,13 @@
 
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Bot, Calculator, CheckCircle, DollarSign, Landmark, Megaphone, Share2, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, Calculator, CheckCircle, DollarSign, Landmark, Megaphone, Share2, Sparkles, Loader2 } from "lucide-react";
 import { placeholderImages } from "@/lib/placeholder-images";
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/supabase/auth-provider";
@@ -13,8 +15,26 @@ import { useAuth } from "@/supabase/auth-provider";
 const heroImage = placeholderImages.find(p => p.id === "hero");
 
 export default function LandingPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
 
+  useEffect(() => {
+    // If auth state is loaded and user is logged in, redirect to dashboard.
+    if (!isLoading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, isLoading, router]);
+
+  // While checking auth status, show a loading state to prevent flash of content.
+  if (isLoading || user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If user is not logged in, render the landing page.
   return (
     <div className="flex flex-col min-h-[100dvh] bg-background animate-page-fade-in">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
@@ -193,3 +213,5 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
     </Card>
   );
 }
+
+    
