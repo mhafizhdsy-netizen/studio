@@ -60,40 +60,45 @@ const imageModerationFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      const { candidates, safetyFeedback } = await prompt(input);
+      const response = await prompt(input);
+      const output = response.output;
 
-      // Check if the model's response was blocked by Google's safety filters
-      if (!candidates?.length && safetyFeedback) {
-        const blockedReasons = safetyFeedback
-          .filter((fb) => fb.rating.severity === 'HIGH')
-          .map((fb) => fb.rating.category)
+      // Check if Google's safety filters blocked the content at a high severity
+      if (response.blocked) {
+        const reason = response.safetyFeedback
+          ?.map(fb => fb.rating.category.replace('HARM_CATEGORY_', ''))
           .join(', ');
-
+          
         return {
           isSafe: false,
-          reason: `Gambar ditolak karena melanggar kebijakan konten: ${blockedReasons}.`,
+          reason: `Gambar ditolak karena mengandung unsur: ${reason}.`,
         };
       }
-
-      const output = candidates?.[0]?.output;
-
-      if (!output) {
-        throw new Error('Failed to get a valid response from the AI model.');
-      }
-
-      // Check the structured response from our prompt
-      if (output.isSafe === false) {
+      
+      // If AI returns a structured response, check our custom "isSafe" field
+      if (output) {
+        if (output.isSafe === false) {
+          return {
+            isSafe: false,
+            reason:
+              output.reason || 'Gambar mengandung konten yang tidak pantas.',
+          };
+        }
+      } else {
+        // If there's no structured output but it wasn't blocked, there might be an issue.
+        // We default to unsafe to be cautious.
         return {
-          isSafe: false,
-          reason:
-            output.reason || 'Gambar mengandung konten yang tidak pantas.',
-        };
+            isSafe: false,
+            reason: 'Gagal mendapatkan respons terstruktur dari AI. Coba gambar lain.'
+        }
       }
 
+      // If we reach here, it's safe.
       return { isSafe: true };
+
     } catch (error) {
       console.error('Image moderation flow error:', error);
-      // If the moderation flow itself fails, we default to flagging as unsafe to be cautious.
+      // If the moderation flow itself fails for any reason, default to flagging as unsafe.
       return {
         isSafe: false,
         reason: 'Gagal menganalisis gambar. Silakan coba gambar lain.',
