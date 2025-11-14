@@ -11,7 +11,7 @@ const heroImage = placeholderImages.find(p => p.id === "hero");
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-background">
+    <div className="flex flex-col min-h-[100dvh] bg-background animate-page-fade-in">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
         <Link href="/" className="flex items-center gap-2">
           <Logo />
@@ -28,7 +28,7 @@ export default function LandingPage() {
           <Button variant="ghost" asChild>
             <Link href="/login">Masuk</Link>
           </Button>
-          <Button asChild className="font-bold shadow-lg shadow-primary/20 transition-transform hover:scale-105">
+          <Button asChild className="font-bold">
             <Link href="/signup">Mulai Gratis</Link>
           </Button>
         </div>
@@ -47,7 +47,7 @@ export default function LandingPage() {
             HitunginAja membantu ribuan pengusaha muda seperti kamu menentukan harga jual yang tepat, menganalisis profit, dan mengembangkan bisnis dengan lebih percaya diri.
           </p>
           <div className="mt-8 flex justify-center gap-4">
-            <Button size="lg" asChild className="font-bold shadow-lg shadow-primary/30 transition-transform hover:scale-105">
+            <Button size="lg" asChild className="font-bold">
               <Link href="/signup">
                 Coba Sekarang, 100% Gratis! <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
@@ -146,7 +146,7 @@ export default function LandingPage() {
                                 <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary"/> Kalkulator Iklan & Harga Jual</li>
                                 <li className="flex items-center gap-2"><CheckCircle className="h-5 w-5 text-primary"/> Akses Komunitas</li>
                             </ul>
-                             <Button size="lg" asChild className="w-full font-bold shadow-lg shadow-primary/30 transition-transform hover:scale-105 mt-6">
+                             <Button size="lg" asChild className="w-full font-bold mt-6">
                                 <Link href="/signup">
                                     Daftar Sekarang, Gratis Selamanya
                                 </Link>
