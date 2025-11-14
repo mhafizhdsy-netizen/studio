@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI flow for moderating uploaded images.
@@ -59,7 +60,7 @@ const imageModerationFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      const { candidates, safetyFeedback } = await prompt.run(input);
+      const { candidates, safetyFeedback } = await prompt(input);
 
       // Check if the model's response was blocked by Google's safety filters
       if (!candidates?.length && safetyFeedback) {
