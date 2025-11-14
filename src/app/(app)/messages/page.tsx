@@ -209,7 +209,7 @@ export default function AnonymousChatPage() {
                     </Button>
                     <Button variant="outline" onClick={handleCreateAndWait} disabled={isFinding}>
                         {isFinding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : null}
-                        Jadilah yang Pertama & Tunggu
+                        Jadilah yang Pertama &amp; Tunggu
                     </Button>
                 </div>
             </div>
