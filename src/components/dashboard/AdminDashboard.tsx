@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -489,11 +490,11 @@ function AnalyticsManager() {
     const { data: publicCalcs, isLoading: publicCalcsLoading } = useCollection<PublicCalculation>(publicCalcsQuery);
 
     useEffect(() => {
-        if (usersLoading || publicCalcsLoading) {
+        if (publicCalcsLoading) {
             setIsLoading(true);
             return;
         }
-        if (!users || !publicCalcs || !firestore) {
+        if (!publicCalcs || !firestore) {
             setIsLoading(false);
             return;
         }
@@ -524,40 +525,42 @@ function AnalyticsManager() {
                 );
                 setCalculationsWithComments(calcsWithCommentCounts);
 
-                // 2. Calculate New Users
-                const now = new Date();
-                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                if (users) {
+                     // 2. Calculate New Users
+                    const now = new Date();
+                    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-                const newUsers7Days = users.filter(u => u.createdAt?.toDate() > sevenDaysAgo).length;
-                const newUsers30Days = users.filter(u => u.createdAt?.toDate() > thirtyDaysAgo).length;
+                    const newUsers7Days = users.filter(u => u.createdAt?.toDate() > sevenDaysAgo).length;
+                    const newUsers30Days = users.filter(u => u.createdAt?.toDate() > thirtyDaysAgo).length;
 
-                // 3. Calculate Most Active Users (based on public calculation count)
-                const userCalcCounts = publicCalcs.reduce((acc, calc) => {
-                  acc[calc.userId] = (acc[calc.userId] || 0) + 1;
-                  return acc;
-                }, {} as Record<string, number>);
-                
-                const userMap = new Map(users.map(u => [u.id, {name: u.name, photoURL: u.photoURL || ''}]));
-                
-                const mostActiveUsers = Object.entries(userCalcCounts)
-                    .map(([userId, count]) => ({
-                        id: userId,
-                        name: userMap.get(userId)?.name || 'Pengguna Dihapus',
-                        photoURL: userMap.get(userId)?.photoURL || '',
-                        count: count
-                    }))
-                    .sort((a, b) => b.count - a.count)
-                    .slice(0, 5);
+                    // 3. Calculate Most Active Users (based on public calculation count)
+                    const userCalcCounts = publicCalcs.reduce((acc, calc) => {
+                    acc[calc.userId] = (acc[calc.userId] || 0) + 1;
+                    return acc;
+                    }, {} as Record<string, number>);
+                    
+                    const userMap = new Map(users.map(u => [u.id, {name: u.name, photoURL: u.photoURL || ''}]));
+                    
+                    const mostActiveUsers = Object.entries(userCalcCounts)
+                        .map(([userId, count]) => ({
+                            id: userId,
+                            name: userMap.get(userId)?.name || 'Pengguna Dihapus',
+                            photoURL: userMap.get(userId)?.photoURL || '',
+                            count: count
+                        }))
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 5);
 
-                // 4. Calculate Most Commented Calcs (using the data from step 1)
-                const mostCommentedCalcs = calcsWithCommentCounts
-                    .filter(c => (c.commentCount ?? 0) > 0)
-                    .sort((a, b) => (b.commentCount ?? 0) - (a.commentCount ?? 0))
-                    .slice(0, 5)
-                    .map(c => ({ id: c.id, name: c.productName, count: c.commentCount ?? 0 }));
-                
-                setAnalytics({ newUsers7Days, newUsers30Days, mostActiveUsers, mostCommentedCalcs });
+                    // 4. Calculate Most Commented Calcs (using the data from step 1)
+                    const mostCommentedCalcs = calcsWithCommentCounts
+                        .filter(c => (c.commentCount ?? 0) > 0)
+                        .sort((a, b) => (b.commentCount ?? 0) - (a.commentCount ?? 0))
+                        .slice(0, 5)
+                        .map(c => ({ id: c.id, name: c.productName, count: c.commentCount ?? 0 }));
+                    
+                    setAnalytics({ newUsers7Days, newUsers30Days, mostActiveUsers, mostCommentedCalcs });
+                }
 
             } catch (error) {
                 console.error("Failed to fetch analytics data:", error);
@@ -568,7 +571,7 @@ function AnalyticsManager() {
 
         fetchAnalytics();
 
-    }, [firestore, publicCalcs, users, usersLoading, publicCalcsLoading]);
+    }, [firestore, publicCalcs, users, publicCalcsLoading]);
 
     const finalLoading = isLoading || usersLoading || publicCalcsLoading;
 
