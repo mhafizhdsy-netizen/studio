@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useState, useMemo, useEffect } from 'react';
+import { useFirestore, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
 import {
   collection,
   doc,
@@ -14,6 +14,7 @@ import {
   orderBy,
   limit,
   where,
+  getDoc,
 } from 'firebase/firestore';
 import {
   Card,
@@ -38,6 +39,7 @@ import {
   MoreHorizontal,
   TrendingUp,
   BarChart,
+  Calculator,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import {
@@ -445,11 +447,10 @@ function AnalyticsManager() {
         mostCommentedCalcs: [] as { name: string; id: string; count: number; }[],
     });
 
-    // --- User Growth Analytics ---
-    const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+    const usersQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'users'), orderBy('createdAt', 'desc')) : null, [firestore]);
     const { data: users, isLoading: usersLoading } = useCollection<UserProfile>(usersQuery);
 
-    useMemo(() => {
+    useEffect(() => {
         if (!users) return;
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -462,41 +463,70 @@ function AnalyticsManager() {
     }, [users]);
 
 
-    // --- Engagement Analytics ---
-    useMemo(async () => {
+    useEffect(() => {
         if (!firestore || !users) return;
-        setIsLoading(true);
+        
+        const fetchAnalytics = async () => {
+            setIsLoading(true);
+            try {
+                // Most Active Users (by calculation count)
+                const allCalcsPromises = users.map(user => {
+                    const userCalcsRef = collection(firestore, 'users', user.id, 'calculations');
+                    return getDocs(userCalcsRef).catch(error => {
+                         // Throw a detailed permission error
+                         const contextualError = new FirestorePermissionError({
+                            path: `users/${user.id}/calculations`,
+                            operation: 'list',
+                        });
+                        errorEmitter.emit('permission-error', contextualError);
+                        throw contextualError; // Propagate error to stop Promise.all
+                    });
+                });
+                const allCalcsSnapshots = await Promise.all(allCalcsPromises);
+                
+                const userCalcCounts = users.map((user, index) => ({
+                    id: user.id,
+                    name: user.name,
+                    photoURL: user.photoURL || '',
+                    count: allCalcsSnapshots[index].size
+                }));
 
-        // Most Active Users (by calculation count)
-        const allCalcsPromises = users.map(user => getDocs(collection(firestore, 'users', user.id, 'calculations')));
-        const allCalcsSnapshots = await Promise.all(allCalcsPromises);
-        
-        const userCalcCounts = users.map((user, index) => ({
-            id: user.id,
-            name: user.name,
-            photoURL: user.photoURL || '',
-            count: allCalcsSnapshots[index].size
-        }));
+                const mostActiveUsers = userCalcCounts.sort((a, b) => b.count - a.count).slice(0, 5);
+                
+                // Most Commented Calculations
+                const publicCalcsRef = collection(firestore, 'public_calculations');
+                const publicCalcsSnapshot = await getDocs(publicCalcsRef);
+                const commentedCalcsPromises = publicCalcsSnapshot.docs.map(async (calcDoc) => {
+                    const commentsRef = collection(firestore, 'public_calculations', calcDoc.id, 'comments');
+                    const commentsSnapshot = await getDocs(commentsRef).catch(error => {
+                        const contextualError = new FirestorePermissionError({
+                            path: `public_calculations/${calcDoc.id}/comments`,
+                            operation: 'list',
+                        });
+                        errorEmitter.emit('permission-error', contextualError);
+                        throw contextualError;
+                    });
+                    return {
+                        id: calcDoc.id,
+                        name: calcDoc.data().productName,
+                        count: commentsSnapshot.size,
+                    };
+                });
+                
+                const commentedCalcs = await Promise.all(commentedCalcsPromises);
+                const mostCommentedCalcs = commentedCalcs.filter(c => c.count > 0).sort((a, b) => b.count - a.count).slice(0, 5);
+                
+                setAnalytics(prev => ({ ...prev, mostActiveUsers, mostCommentedCalcs }));
 
-        const mostActiveUsers = userCalcCounts.sort((a, b) => b.count - a.count).slice(0, 5);
-        
-        // Most Commented Calculations
-        const publicCalcsRef = collection(firestore, 'public_calculations');
-        const publicCalcsSnapshot = await getDocs(publicCalcsRef);
-        const commentedCalcsPromises = publicCalcsSnapshot.docs.map(async (calcDoc) => {
-            const commentsSnapshot = await getDocs(collection(firestore, 'public_calculations', calcDoc.id, 'comments'));
-            return {
-                id: calcDoc.id,
-                name: calcDoc.data().productName,
-                count: commentsSnapshot.size,
-            };
-        });
-        
-        const commentedCalcs = await Promise.all(commentedCalcsPromises);
-        const mostCommentedCalcs = commentedCalcs.filter(c => c.count > 0).sort((a, b) => b.count - a.count).slice(0, 5);
-        
-        setAnalytics(prev => ({ ...prev, mostActiveUsers, mostCommentedCalcs }));
-        setIsLoading(false);
+            } catch (error) {
+                // Error is already emitted, just log for local debug if needed
+                console.error("Failed to fetch analytics data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchAnalytics();
 
     }, [firestore, users]);
 
