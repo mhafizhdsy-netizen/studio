@@ -1,4 +1,3 @@
-
 "use client";
 import { useFirestore, useDoc, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from 'firebase/firestore';
@@ -10,8 +9,7 @@ interface EditPageParams {
     params: { id: string };
 }
 
-export default function EditCalculatorPageForUser({ params }: EditPageParams) {
-  const { id } = params;
+export default function EditCalculatorPageForUser({ params: { id } }: EditPageParams) {
   const { user } = useUser();
   const firestore = useFirestore();
   
