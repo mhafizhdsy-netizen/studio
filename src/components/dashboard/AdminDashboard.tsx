@@ -210,11 +210,18 @@ function UserManager() {
   };
 
   const handleDeleteUser = (uid: string) => {
+    if (!firestore) return;
+    const userRef = doc(firestore, 'users', uid);
+    
+    // This is a simplified deletion. In a real-world scenario,
+    // you would use a Firebase Function to delete the user from Auth
+    // and all their associated data (calculations, expenses, etc.).
+    deleteDocumentNonBlocking(userRef);
+
     toast({
-      title: 'Fitur Dalam Pengembangan',
-      description:
-        'Penghapusan pengguna memerlukan Firebase Function untuk memastikan semua data terhapus dengan aman.',
-      variant: 'default',
+      title: 'Pengguna Dihapus',
+      description: 'Dokumen pengguna di Firestore telah dihapus. Hapus pengguna dari Firebase Authentication secara manual.',
+      duration: 5000,
     });
   };
 

@@ -21,7 +21,7 @@ service cloud.firestore {
       allow list: if isAdmin();
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isAdmin() && resource != null;
+      allow delete: if isAdmin();
       
       /**
        * @description Controls access to AI consultant chat history.
@@ -65,9 +65,9 @@ service cloud.firestore {
       allow get, list: if true;
       // CREATE: Allow if the user is the owner of the data they are creating.
       allow create: if isSignedIn() && isOwner(request.resource.data.userId);
-      // UPDATE: Allow if the user is an admin (for featuring), OR they are the owner of the *existing* document.
+      // UPDATE: Admins can feature content. Owners can update their own content.
       allow update: if isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
-      // DELETE: Allow ONLY if the user is the owner of the existing resource. Admins cannot delete content directly.
+      // DELETE: Can be deleted by the owner or an admin.
       allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isAdmin());
       
       /**
@@ -120,5 +120,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
