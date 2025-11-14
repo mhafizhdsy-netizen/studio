@@ -51,7 +51,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <SidebarTrigger />
                 <h1 className="text-lg font-semibold font-headline">HitunginAja</h1>
             </header>
-            {children}
+            <main className="flex-1 overflow-y-auto">{children}</main>
             </SidebarInset>
           </div>
         </SiteStatus>

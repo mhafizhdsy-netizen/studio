@@ -576,7 +576,7 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
         });
 
         if (error) {
-            toast({ title: 'Gagal mengirim balasan', variant: 'destructive' });
+            toast({ title: 'Gagal mengirim balasan', description: error.message, variant: 'destructive' });
         } else {
             toast({ title: 'Balasan berhasil dikirim.' });
             await updateReportStatus(replyingReport.id, 'resolved');
