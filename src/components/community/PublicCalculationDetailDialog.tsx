@@ -7,7 +7,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
@@ -23,6 +22,7 @@ import { Button } from "../ui/button";
 import Link from "next/link";
 import { Separator } from "../ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 interface PublicCalculationDetailDialogProps {
   calculation: PublicCalculation | null;
@@ -84,7 +84,7 @@ export function PublicCalculationDetailDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-full">
+      <DialogContent className="max-w-3xl w-full">
           <DialogHeader>
             <DialogTitle className="font-headline text-2xl">{productName}</DialogTitle>
             <div className="flex items-center gap-2 pt-1">
@@ -104,17 +104,34 @@ export function PublicCalculationDetailDialog({
               </DialogDescription>
             </div>
           </DialogHeader>
-        <ScrollArea className="max-h-[70vh] pr-4">
+        <ScrollArea className="max-h-[70vh] pr-6 -mr-6">
           <div className="space-y-6 py-4">
-             {productImageUrl ? (
-                <div className="relative aspect-video w-full rounded-lg overflow-hidden">
+             <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-muted">
+                {productImageUrl ? (
                     <Image src={productImageUrl} alt={productName} layout="fill" className="object-cover" />
-                </div>
-            ) : (
-                <div className="aspect-video w-full bg-muted rounded-lg flex items-center justify-center">
-                    <Package className="h-12 w-12 text-muted-foreground" />
-                </div>
-            )}
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <Package className="h-16 w-16 text-muted-foreground" />
+                    </div>
+                )}
+                 <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                             <Button 
+                                variant="destructive" 
+                                size="icon" 
+                                className="absolute top-2 right-2 h-8 w-8 rounded-full shadow-lg"
+                                onClick={handleReport}
+                            >
+                                <AlertTriangle className="h-4 w-4"/>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Laporkan Konten</p>
+                        </TooltipContent>
+                    </Tooltip>
+                 </TooltipProvider>
+            </div>
 
             {productDescription && (
                 <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -122,31 +139,36 @@ export function PublicCalculationDetailDialog({
                 </div>
             )}
             
-            <div className="h-64">
-              <CostPieChart data={pieChartData} />
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-semibold font-headline">Rincian Biaya per Produk</h3>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="text-muted-foreground">Total HPP</span>
-                <span className="font-bold text-xl">{formatCurrency(totalHPP)}</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
-                <span className="text-primary font-bold text-lg">Saran Harga Jual</span>
-                <span className="font-extrabold text-2xl text-primary">
-                  {formatCurrency(suggestedPrice)}
-                </span>
-              </div>
-              <div className="flex justify-center">
-                 <Badge>Margin Profit: {margin}%</Badge>
-              </div>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-xl">Ringkasan Finansial</CardTitle>
+                </CardHeader>
+                <CardContent className="grid md:grid-cols-2 gap-6 items-center">
+                    <div className="h-64">
+                      <CostPieChart data={pieChartData} />
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center border-b pb-2">
+                            <span className="text-muted-foreground">Total HPP</span>
+                            <span className="font-bold text-xl">{formatCurrency(totalHPP)}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg">
+                            <span className="text-primary font-bold text-lg">Saran Harga Jual</span>
+                            <span className="font-extrabold text-2xl text-primary">
+                            {formatCurrency(suggestedPrice)}
+                            </span>
+                        </div>
+                        <div className="flex justify-center">
+                            <Badge>Margin Profit: {margin}%</Badge>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             <Separator/>
             
             <div className="space-y-4">
-              <h3 className="font-semibold font-headline">Rincian Bahan Baku</h3>
+              <h3 className="font-semibold font-headline text-xl">Rincian Bahan Baku</h3>
                 {safeMaterials.length > 0 ? (
                     <ul className="space-y-3">
                         {safeMaterials.map((material, index) => (
@@ -192,15 +214,7 @@ export function PublicCalculationDetailDialog({
             <CommentSection calculationId={id} />
           </div>
         </ScrollArea>
-        <DialogFooter className="border-t pt-4">
-            <Button variant="destructive" onClick={handleReport}>
-                <AlertTriangle className="mr-2 h-4 w-4"/>
-                Laporkan Konten
-            </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-    

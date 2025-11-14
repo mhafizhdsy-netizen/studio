@@ -139,6 +139,8 @@ export function ProfileForm() {
         filePath
       );
       
+      // We no longer need to update the photoURL here because the database trigger will handle it.
+      // However, we call updateUser just to trigger the 'on_auth_user_updated' trigger if no other data changed.
       const { error: updateError } = await supabase.auth.updateUser({
         data: { ...user.user_metadata, photoURL: newPhotoURL }
       });
@@ -148,7 +150,7 @@ export function ProfileForm() {
       setPhotoURL(newPhotoURL);
       toast({
         title: "Foto Profil Diperbarui",
-        description: "Foto profil Anda telah berhasil diubah.",
+        description: "Foto profil Anda akan segera diperbarui di seluruh aplikasi.",
       });
     } catch (uploadError) {
       console.error("Failed to upload or update photo:", uploadError);
@@ -203,7 +205,7 @@ export function ProfileForm() {
       
       toast({
         title: "Profil Berhasil Diperbarui!",
-        description: "Informasi akunmu sudah berhasil disimpan.",
+        description: "Informasi akunmu akan segera diperbarui di seluruh aplikasi.",
       });
       
       form.reset({

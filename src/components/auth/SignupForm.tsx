@@ -96,8 +96,8 @@ export function SignupForm() {
     let photoURL = '';
 
     if (photoFile) {
-        // We need user ID for path, so we upload after signup
-        // For now, we just prepare the file
+        // We will upload the photo after user is created to get the user ID for the path.
+        // For now, we'll just hold onto the file.
     }
 
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -106,7 +106,7 @@ export function SignupForm() {
       options: {
         data: {
           name: values.name,
-          photoURL: '', // Start with empty photoURL
+          photoURL: '', // Initially empty, will be updated if photo is uploaded
         }
       }
     });
@@ -133,31 +133,40 @@ export function SignupForm() {
 
     const user = signUpData.user;
 
+    // Now, upload photo if it exists
     if (photoFile) {
         const cleanFileName = sanitizeFileName(photoFile.name);
         const filePath = `public/profile-images/${user.id}/${cleanFileName}`;
-        photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath);
         
-        // Update user metadata with the photoURL
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: { ...user.user_metadata, photoURL }
-        });
+        try {
+            photoURL = await uploadFileToSupabase(photoFile, 'user-assets', filePath);
+            
+            // Update user metadata with the final photoURL
+            const { error: updateError } = await supabase.auth.updateUser({
+              data: { ...user.user_metadata, photoURL }
+            });
 
-        if (updateError) {
-            console.error("Error updating user photo after signup:", updateError);
+            if (updateError) {
+                // This is not critical, the profile can be updated later.
+                console.warn("Could not update user metadata with photoURL after signup:", updateError);
+            }
+        } catch (uploadError) {
+            console.error("Photo upload failed after signup:", uploadError);
             toast({
                 title: "Peringatan",
-                description: "Gagal menyimpan foto profil. Anda bisa mengaturnya lagi di halaman profil.",
+                description: "Akun berhasil dibuat, tetapi gagal mengunggah foto profil. Anda bisa mengaturnya lagi di halaman profil.",
+                variant: "default",
             });
         }
     }
 
     toast({
         title: "Akun Berhasil Dibuat!",
-        description: "Selamat datang di HitunginAja! Yuk mulai hitung HPP pertamamu.",
+        description: "Selamat datang di HitunginAja! Kami akan mengalihkan Anda ke dashboard.",
     });
 
-    router.push("/dashboard");
+    // The onAuthStateChange listener in the layout will handle the redirect.
+    // No need to call router.push here, as it might race with the auth state.
     setIsLoadingEmail(false);
   }
 

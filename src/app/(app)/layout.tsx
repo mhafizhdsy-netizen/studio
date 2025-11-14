@@ -10,22 +10,40 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
-// This function syncs the user profile to the Supabase `users` table.
+// This function is now largely redundant because of the database trigger,
+// but we keep it as a fallback for the initial login sync.
 const syncUserProfile = async (user: User) => {
-    // This function is now largely redundant because of the database trigger,
-    // but we keep it as a fallback. The try/catch is removed to prevent
-    // confusing console errors on initial load if the trigger hasn't run yet.
-    
     // Check if profile already exists.
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile, error } = await supabase
         .from('users')
         .select('id')
         .eq('id', user.id)
         .single();
+    
+    // If there's an error other than "not found", something is wrong.
+    if (error && error.code !== 'PGRST116') {
+        // The console error for this was removed as it was causing confusion
+        // during initial sign-up races where the trigger might not have run yet.
+        return;
+    }
 
     // If profile exists, we're done.
     if (existingProfile) {
         return;
+    }
+
+    // If profile doesn't exist, create it. This mainly handles the very first sign-in.
+    // The database trigger will handle subsequent updates and new sign-ups.
+    const { error: insertError } = await supabase.from('users').insert({
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata.name,
+        photoURL: user.user_metadata.photoURL || user.user_metadata.avatar_url,
+    });
+    
+    if (insertError) {
+        // This log can be helpful during development if the initial sync fails.
+        // console.error('Error on initial user profile sync', insertError);
     }
 };
 
@@ -41,7 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     
     // When the user and session are confirmed, sync their profile.
-    // This is crucial for new sign-ups.
+    // This is crucial for new sign-ups and first logins.
     if (user && session) {
         syncUserProfile(user);
     }
