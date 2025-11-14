@@ -38,7 +38,7 @@ service cloud.firestore {
      */
     match /users/{userId}/calculations/{calcId} {
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin(); // Allow admin to list all for analytics
+      allow list: if isOwner(userId) || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
       allow update: if isOwner(userId) || isAdmin();
       allow delete: if isOwner(userId) && resource != null;
