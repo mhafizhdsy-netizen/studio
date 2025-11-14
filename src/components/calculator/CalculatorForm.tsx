@@ -3,14 +3,7 @@
 
 import { useState, useEffect, useRef, ChangeEvent } from "react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useUser, useFirestore, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from "@/firebase";
-import { doc, serverTimestamp, collection } from 'firebase/firestore';
-import type { Calculation } from "@/components/dashboard/CalculationHistory";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { zodResolver } from "@hodix-ui/react-label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera, Link as LinkIcon, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -90,14 +83,11 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  
-  const calcId = existingCalculation?.id || doc(collection(firestore, 'temp')).id;
 
   const [imageUrl, setImageUrl] = useState<string | null>(existingCalculation?.productImageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -154,7 +144,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     }
   }, [existingCalculation, form]);
 
-    const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     if (!supabase || !user) {
       toast({ title: "Error", description: "Layanan penyimpanan tidak tersedia.", variant: "destructive" });
@@ -187,8 +177,10 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         return;
     }
     
+    // Use existing calculation ID or generate a new one for the path
+    const calculationId = existingCalculation?.id || doc(collection(firestore, 'temp')).id;
     const cleanFileName = sanitizeFileName(file.name);
-    const filePath = `public/product-images/${user.uid}/${calcId}/${cleanFileName}`;
+    const filePath = `public/product-images/${user.uid}/${calculationId}/${cleanFileName}`;
 
     try {
       const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (progress) => {
@@ -266,33 +258,43 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         productionTips: data.productionTips || "",
     };
 
+    let finalCalcId = existingCalculation?.id;
+
     if (existingCalculation) {
+        // Update existing calculation
         const calcRef = doc(firestore, 'users', user.uid, existingCalculation.id);
         const dataToSave = { ...calculationData, updatedAt: serverTimestamp() };
         updateDocumentNonBlocking(calcRef, dataToSave);
     } else {
+        // Add new calculation and get the new ID
         const userCalcsColRef = collection(firestore, 'users', user.uid, 'calculations');
         const dataToSave = { ...calculationData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
-        addDocumentNonBlocking(userCalcsColRef, dataToSave);
+        const newDocRef = await addDocumentNonBlocking(userCalcsColRef, dataToSave);
+        finalCalcId = newDocRef.id;
     }
     
-    const publicCalcRef = doc(firestore, 'public_calculations', calcId);
+    if (finalCalcId) {
+      const publicCalcRef = doc(firestore, 'public_calculations', finalCalcId);
 
-    if (data.sharePublicly) {
-        const publicData: any = {
-            ...calculationData,
-            userName: user.displayName || 'Anonymous',
-            userPhotoURL: user.photoURL || '',
-            createdAt: existingCalculation?.createdAt || serverTimestamp(),
-            updatedAt: serverTimestamp(),
-            userId: user.uid,
-        };
-        delete publicData.isPublic;
+      if (data.sharePublicly) {
+          const publicData: any = {
+              ...calculationData,
+              id: finalCalcId, // Ensure the ID is set
+              userName: user.displayName || 'Anonymous',
+              userPhotoURL: user.photoURL || '',
+              createdAt: existingCalculation?.createdAt || serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              userId: user.uid,
+          };
+          delete publicData.isPublic;
 
-        setDocumentNonBlocking(publicCalcRef, publicData, { merge: true });
-    } else if (existingCalculation?.isPublic) {
-        deleteDocumentNonBlocking(publicCalcRef);
+          setDocumentNonBlocking(publicCalcRef, publicData, { merge: true });
+      } else if (existingCalculation?.isPublic) {
+          // If it was public before and now it is not, delete it
+          deleteDocumentNonBlocking(publicCalcRef);
+      }
     }
+
 
     const randomToast = motivationalToasts[Math.floor(Math.random() * motivationalToasts.length)];
     toast(randomToast);
