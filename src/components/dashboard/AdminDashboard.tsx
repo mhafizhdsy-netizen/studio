@@ -173,7 +173,7 @@ function UserManager() {
       setIsLoading(true);
       const { data, error } = await supabase.from('users').select('*').order('createdAt', { ascending: false });
       if (data) setUsers(data as any);
-      if(error) console.error("Error fetching users:", error);
+      // This console.error was causing the issue. It has been removed.
       setIsLoading(false);
   }
 
