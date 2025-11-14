@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -576,46 +575,31 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
         if (!selectedReport || !replyMessage) return;
     
         setIsSendingReply(true);
-    
-        const notificationData = {
-            userId: selectedReport.reporter.id,
-            type: 'report_reply',
-            title: "Tanggapan Laporan Anda",
-            content: replyMessage,
-            referenceId: selectedReport.id,
-        };
-    
-        try {
-             const response = await fetch('/api/send-admin-notification', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify([notificationData]),
-            });
-            
-            const result = await response.json();
 
-            if (!response.ok) {
-                throw new Error(result.error || 'Gagal mengirim balasan.');
-            }
-    
+        const { error: rpcError } = await supabase.rpc('send_admin_notification', {
+            target_user_id: selectedReport.reporter.id,
+            title: 'Tanggapan Laporan Anda',
+            content: replyMessage,
+            type: 'report_reply',
+            reference_id: selectedReport.id,
+        });
+
+        if (rpcError) {
+            console.error("Error sending reply via RPC:", rpcError);
+            toast({
+                title: "Gagal Mengirim Balasan",
+                description: rpcError.message || "Terjadi kesalahan. Silakan coba lagi.",
+                variant: "destructive",
+            });
+        } else {
             toast({ title: 'Balasan Terkirim' });
             await updateReportStatus(selectedReport.id, 'resolved');
             setIsReplyOpen(false);
             setReplyMessage("");
             setSelectedReport(null);
-    
-        } catch (error: any) {
-            console.error("Error sending reply:", error);
-            toast({
-                title: "Gagal Mengirim Balasan",
-                description: error.message || "Terjadi kesalahan. Silakan coba lagi.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsSendingReply(false);
         }
+    
+        setIsSendingReply(false);
     };
 
 
@@ -780,13 +764,10 @@ function SiteStatusManager() {
             }));
             
             if (notifications.length > 0) {
-                 const response = await fetch('/api/send-admin-notification', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(notifications),
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.error);
+                 const { error: rpcError } = await supabase.rpc('send_broadcast_notifications', {
+                    notifications_data: notifications,
+                 });
+                if (rpcError) throw rpcError;
                 
                 toast({ title: 'Pesan siaran berhasil dikirim ke semua pengguna' });
                 setBroadcast({ title: '', message: '' });
@@ -922,3 +903,5 @@ export function AdminDashboard() {
     </Card>
   );
 }
+
+    
