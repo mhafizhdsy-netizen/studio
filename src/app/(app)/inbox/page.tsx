@@ -61,6 +61,7 @@ export default function InboxPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['unreadNotifications', user?.id] });
     },
   });
 
@@ -76,6 +77,7 @@ export default function InboxPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['unreadNotifications', user?.id] });
     },
   });
 
