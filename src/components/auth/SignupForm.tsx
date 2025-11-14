@@ -17,9 +17,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MailCheck } from "lucide-react";
+import { Loader2, MailCheck, UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Card, CardContent, CardHeader } from "../ui/card";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Nama minimal 2 karakter." }),
@@ -112,49 +113,61 @@ export function SignupForm() {
 
   if (showVerificationMessage) {
     return (
-        <div className="space-y-6 text-left">
-            <Alert>
-                <MailCheck className="h-4 w-4" />
-                <AlertTitle className="font-bold text-lg">Satu Langkah Lagi!</AlertTitle>
-                <AlertDescription className="mt-2">
-                    Akunmu berhasil dibuat. Kami telah mengirimkan link verifikasi ke <strong>{form.getValues('email')}</strong>.
+        <Card className="w-full bg-background/50 backdrop-blur-sm border-white/10 text-center">
+            <CardHeader>
+                 <div className="mx-auto h-12 w-12 rounded-full bg-accent/20 flex items-center justify-center mb-4">
+                    <MailCheck className="h-6 w-6 text-accent" />
+                 </div>
+                <AlertTitle className="font-bold text-lg text-foreground">Satu Langkah Lagi, Sultan!</AlertTitle>
+            </CardHeader>
+            <CardContent>
+                <AlertDescription className="mt-2 text-muted-foreground">
+                    Akunmu berhasil dibuat. Kami udah kirim link verifikasi ke <br/><strong>{form.getValues('email')}</strong>.
                     <br/><br/>
-                    Silakan cek inbox (dan folder spam), lalu klik link tersebut untuk mengaktifkan akunmu sebelum login.
+                    Cek inbox (atau folder spam), lalu klik link itu buat aktivasi akunmu sebelum login.
                 </AlertDescription>
-            </Alert>
-             <div className="mt-6 text-center">
-                <Button asChild variant="accent">
-                    <Link href="/login">Kembali ke Halaman Login</Link>
-                </Button>
-            </div>
-        </div>
+                 <div className="mt-6">
+                    <Button asChild variant="accent">
+                        <Link href="/login">Kembali ke Halaman Login</Link>
+                    </Button>
+                </div>
+            </CardContent>
+        </Card>
     );
   }
 
   return (
-    <div className="w-full space-y-8">
-        <div className="grid gap-2 text-left">
-            <h1 className="text-3xl font-bold font-headline">Sign up</h1>
-        </div>
-
-        <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Sign up with one of following options.</p>
+    <Card className="w-full bg-background/50 backdrop-blur-sm border-white/10">
+        <CardHeader className="text-center">
+            <h2 className="text-2xl font-bold font-headline">Gabung Sekarang, Gratis!</h2>
+        </CardHeader>
+        <CardContent className="space-y-6">
             <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
                 {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
-                Continue with Google
+                Lanjutkan dengan Google
             </Button>
-        </div>
+            
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-white/10" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background/50 px-2 text-muted-foreground">
+                    Atau daftar dengan email
+                    </span>
+                </div>
+            </div>
 
        <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel className="sr-only">Nama</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter your name" {...field} disabled={isLoading} />
+                  <Input placeholder="Nama kamu" {...field} disabled={isLoading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -165,9 +178,9 @@ export function SignupForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="sr-only">Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="email@contoh.com" {...field} disabled={isLoading} />
+                  <Input type="email" placeholder="Email kamu" {...field} disabled={isLoading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -178,26 +191,28 @@ export function SignupForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel className="sr-only">Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="Pick a strong password" {...field} disabled={isLoading} />
+                  <Input type="password" placeholder="Buat password yang kuat" {...field} disabled={isLoading} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" variant="accent" className="w-full font-bold mt-4 py-6 text-lg" disabled={isLoading}>
+          <Button type="submit" variant="accent" className="w-full font-bold" disabled={isLoading}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Account
+            <UserPlus className="mr-2 h-4 w-4" />
+            Buat Akun
           </Button>
         </form>
       </Form>
-      <div className="mt-4 text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-primary hover:underline">
-          Log in
+      <div className="text-center text-sm text-muted-foreground">
+        Udah punya akun?{" "}
+        <Link href="/login" className="font-semibold text-accent hover:underline">
+          Masuk di sini
         </Link>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

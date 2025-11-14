@@ -17,11 +17,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MailWarning } from "lucide-react";
+import { Loader2, MailWarning, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { AuthApiError } from "@supabase/supabase-js";
+import { Card, CardContent, CardHeader } from "../ui/card";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Format email tidak valid." }),
@@ -66,7 +67,7 @@ export function LoginForm() {
       } else {
         toast({
           title: "Gagal Masuk",
-          description: error.message || "Email atau password salah. Coba lagi yuk!",
+          description: "Email atau password salah. Coba lagi yuk!",
           variant: "destructive",
         });
       }
@@ -123,44 +124,53 @@ export function LoginForm() {
     }
   };
 
-  return (
-    <div className="w-full space-y-8">
-      <div className="grid gap-2 text-left">
-        <h1 className="text-3xl font-bold font-headline">Log in</h1>
-      </div>
-       
-      <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">Log in with one of the following options.</p>
-        <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoadingEmail || isLoadingGoogle}>
-            {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
-            Continue with Google
-        </Button>
-      </div>
+  const isLoading = isLoadingEmail || isLoadingGoogle;
 
-      {showVerificationAlert && (
+  return (
+    <Card className="w-full bg-background/50 backdrop-blur-sm border-white/10">
+      <CardHeader className="text-center">
+        <h2 className="text-2xl font-bold font-headline">Selamat Datang Kembali!</h2>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+            {isLoadingGoogle ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2" />}
+            Lanjutkan dengan Google
+        </Button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-white/10" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background/50 px-2 text-muted-foreground">
+              Atau masuk dengan email
+            </span>
+          </div>
+        </div>
+
+        {showVerificationAlert && (
         <Alert variant="destructive">
           <MailWarning className="h-4 w-4" />
           <AlertTitle>Verifikasi Email Anda</AlertTitle>
           <AlertDescription>
-            Email Anda belum terverifikasi. Silakan cek inbox untuk link konfirmasi.
+            Cek inbox untuk link aktivasi. Belum terima?{" "}
+            <button onClick={handleResendVerification} disabled={isLoadingEmail} className="underline font-bold">
+             Kirim ulang
+            </button>
           </AlertDescription>
-          <Button variant="link" className="p-0 h-auto mt-2 text-destructive" onClick={handleResendVerification} disabled={isLoadingEmail}>
-             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Kirim Ulang Verifikasi
-          </Button>
         </Alert>
       )}
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="sr-only">Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="email@contoh.com" {...field} />
+                  <Input type="email" placeholder="Email kamu" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -171,27 +181,30 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Password</FormLabel>
+                <FormLabel className="sr-only">Password</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="Enter your password" {...field} />
+                  <Input type="password" placeholder="Password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" variant="accent" className="w-full font-bold mt-4 py-6 text-lg" disabled={isLoadingEmail || isLoadingGoogle}>
+          <Button type="submit" variant="accent" className="w-full font-bold" disabled={isLoading}>
             {isLoadingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Log in
+            <LogIn className="mr-2 h-4 w-4"/>
+            Masuk
           </Button>
         </form>
       </Form>
 
       <div className="text-center text-sm text-muted-foreground">
-        Don't have an account?{" "}
-        <Link href="/signup" className="font-semibold text-primary hover:underline">
-          Sign up
+        Belum punya akun?{" "}
+        <Link href="/signup" className="font-semibold text-accent hover:underline">
+          Daftar di sini
         </Link>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
+
