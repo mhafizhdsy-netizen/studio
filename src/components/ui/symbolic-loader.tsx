@@ -1,3 +1,4 @@
+
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -26,7 +27,7 @@ export function SymbolicLoader({ className }: SymbolicLoaderProps) {
                 className="symbol-loader-path"
             />
         </svg>
-        <p className="text-sm text-muted-foreground animate-pulse">Memuat...</p>
+        <p className="text-sm text-muted-foreground">Memuat...</p>
     </div>
   );
 }

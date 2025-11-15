@@ -244,7 +244,7 @@ export function ProfileForm() {
                   </AvatarFallback>
                 </Avatar>
                 {isUploading && (
-                  <svg className="absolute inset-0 h-full w-full" viewBox="0 0 36 36">
+                  <svg className="absolute inset-0 h-full w-full animate-spin" viewBox="0 0 36 36" style={{ animationDuration: '1.5s' }}>
                     <circle
                       cx="18"
                       cy="18"
@@ -258,7 +258,7 @@ export function ProfileForm() {
                       cy="18"
                       r="16"
                       fill="none"
-                      className="stroke-current text-primary animate-spin"
+                      className="stroke-current text-primary"
                       strokeWidth="3"
                       strokeDasharray="60 100"
                       strokeLinecap="round"
