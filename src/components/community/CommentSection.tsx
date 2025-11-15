@@ -126,7 +126,7 @@ function CommentForm({ calculationId, parentId, onAfterSubmit, autofocus }: { ca
 
 function CommentItem({ comment, calculationId, onCommentAdded }: { comment: Comment, calculationId: string, onCommentAdded: () => void }) {
     const [isReplying, setIsReplying] = useState(false);
-    const [showReplies, setShowReplies] = useState(true);
+    const [showReplies, setShowReplies] = useState(false);
 
     const userName = comment.user?.name || "Anonim";
     const userPhotoURL = comment.user?.photoURL;
@@ -140,10 +140,10 @@ function CommentItem({ comment, calculationId, onCommentAdded }: { comment: Comm
             </Avatar>
             <div className="flex-1">
                 <div className="bg-muted/50 p-3 rounded-lg">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                             <p className="font-semibold text-sm">{userName}</p>
-                             {isAdmin && <Badge variant="accent" className="text-xs px-1.5 py-0"><Shield className="h-3 w-3 mr-1"/>Admin</Badge>}
+                    <div className="flex justify-between items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                             <p className="font-semibold text-sm truncate">{userName}</p>
+                             {isAdmin && <Badge variant="accent" className="text-xs px-1.5 py-0 shrink-0"><Shield className="h-3 w-3 mr-1"/>Admin</Badge>}
                         </div>
                         <p className="text-[10px] text-muted-foreground whitespace-nowrap">{formatDate(comment.createdAt)}</p>
                     </div>
