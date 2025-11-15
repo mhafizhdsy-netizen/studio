@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@/supabase/auth-provider";
-import { supabase, uploadFileToSupabase } from "@/lib/supabase";
+import { supabase, uploadFileToSupabase, deleteFileFromSupabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -106,6 +106,8 @@ export function ProfileForm() {
     if (!e.target.files || e.target.files.length === 0 || !user) return;
 
     const file = e.target.files[0];
+    const oldPhotoURL = user.user_metadata.photoURL;
+
     const localUrl = URL.createObjectURL(file);
     setPhotoURL(localUrl);
     setIsUploading(true);
@@ -120,7 +122,7 @@ export function ProfileForm() {
             description: moderationResult.reason || "Gambar yang Anda pilih melanggar pedoman komunitas kami.",
             variant: "destructive",
         });
-        setPhotoURL(user.user_metadata.photoURL || null);
+        setPhotoURL(oldPhotoURL || null);
         setIsUploading(false);
         setUploadProgress(null);
         if (fileInputRef.current) {
@@ -144,6 +146,11 @@ export function ProfileForm() {
       });
 
       if (updateError) throw updateError;
+      
+      // If update is successful, delete the old photo
+      if (oldPhotoURL) {
+          await deleteFileFromSupabase('user-assets', oldPhotoURL);
+      }
 
       setPhotoURL(newPhotoURL);
       toast({
@@ -152,7 +159,7 @@ export function ProfileForm() {
       });
     } catch (uploadError) {
       console.error("Failed to upload or update photo:", uploadError);
-      setPhotoURL(user.user_metadata.photoURL || null);
+      setPhotoURL(oldPhotoURL || null);
       toast({
         title: "Gagal Mengunggah Foto",
         description: "Terjadi kesalahan saat mengunggah foto profil.",

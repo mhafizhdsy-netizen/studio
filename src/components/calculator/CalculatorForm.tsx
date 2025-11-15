@@ -6,7 +6,7 @@ import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuth } from "@/supabase/auth-provider";
-import { supabase, uploadFileToSupabase } from "@/lib/supabase";
+import { supabase, uploadFileToSupabase, deleteFileFromSupabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Trash2, PlusCircle, Loader2, Share2, Sparkles, Wand2, Download, Package, Camera, Link as LinkIcon, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +26,7 @@ import { Label } from "../ui/label";
 import { Calculation } from "../dashboard/CalculationHistory";
 import { Button } from "../ui/button";
 import { v4 as uuidv4 } from 'uuid';
+import { moderateImage } from "@/ai/flows/image-moderation-flow";
 
 const materialSchema = z.object({
   name: z.string().min(1, "Nama bahan tidak boleh kosong"),
@@ -157,7 +158,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     }
 
     const file = e.target.files[0];
-    
+    const oldImageUrl = form.getValues('productImageUrl');
+
     const localUrl = URL.createObjectURL(file);
     setImageUrl(localUrl);
     setIsUploading(true);
@@ -172,7 +174,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
             description: moderationResult.reason || "Gambar yang Anda pilih melanggar pedoman komunitas kami.",
             variant: "destructive",
         });
-        setImageUrl(existingCalculation?.productImageUrl || null);
+        setImageUrl(oldImageUrl || null); // Revert to old image
         setIsUploading(false);
         setUploadProgress(null);
         if (fileInputRef.current) {
@@ -189,12 +191,18 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (progress) => {
         setUploadProgress(progress);
       });
+
+      // If upload is successful, delete the old image if it exists
+      if (oldImageUrl) {
+          await deleteFileFromSupabase('user-assets', oldImageUrl);
+      }
+
       setImageUrl(newPhotoURL);
       form.setValue('productImageUrl', newPhotoURL);
       toast({ title: "Sukses!", description: "Gambar produk berhasil diunggah." });
     } catch (error) {
       console.error(error);
-      setImageUrl(existingCalculation?.productImageUrl || null); 
+      setImageUrl(oldImageUrl || null); // Revert to old image on failure
       toast({ title: "Gagal", description: "Gagal mengunggah gambar produk.", variant: "destructive" });
     } finally {
         setIsUploading(false);

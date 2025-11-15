@@ -18,7 +18,8 @@ export const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
 export async function uploadFileToSupabase(
   file: File,
   bucket: string,
-  path: string
+  path: string,
+  onProgress?: (progress: number) => void
 ): Promise<string> {
 
   const { data, error } = await supabase.storage
@@ -42,4 +43,42 @@ export async function uploadFileToSupabase(
   }
   
   return publicUrlData.publicUrl;
+}
+
+
+/**
+ * Deletes a file from Supabase Storage based on its public URL.
+ * @param bucket The name of the bucket in Supabase.
+ * @param publicUrl The public URL of the file to delete.
+ * @returns True if successful, false otherwise.
+ */
+export async function deleteFileFromSupabase(bucket: string, publicUrl: string): Promise<boolean> {
+    if (!publicUrl) return false;
+
+    try {
+        const urlParts = publicUrl.split('/');
+        const filePath = urlParts.slice(urlParts.indexOf(bucket) + 1).join('/');
+
+        if (!filePath) {
+            console.warn("Could not determine file path from URL:", publicUrl);
+            return false;
+        }
+
+        const { error } = await supabase.storage.from(bucket).remove([filePath]);
+
+        if (error) {
+            // It's often okay if the file doesn't exist (e.g., already deleted),
+            // so we only log more critical errors.
+            if (error.message !== 'The resource was not found') {
+                 console.error("Supabase deletion error:", error);
+            }
+            return false;
+        }
+        
+        return true;
+
+    } catch (e) {
+        console.error("Error parsing URL for file deletion:", e);
+        return false;
+    }
 }

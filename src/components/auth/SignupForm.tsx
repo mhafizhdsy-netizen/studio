@@ -76,17 +76,16 @@ export function SignupForm() {
       return;
     }
     
-    if (!signUpData.user) {
+    // This check is important because signUp can succeed but the user object might be null if email confirmation is required.
+    if (signUpData.user) {
+        setShowVerificationMessage(true);
+    } else {
         toast({
-            title: "Gagal Daftar",
-            description: "Gagal membuat pengguna. Silakan coba lagi.",
-            variant: "destructive",
+            title: "Verifikasi Diperlukan",
+            description: "Akun berhasil dibuat. Cek email Anda untuk link verifikasi.",
         });
-        setIsLoadingEmail(false);
-        return;
     }
-    
-    setShowVerificationMessage(true);
+
     setIsLoadingEmail(false);
   }
 
