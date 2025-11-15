@@ -7,7 +7,7 @@ import { User, Bot, AlertTriangle, Copy, Check } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import ReactMarkdown from 'react-markdown';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '../ui/button';
 
@@ -49,7 +49,7 @@ export function AIChatView({ history, isResponding }: AIChatViewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
-
+  
   const getInitials = (name: string) => (name || "A").split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase();
 
   const handleCopy = (text: string, messageId: string) => {

@@ -1,21 +1,30 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/supabase/auth-provider';
 import { supabase } from '@/lib/supabase';
-import { Bot, Loader2 } from 'lucide-react';
+import { Bot, Loader2, ArrowDown } from 'lucide-react';
 import { consultAI } from '@/ai/flows/consultant-flow';
 import type { AIChatMessage } from '@/components/ai-consultant/AIChatView';
 import { AIChatView } from '@/components/ai-consultant/AIChatView';
 import { AIChatInput } from '@/components/ai-consultant/AIChatInput';
 import { SymbolicLoader } from '@/components/ui/symbolic-loader';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function AIConsultantPage() {
   const { user } = useAuth();
   const [isResponding, setIsResponding] = useState(false);
   const [history, setHistory] = useState<AIChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showScrollFab, setShowScrollFab] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const endOfMessagesRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
+    endOfMessagesRef.current?.scrollIntoView({ behavior });
+  };
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -41,6 +50,25 @@ export default function AIConsultantPage() {
     fetchHistory();
   }, [user]);
 
+  useEffect(() => {
+    scrollToBottom('auto');
+  }, [history, isResponding, isLoading]);
+
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+        // Show FAB if user is scrolled up more than a certain threshold (e.g., 300px) from the bottom
+        const isScrolledUp = scrollHeight - scrollTop > clientHeight + 300;
+        setShowScrollFab(isScrolledUp);
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [isLoading]);
+
   const handleSendMessage = async (text: string) => {
     if (!user || !text.trim()) return;
 
@@ -50,18 +78,13 @@ export default function AIConsultantPage() {
       userId: user.id,
     };
     
-    // Optimistically update UI
     const tempUserMessage = { ...userMessage, id: 'temp-user', createdAt: new Date().toISOString() };
     setHistory(prev => [...prev, tempUserMessage]);
     setIsResponding(true);
 
     try {
-      // 1. Save user message to DB
-      const { error: userError } = await supabase.from('ai_consultant_history').insert(userMessage);
-      if (userError) throw userError;
+      await supabase.from('ai_consultant_history').insert(userMessage);
 
-      // 2. Prepare history for AI
-      // We only need the direct history, not the temporary optimistic one
       const currentHistory = (await supabase.from('ai_consultant_history').select('*').eq('userId', user.id).order('createdAt', { ascending: true })).data || [];
       
       const aiHistory = currentHistory.map(h => ({
@@ -69,7 +92,6 @@ export default function AIConsultantPage() {
         content: [{ text: h.content }],
       }));
 
-      // 3. Get AI response
       const aiResponse = await consultAI({
           prompt: text,
           history: aiHistory,
@@ -81,13 +103,10 @@ export default function AIConsultantPage() {
         userId: user.id,
       };
 
-      // 4. Save AI message to DB
       await supabase.from('ai_consultant_history').insert(aiMessage);
       
-      // 5. Fetch the latest history to get all real messages
       const newHistory = await supabase.from('ai_consultant_history').select('*').eq('userId', user.id).order('createdAt', { ascending: true });
       if(newHistory.data) setHistory(newHistory.data);
-
 
     } catch (error) {
       console.error('Error in AI chat flow:', error);
@@ -98,10 +117,8 @@ export default function AIConsultantPage() {
         userId: user.id,
       };
       
-      // Save error message to DB
       await supabase.from('ai_consultant_history').insert(errorMessage);
        
-      // Refetch history to show the error message correctly
       const newHistory = await supabase.from('ai_consultant_history').select('*').eq('userId', user.id).order('createdAt', { ascending: true });
       if(newHistory.data) setHistory(newHistory.data);
 
@@ -111,7 +128,7 @@ export default function AIConsultantPage() {
   };
 
   return (
-    <main className="flex flex-1 flex-col h-full">
+    <main className="flex flex-1 flex-col h-full relative">
        <header className="p-4 border-b flex items-center justify-between bg-background/80 backdrop-blur-sm sticky top-0 md:top-14 z-10 shrink-0">
             <div className="flex items-center gap-3">
                 <Bot className="h-6 w-6 text-primary"/>
@@ -120,8 +137,8 @@ export default function AIConsultantPage() {
                 </h1>
             </div>
         </header>
-        <div className="flex flex-1 flex-col overflow-y-auto">
-            <div className="flex-1 p-4">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+            <div className="p-4">
                 {isLoading ? (
                     <div className="flex h-full items-center justify-center">
                         <SymbolicLoader />
@@ -129,11 +146,23 @@ export default function AIConsultantPage() {
                 ) : (
                     <AIChatView history={history} isResponding={isResponding} />
                 )}
+                <div ref={endOfMessagesRef} />
             </div>
         </div>
-        <footer className="p-4 border-t shrink-0">
+        <footer className="p-4 border-t shrink-0 bg-background">
             <AIChatInput onSendMessage={handleSendMessage} disabled={isResponding}/>
         </footer>
+        <Button
+            size="icon"
+            className={cn(
+                "absolute bottom-24 right-4 rounded-full h-12 w-12 shadow-lg transition-opacity duration-300",
+                showScrollFab ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}
+            onClick={() => scrollToBottom()}
+            aria-label="Scroll to bottom"
+            >
+            <ArrowDown className="h-6 w-6" />
+        </Button>
     </main>
   );
 }
