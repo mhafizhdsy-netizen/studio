@@ -59,15 +59,19 @@ export default function AIConsultantPage() {
     if (!scrollContainer) return;
 
     const handleScroll = () => {
-        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-        // Show FAB if user is scrolled up more than a certain threshold (e.g., 300px) from the bottom
-        const isScrolledUp = scrollHeight - scrollTop > clientHeight + 300;
-        setShowScrollFab(isScrolledUp);
+        if (scrollContainer) {
+            const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+            // Show FAB if user is scrolled up more than a certain threshold (e.g., 300px) from the bottom
+            const isScrolledUp = scrollHeight - scrollTop > clientHeight + 300;
+            setShowScrollFab(isScrolledUp);
+        }
     };
 
     scrollContainer.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check on initial load/change
+
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [isLoading]);
+  }, [isLoading, history]); // Re-attach listener if history or loading state changes
 
   const handleSendMessage = async (text: string) => {
     if (!user || !text.trim()) return;
@@ -138,9 +142,9 @@ export default function AIConsultantPage() {
             </div>
         </header>
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
-            <div className="p-4 flex flex-col justify-center min-h-full">
+            <div className="p-4 flex flex-col justify-end min-h-full">
                 {isLoading ? (
-                    <div className="flex h-full items-center justify-center">
+                    <div className="flex h-full items-center justify-center flex-1">
                         <SymbolicLoader />
                     </div>
                 ) : (
