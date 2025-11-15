@@ -145,7 +145,7 @@ function CommentItem({ comment, calculationId, onCommentAdded }: { comment: Comm
                              <p className="font-semibold text-sm">{userName}</p>
                              {isAdmin && <Badge variant="accent" className="text-xs px-1.5 py-0"><Shield className="h-3 w-3 mr-1"/>Admin</Badge>}
                         </div>
-                        <p className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</p>
+                        <p className="text-[10px] text-muted-foreground whitespace-nowrap">{formatDate(comment.createdAt)}</p>
                     </div>
                     <p className="text-sm mt-1 whitespace-pre-wrap">{comment.text}</p>
                 </div>
