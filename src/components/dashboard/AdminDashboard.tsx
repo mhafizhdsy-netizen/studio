@@ -578,19 +578,19 @@ function ReportsManager({ onRefresh }: { onRefresh: () => void }) {
 
         const notificationData = {
             userId: selectedReport.reporter.id,
-            type: 'report_reply',
+            type: 'report_reply' as const,
             title: 'Tanggapan Laporan Anda',
             content: replyMessage,
             referenceId: selectedReport.id,
         };
-
-        const { error: insertError } = await supabase.from('notifications').insert(notificationData);
         
-        if (insertError) {
-            console.error("Error sending reply:", insertError);
+        const { error } = await supabase.from('notifications').insert(notificationData);
+        
+        if (error) {
+            console.error("Error sending reply:", error);
             toast({
                 title: "Gagal Mengirim Balasan",
-                description: insertError.message || "Terjadi kesalahan saat menulis ke database. Periksa RLS.",
+                description: error.message || "Terjadi kesalahan. Pastikan RLS diatur dengan benar.",
                 variant: "destructive",
             });
         } else {
