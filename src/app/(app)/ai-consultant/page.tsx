@@ -71,7 +71,7 @@ export default function AIConsultantPage() {
     handleScroll(); // Check on initial load/change
 
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [isLoading, history]); // Re-attach listener if history or loading state changes
+  }, [isLoading]); // Re-attach listener only when loading state changes
 
   const handleSendMessage = async (text: string) => {
     if (!user || !text.trim()) return;
