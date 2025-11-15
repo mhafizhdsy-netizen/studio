@@ -242,7 +242,7 @@ export function ProfileForm() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="relative h-24 w-24">
+              <div className="relative h-24 w-24 shrink-0">
                 <Avatar className="h-full w-full">
                   <AvatarImage src={photoURL || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground font-bold text-3xl">
@@ -250,22 +250,22 @@ export function ProfileForm() {
                   </AvatarFallback>
                 </Avatar>
                 {isUploading && (
-                  <svg className="absolute -inset-2 h-[112px] w-[112px]" viewBox="0 0 48 48">
+                  <svg className="absolute -inset-1 h-[104px] w-[104px]" viewBox="0 0 48 48">
                     <circle
                       cx="24"
                       cy="24"
                       r="22"
                       fill="none"
-                      className="stroke-current text-primary/20"
-                      strokeWidth="4"
+                      className="stroke-current text-accent/20"
+                      strokeWidth="3"
                     ></circle>
                     <circle
                       cx="24"
                       cy="24"
                       r="22"
                       fill="none"
-                      className="stroke-current text-primary transition-all duration-300"
-                      strokeWidth="4"
+                      className="stroke-current text-accent transition-all duration-300"
+                      strokeWidth="3"
                       strokeDasharray={circumference}
                       strokeDashoffset={circumference - (uploadProgress / 100) * circumference}
                       strokeLinecap="round"
