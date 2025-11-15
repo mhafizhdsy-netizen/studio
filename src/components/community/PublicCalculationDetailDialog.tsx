@@ -98,8 +98,8 @@ export function PublicCalculationDetailDialog({
   return (
     <>
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl w-[90vw] sm:w-full p-0">
-          <ScrollArea className="max-h-[90vh]">
+      <DialogContent className="w-screen h-screen max-w-full max-h-full sm:w-[95vw] sm:h-[95vh] sm:max-w-[95vw] sm:max-h-[95vh] sm:rounded-lg p-0">
+          <ScrollArea className="h-full">
             <div className="p-4 md:p-6 space-y-6">
               <DialogHeader>
                 <DialogTitle className="font-headline text-2xl">{productName}</DialogTitle>
