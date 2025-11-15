@@ -175,23 +175,31 @@ function AdminStats({ users, calculations }: { users: UserProfile[] | null, calc
     }, [calculations]);
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-            title="Total Pengguna"
-            value={isLoading ? '...' : (users?.length ?? 0).toString()}
-            icon={Users}
-        />
-        <StatCard
-            title="Perhitungan Publik"
-            value={isLoading ? '...' : (calculations?.length ?? 0).toString()}
-            icon={FileText}
-        />
-        <StatCard
-            title="Total Komentar"
-            value={isLoading ? "..." : totalComments.toString()}
-            icon={MessageSquare}
-        />
-        </div>
+        <Card>
+            <CardHeader>
+                <CardTitle>Analitik Umum</CardTitle>
+                <CardDescription>Gambaran singkat aktivitas dalam platform.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <StatCard
+                        title="Total Pengguna"
+                        value={isLoading ? '...' : (users?.length ?? 0).toString()}
+                        icon={Users}
+                    />
+                    <StatCard
+                        title="Perhitungan Publik"
+                        value={isLoading ? '...' : (calculations?.length ?? 0).toString()}
+                        icon={FileText}
+                    />
+                    <StatCard
+                        title="Total Komentar"
+                        value={isLoading ? "..." : totalComments.toString()}
+                        icon={MessageSquare}
+                    />
+                </div>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -786,56 +794,62 @@ function SiteStatusManager() {
     }
 
     return (
-        <div className="grid lg:grid-cols-2 gap-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className='flex items-center gap-2'><Construction/>Mode Perbaikan</CardTitle>
-                    <CardDescription>Alihkan semua pengguna ke halaman perbaikan jika diaktifkan.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                        <Switch id="maintenance-mode" checked={isMaintenanceMode} onCheckedChange={setIsMaintenanceMode} />
-                        <Label htmlFor="maintenance-mode">Aktifkan Mode Perbaikan</Label>
-                    </div>
-                     <Input value={maintenance.title} onChange={e => setMaintenance(p => ({ ...p, title: e.target.value }))} placeholder="Judul Halaman Perbaikan"/>
-                     <Textarea value={maintenance.message} onChange={e => setMaintenance(p => ({ ...p, message: e.target.value }))} placeholder="Pesan yang akan ditampilkan..."/>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle className='flex items-center gap-2'><Rocket/>Mode Pembaruan</CardTitle>
-                    <CardDescription>Alihkan semua pengguna ke halaman pengumuman pembaruan.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                        <Switch id="update-mode" checked={isUpdateMode} onCheckedChange={setIsUpdateMode} />
-                        <Label htmlFor="update-mode">Aktifkan Mode Pembaruan</Label>
-                    </div>
-                     <Input value={update.title} onChange={e => setUpdate(p => ({ ...p, title: e.target.value }))} placeholder="Judul Halaman Pembaruan"/>
-                     <Textarea value={update.message} onChange={e => setUpdate(p => ({ ...p, message: e.target.value }))} placeholder="Jelaskan fitur baru atau pembaruan..."/>
-                </CardContent>
-            </Card>
-             <div className="lg:col-span-2">
-                <Button onClick={handleSaveStatus} className="w-full" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                    Simpan Status Situs
-                </Button>
-            </div>
-            <Card className="lg:col-span-2">
-                <CardHeader>
-                    <CardTitle>Kirim Siaran ke Semua Pengguna</CardTitle>
-                    <CardDescription>Kirim pesan yang akan muncul di Inbox semua pengguna.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <Input value={broadcast.title} onChange={e => setBroadcast(p => ({ ...p, title: e.target.value }))} placeholder="Judul Pesan Siaran"/>
-                     <Textarea value={broadcast.message} onChange={e => setBroadcast(p => ({ ...p, message: e.target.value }))} placeholder="Isi pesan siaran..."/>
-                     <Button onClick={handleSendBroadcast} disabled={isLoading}>
+        <Card>
+            <CardHeader>
+                <CardTitle>Manajemen Status Situs & Siaran</CardTitle>
+                <CardDescription>Atur mode perbaikan/pembaruan dan kirim pesan massal.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                 <div className="grid lg:grid-cols-2 gap-6">
+                    <Card className="p-4">
+                        <CardHeader className="p-2">
+                            <CardTitle className='flex items-center gap-2 text-base'><Construction className="h-4 w-4"/>Mode Perbaikan</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-2 space-y-4">
+                            <div className="flex items-center space-x-2">
+                                <Switch id="maintenance-mode" checked={isMaintenanceMode} onCheckedChange={setIsMaintenanceMode} />
+                                <Label htmlFor="maintenance-mode">Aktifkan Mode Perbaikan</Label>
+                            </div>
+                            <Input value={maintenance.title} onChange={e => setMaintenance(p => ({ ...p, title: e.target.value }))} placeholder="Judul Halaman Perbaikan"/>
+                            <Textarea value={maintenance.message} onChange={e => setMaintenance(p => ({ ...p, message: e.target.value }))} placeholder="Pesan yang akan ditampilkan..."/>
+                        </CardContent>
+                    </Card>
+                    <Card className="p-4">
+                        <CardHeader className="p-2">
+                            <CardTitle className='flex items-center gap-2 text-base'><Rocket className="h-4 w-4"/>Mode Pembaruan</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-2 space-y-4">
+                            <div className="flex items-center space-x-2">
+                                <Switch id="update-mode" checked={isUpdateMode} onCheckedChange={setIsUpdateMode} />
+                                <Label htmlFor="update-mode">Aktifkan Mode Pembaruan</Label>
+                            </div>
+                            <Input value={update.title} onChange={e => setUpdate(p => ({ ...p, title: e.target.value }))} placeholder="Judul Halaman Pembaruan"/>
+                            <Textarea value={update.message} onChange={e => setUpdate(p => ({ ...p, message: e.target.value }))} placeholder="Jelaskan fitur baru atau pembaruan..."/>
+                        </CardContent>
+                    </Card>
+                </div>
+                 <div className="lg:col-span-2">
+                    <Button onClick={handleSaveStatus} className="w-full" disabled={isLoading}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                        Kirim Siaran
+                        Simpan Status Situs
                     </Button>
-                </CardContent>
-            </Card>
-        </div>
+                </div>
+                <Card className="p-4">
+                    <CardHeader className="p-2">
+                        <CardTitle className="text-base">Kirim Siaran ke Semua Pengguna</CardTitle>
+                        <CardDescription className="text-sm">Kirim pesan yang akan muncul di Inbox semua pengguna.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-2 space-y-4">
+                        <Input value={broadcast.title} onChange={e => setBroadcast(p => ({ ...p, title: e.target.value }))} placeholder="Judul Pesan Siaran"/>
+                        <Textarea value={broadcast.message} onChange={e => setBroadcast(p => ({ ...p, message: e.target.value }))} placeholder="Isi pesan siaran..."/>
+                        <Button onClick={handleSendBroadcast} disabled={isLoading}>
+                            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                            Kirim Siaran
+                        </Button>
+                    </CardContent>
+                </Card>
+            </CardContent>
+        </Card>
     )
 }
 

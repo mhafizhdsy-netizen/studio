@@ -61,17 +61,18 @@ export default function AIConsultantPage() {
     const handleScroll = () => {
         if (scrollContainer) {
             const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-            // Show FAB if user is scrolled up more than a certain threshold (e.g., 300px) from the bottom
             const isScrolledUp = scrollHeight - scrollTop > clientHeight + 300;
             setShowScrollFab(isScrolledUp);
         }
     };
 
     scrollContainer.addEventListener('scroll', handleScroll);
-    handleScroll(); // Check on initial load/change
+    
+    // Initial check
+    handleScroll();
 
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, [isLoading]); // Re-attach listener only when loading state changes
+  }, [isLoading]); // Re-run effect when loading changes, to re-attach listener
 
   const handleSendMessage = async (text: string) => {
     if (!user || !text.trim()) return;
