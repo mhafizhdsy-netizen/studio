@@ -79,6 +79,7 @@ export function ProfileForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -110,6 +111,7 @@ export function ProfileForm() {
     const localUrl = URL.createObjectURL(file);
     setPhotoURL(localUrl);
     setIsUploading(true);
+    setUploadProgress(0);
 
     const imageDataUri = await fileToDataUri(file);
     const moderationResult = await moderateImage({ imageDataUri });
@@ -132,7 +134,9 @@ export function ProfileForm() {
     const filePath = `public/profile-images/${user.id}/${cleanFileName}`;
 
     try {
-      const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath);
+      const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (percentage) => {
+        setUploadProgress(percentage);
+      });
       
       const { error: updateError } = await supabase.auth.updateUser({
         data: { ...user.user_metadata, photoURL: newPhotoURL }
@@ -224,6 +228,8 @@ export function ProfileForm() {
       return <div className="flex justify-center items-center"><Loader2 className="h-8 w-8 animate-spin" /></div>
   }
 
+  const circumference = 2 * Math.PI * 22; // 2 * pi * radius
+
   return (
     <Card className="w-full max-w-2xl shadow-none border-none">
       <CardHeader>
@@ -244,24 +250,26 @@ export function ProfileForm() {
                   </AvatarFallback>
                 </Avatar>
                 {isUploading && (
-                  <svg className="absolute inset-0 h-full w-full animate-spin" viewBox="0 0 36 36" style={{ animationDuration: '1.5s' }}>
+                  <svg className="absolute -inset-2 h-[112px] w-[112px]" viewBox="0 0 48 48">
                     <circle
-                      cx="18"
-                      cy="18"
-                      r="16"
+                      cx="24"
+                      cy="24"
+                      r="22"
                       fill="none"
-                      className="stroke-current text-primary/30"
-                      strokeWidth="3"
+                      className="stroke-current text-primary/20"
+                      strokeWidth="4"
                     ></circle>
                     <circle
-                      cx="18"
-                      cy="18"
-                      r="16"
+                      cx="24"
+                      cy="24"
+                      r="22"
                       fill="none"
-                      className="stroke-current text-primary"
-                      strokeWidth="3"
-                      strokeDasharray="60 100"
+                      className="stroke-current text-primary transition-all duration-300"
+                      strokeWidth="4"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={circumference - (uploadProgress / 100) * circumference}
                       strokeLinecap="round"
+                      transform="rotate(-90 24 24)"
                     ></circle>
                   </svg>
                 )}

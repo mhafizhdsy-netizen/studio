@@ -92,6 +92,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
   const [imageUrl, setImageUrl] = useState<string | null>(existingCalculation?.productImageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FormData>({
@@ -162,6 +163,7 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const localUrl = URL.createObjectURL(file);
     setImageUrl(localUrl);
     setIsUploading(true);
+    setUploadProgress(0);
 
     const imageDataUri = await fileToDataUri(file);
     const moderationResult = await moderateImage({ imageDataUri });
@@ -185,7 +187,9 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const filePath = `public/product-images/${user.id}/${calculationId}/${cleanFileName}`;
 
     try {
-      const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath);
+      const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (percentage) => {
+        setUploadProgress(percentage);
+      });
 
       if (oldImageUrl) {
           await deleteFileFromSupabase('user-assets', oldImageUrl);
@@ -317,8 +321,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                 </div>
                 {isUploading && (
                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center rounded-lg p-4">
-                        <Progress value={null} className="w-11/12 h-2" />
-                        <p className="text-white text-sm mt-2">Mengunggah...</p>
+                        <Progress value={uploadProgress} className="w-11/12 h-2" />
+                        <p className="text-white text-sm mt-2">{uploadProgress}%</p>
                     </div>
                 )}
                 <Input

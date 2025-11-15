@@ -8,42 +8,67 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
 
 /**
- * Uploads a file to Supabase Storage.
- * Note: The standard Supabase client library's upload method does not expose a direct progress event.
- * For true progress bars, a more complex implementation using XMLHttpRequest or fetch with streaming is needed.
- * This function is simplified for stability.
+ * Uploads a file to Supabase Storage with progress tracking.
  *
  * @param file The file to upload.
  * @param bucket The name of the bucket in Supabase.
  * @param path The path within the bucket (including the file name).
+ * @param onProgress Callback function to report upload progress (0-100).
  * @returns The public URL of the uploaded file.
  */
-export async function uploadFileToSupabase(
+export function uploadFileToSupabase(
   file: File,
   bucket: string,
   path: string,
+  onProgress: (percentage: number) => void
 ): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const url = `${supabaseUrl}/storage/v1/object/${bucket}/${path}`;
+    
+    xhr.open("POST", url, true);
 
-  if (error) {
-    console.error("Supabase upload error:", error);
-    throw new Error(error.message || 'File upload failed');
-  }
+    xhr.setRequestHeader("Authorization", `Bearer ${supabaseAnonKey}`);
+    xhr.setRequestHeader("X-Upsert", "true");
+    xhr.setRequestHeader("Content-Type", file.type);
 
-  const { data: publicUrlData } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(path);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentage = Math.round((event.loaded / event.total) * 100);
+        onProgress(percentage);
+      }
+    };
+    
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        // Ensure progress reaches 100% on completion
+        onProgress(100);
 
-  if (!publicUrlData) {
-    throw new Error("Could not get public URL for the uploaded file.");
-  }
+        const { data: publicUrlData } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(path);
 
-  return publicUrlData.publicUrl;
+        if (!publicUrlData) {
+            reject(new Error("Could not get public URL for the uploaded file."));
+        } else {
+            resolve(publicUrlData.publicUrl);
+        }
+      } else {
+        try {
+            const errorResponse = JSON.parse(xhr.responseText);
+            reject(new Error(errorResponse.message || `Upload failed with status: ${xhr.status}`));
+        } catch (e) {
+            reject(new Error(`Upload failed with status: ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error("Network error during file upload."));
+    };
+
+    xhr.send(file);
+  });
 }
 
 
