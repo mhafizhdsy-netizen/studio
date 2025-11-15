@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Logo } from "@/components/ui/logo";
 import { useAuth } from "@/supabase/auth-provider";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { SymbolicLoader } from "@/components/ui/symbolic-loader";
 
 const fetchSiteStatus = async () => {
@@ -24,6 +24,7 @@ const fetchSiteStatus = async () => {
 export default function MaintenancePage() {
     const { user, isLoading: isAuthLoading } = useAuth();
     const router = useRouter();
+    const [isAdmin, setIsAdmin] = useState(false);
     const { data: status, isLoading: isStatusLoading, error } = useQuery({
         queryKey: ['siteStatus'],
         queryFn: fetchSiteStatus,
@@ -31,16 +32,29 @@ export default function MaintenancePage() {
 
     const isLoading = isAuthLoading || isStatusLoading;
 
+     useEffect(() => {
+        const checkAdmin = async () => {
+            if (!user) {
+                setIsAdmin(false);
+                return;
+            };
+            const { data } = await supabase.from('users').select('isAdmin').eq('id', user.id).single();
+            setIsAdmin(data?.isAdmin || false);
+        };
+        checkAdmin();
+    }, [user]);
+
     useEffect(() => {
       // If status is loaded, not in maintenance/update, redirect to app
       // Admins are exempt and can access the app anyway
+      if (isAdmin) {
+        router.replace('/dashboard');
+        return;
+      }
       if (!isStatusLoading && status && !status.isMaintenanceMode && !status.isUpdateMode) {
         router.replace('/dashboard');
       }
-      if (!isAuthLoading && user?.user_metadata.isAdmin) {
-        router.replace('/dashboard');
-      }
-    }, [status, isStatusLoading, user, isAuthLoading, router]);
+    }, [status, isStatusLoading, user, isAuthLoading, router, isAdmin]);
 
     const isMaintenance = status?.isMaintenanceMode;
     const title = isMaintenance ? status?.maintenanceTitle : status?.updateTitle;
@@ -84,5 +98,3 @@ export default function MaintenancePage() {
         </div>
     );
 }
-
-    
