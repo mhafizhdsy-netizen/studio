@@ -236,13 +236,35 @@ export function ProfileForm() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="relative">
-                <Avatar className={cn("h-24 w-24", isUploading && "animate-pulse")}>
+              <div className="relative h-24 w-24">
+                <Avatar className="h-full w-full">
                   <AvatarImage src={photoURL || undefined} />
                   <AvatarFallback className="bg-primary text-primary-foreground font-bold text-3xl">
                     {getInitials(user.user_metadata.name)}
                   </AvatarFallback>
                 </Avatar>
+                {isUploading && (
+                  <svg className="absolute inset-0 h-full w-full" viewBox="0 0 36 36">
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="16"
+                      fill="none"
+                      className="stroke-current text-primary/30"
+                      strokeWidth="3"
+                    ></circle>
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="16"
+                      fill="none"
+                      className="stroke-current text-primary animate-spin"
+                      strokeWidth="3"
+                      strokeDasharray="60 100"
+                      strokeLinecap="round"
+                    ></circle>
+                  </svg>
+                )}
                 <Button
                   type="button"
                   size="icon"
@@ -251,7 +273,7 @@ export function ProfileForm() {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
                 >
-                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                  <Camera className="h-4 w-4" />
                 </Button>
                 <Input
                   type="file"
