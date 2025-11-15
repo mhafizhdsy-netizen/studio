@@ -27,9 +27,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
 import { sanitizeFileName } from "@/lib/utils";
 import { moderateImage } from "@/ai/flows/image-moderation-flow";
+import { cn } from "@/lib/utils";
 
 const profileFormSchema = z
   .object({
@@ -81,7 +81,6 @@ export function ProfileForm() {
   const [isUploading, setIsUploading] = useState(false);
   const [photoURL, setPhotoURL] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
@@ -111,7 +110,6 @@ export function ProfileForm() {
     const localUrl = URL.createObjectURL(file);
     setPhotoURL(localUrl);
     setIsUploading(true);
-    setUploadProgress(0);
 
     const imageDataUri = await fileToDataUri(file);
     const moderationResult = await moderateImage({ imageDataUri });
@@ -124,7 +122,6 @@ export function ProfileForm() {
         });
         setPhotoURL(oldPhotoURL || null);
         setIsUploading(false);
-        setUploadProgress(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -135,11 +132,7 @@ export function ProfileForm() {
     const filePath = `public/profile-images/${user.id}/${cleanFileName}`;
 
     try {
-      const newPhotoURL = await uploadFileToSupabase(
-        file,
-        'user-assets',
-        filePath
-      );
+      const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath);
       
       const { error: updateError } = await supabase.auth.updateUser({
         data: { ...user.user_metadata, photoURL: newPhotoURL }
@@ -147,7 +140,6 @@ export function ProfileForm() {
 
       if (updateError) throw updateError;
       
-      // If update is successful, delete the old photo
       if (oldPhotoURL) {
           await deleteFileFromSupabase('user-assets', oldPhotoURL);
       }
@@ -167,7 +159,6 @@ export function ProfileForm() {
       });
     } finally {
       setIsUploading(false);
-      setTimeout(() => setUploadProgress(null), 2000);
     }
   };
 
@@ -190,7 +181,6 @@ export function ProfileForm() {
         const hasDataChanged = data.name !== user.user_metadata.name;
         const hasEmailChanged = data.email !== user.email;
 
-        // Prepare update objects
         const userUpdateData: any = {};
         if (hasDataChanged) {
             userUpdateData.data = { ...user.user_metadata, name: data.name };
@@ -202,7 +192,6 @@ export function ProfileForm() {
             userUpdateData.password = data.newPassword;
         }
 
-        // Perform update if there's anything to change
         if (Object.keys(userUpdateData).length > 0) {
             const { error } = await supabase.auth.updateUser(userUpdateData);
             if (error) throw error;
@@ -248,9 +237,9 @@ export function ProfileForm() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="relative">
-                <Avatar className="h-20 w-20">
+                <Avatar className={cn("h-24 w-24", isUploading && "animate-pulse")}>
                   <AvatarImage src={photoURL || undefined} />
-                  <AvatarFallback className="bg-primary text-primary-foreground font-bold text-2xl">
+                  <AvatarFallback className="bg-primary text-primary-foreground font-bold text-3xl">
                     {getInitials(user.user_metadata.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -258,7 +247,7 @@ export function ProfileForm() {
                   type="button"
                   size="icon"
                   variant="secondary"
-                  className="absolute bottom-0 right-0 rounded-full h-7 w-7"
+                  className="absolute bottom-0 right-0 rounded-full h-8 w-8"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
                 >
@@ -287,7 +276,6 @@ export function ProfileForm() {
                     </FormItem>
                   )}
                 />
-                {uploadProgress !== null && <Progress value={uploadProgress} className="w-full h-2 mt-2" />}
               </div>
             </div>
 

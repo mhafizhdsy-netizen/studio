@@ -8,65 +8,42 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl!, supabaseAnonKey!);
 
 /**
- * Uploads a file to Supabase Storage with progress tracking.
+ * Uploads a file to Supabase Storage.
+ * Note: The standard Supabase client library's upload method does not expose a direct progress event.
+ * For true progress bars, a more complex implementation using XMLHttpRequest or fetch with streaming is needed.
+ * This function is simplified for stability.
+ *
  * @param file The file to upload.
  * @param bucket The name of the bucket in Supabase.
  * @param path The path within the bucket (including the file name).
- * @param onProgress Callback to track upload progress (0-100).
  * @returns The public URL of the uploaded file.
  */
-export function uploadFileToSupabase(
+export async function uploadFileToSupabase(
   file: File,
   bucket: string,
   path: string,
-  onProgress?: (progress: number) => void
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${path}`;
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .upload(path, file, {
+      cacheControl: '3600',
+      upsert: true,
+    });
 
-    xhr.open("POST", uploadUrl, true);
-    
-    // Set Supabase headers
-    xhr.setRequestHeader("apikey", supabaseAnonKey!);
-    xhr.setRequestHeader("Authorization", `Bearer ${supabaseAnonKey}`);
-    xhr.setRequestHeader("x-upsert", "true"); // upsert: true
+  if (error) {
+    console.error("Supabase upload error:", error);
+    throw new Error(error.message || 'File upload failed');
+  }
 
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable && onProgress) {
-        const progress = Math.round((event.loaded / event.total) * 100);
-        onProgress(progress);
-      }
-    };
+  const { data: publicUrlData } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(path);
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        // Construct the public URL
-        const { data: publicUrlData } = supabase.storage
-          .from(bucket)
-          .getPublicUrl(path);
+  if (!publicUrlData) {
+    throw new Error("Could not get public URL for the uploaded file.");
+  }
 
-        if (!publicUrlData) {
-          reject(new Error("Could not get public URL for the uploaded file."));
-        } else {
-          resolve(publicUrlData.publicUrl);
-        }
-      } else {
-        try {
-            const errorResponse = JSON.parse(xhr.responseText);
-            reject(new Error(errorResponse.message || 'File upload failed'));
-        } catch (e) {
-            reject(new Error(`File upload failed with status ${xhr.status}`));
-        }
-      }
-    };
-    
-    xhr.onerror = () => {
-        reject(new Error("Network error occurred during file upload."));
-    };
-
-    xhr.send(file);
-  });
+  return publicUrlData.publicUrl;
 }
 
 

@@ -92,7 +92,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
 
   const [imageUrl, setImageUrl] = useState<string | null>(existingCalculation?.productImageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FormData>({
@@ -163,7 +162,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const localUrl = URL.createObjectURL(file);
     setImageUrl(localUrl);
     setIsUploading(true);
-    setUploadProgress(0);
 
     const imageDataUri = await fileToDataUri(file);
     const moderationResult = await moderateImage({ imageDataUri });
@@ -176,7 +174,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
         });
         setImageUrl(oldImageUrl || null); // Revert to old image
         setIsUploading(false);
-        setUploadProgress(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = ""; 
         }
@@ -188,11 +185,8 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
     const filePath = `public/product-images/${user.id}/${calculationId}/${cleanFileName}`;
 
     try {
-      const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath, (progress) => {
-        setUploadProgress(progress);
-      });
+      const newPhotoURL = await uploadFileToSupabase(file, 'user-assets', filePath);
 
-      // If upload is successful, delete the old image if it exists
       if (oldImageUrl) {
           await deleteFileFromSupabase('user-assets', oldImageUrl);
       }
@@ -206,7 +200,6 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       toast({ title: "Gagal", description: "Gagal mengunggah gambar produk.", variant: "destructive" });
     } finally {
         setIsUploading(false);
-        setTimeout(() => setUploadProgress(null), 2000);
     }
   };
   
@@ -283,16 +276,11 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
       return;
     }
     
-    // Manage public calculation table
     if (data.sharePublicly) {
         const publicData = {
-            id: calculationId, // Use the same ID
-            // All other fields are now handled by the public_calculations view
+            id: calculationId, 
         };
-        // We don't need to upsert to public_calculations anymore, the view handles it
     } else if (existingCalculation?.isPublic) {
-        // If it was public and now it's not, we just need to update `isPublic` to false
-        // The view will automatically exclude it. The upsert above already handles this.
     }
 
     const randomToast = motivationalToasts[Math.floor(Math.random() * motivationalToasts.length)];
@@ -327,10 +315,10 @@ export function CalculatorForm({ existingCalculation }: CalculatorFormProps) {
                  <div className="absolute bottom-2 right-2 bg-secondary text-secondary-foreground rounded-full p-2">
                     <Camera className="h-4 w-4" />
                 </div>
-                {isUploading && uploadProgress !== null && (
+                {isUploading && (
                     <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center rounded-lg p-4">
-                        <Progress value={uploadProgress} className="w-11/12 h-2" />
-                        <p className="text-white text-sm mt-2">{Math.round(uploadProgress)}%</p>
+                        <Progress value={null} className="w-11/12 h-2" />
+                        <p className="text-white text-sm mt-2">Mengunggah...</p>
                     </div>
                 )}
                 <Input
