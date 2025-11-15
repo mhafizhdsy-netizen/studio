@@ -112,7 +112,7 @@ export default function AIConsultantPage() {
 
   return (
     <main className="flex flex-1 flex-col h-full">
-       <header className="p-4 border-b flex items-center justify-between bg-background/80 backdrop-blur-sm sticky top-0 md:top-14 z-10">
+       <header className="p-4 border-b flex items-center justify-between bg-background/80 backdrop-blur-sm sticky top-0 md:top-14 z-10 shrink-0">
             <div className="flex items-center gap-3">
                 <Bot className="h-6 w-6 text-primary"/>
                 <h1 className="text-lg font-semibold md:text-xl font-headline">
@@ -129,7 +129,7 @@ export default function AIConsultantPage() {
                 <AIChatView history={history} isResponding={isResponding} />
             )}
         </div>
-        <footer className="p-4 border-t">
+        <footer className="p-4 border-t shrink-0">
             <AIChatInput onSendMessage={handleSendMessage} disabled={isResponding}/>
         </footer>
     </main>
