@@ -250,7 +250,7 @@ export function ProfileForm() {
                   </AvatarFallback>
                 </Avatar>
                 {isUploading && (
-                  <svg className="absolute -inset-1 h-[104px] w-[104px]" viewBox="0 0 48 48">
+                  <svg className="absolute -inset-2 h-[112px] w-[112px]" viewBox="0 0 48 48">
                     <circle
                       cx="24"
                       cy="24"
